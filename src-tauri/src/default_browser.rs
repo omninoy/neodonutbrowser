@@ -102,7 +102,7 @@ mod macos {
 
   pub fn is_default_browser() -> Result<bool, String> {
     let schemes = ["http", "https"];
-    let bundle_id = "com.donutbrowser";
+    let bundle_id = "io.github.paracosm17.neodonutbrowser";
 
     for scheme in schemes {
       let scheme_str = CFString::new(scheme);
@@ -124,7 +124,7 @@ mod macos {
   }
 
   pub fn set_as_default_browser() -> Result<(), String> {
-    let bundle_id = CFString::new("com.donutbrowser");
+    let bundle_id = CFString::new("io.github.paracosm17.neodonutbrowser");
     let schemes = ["http", "https"];
 
     for scheme in schemes {
@@ -137,10 +137,10 @@ mod macos {
         if status != 0 {
           let error_msg = match status {
             -54 => format!(
-              "Failed to set as default browser for scheme '{scheme}'. The app is not properly registered as a browser. Please:\n1. Build and install the app properly\n2. Manually set Donut Browser as default in System Settings > General > Default web browser\n3. Make sure the app is in your Applications folder"
+              "Failed to set as default browser for scheme '{scheme}'. The app is not properly registered as a browser. Please:\n1. Build and install the app properly\n2. Manually set NeoDonut Browser as default in System Settings > General > Default web browser\n3. Make sure the app is in your Applications folder"
             ),
             _ => format!(
-              "Failed to set as default browser for scheme '{scheme}'. Status code: {status}. Please manually set Donut Browser as default in System Settings > General > Default web browser."
+              "Failed to set as default browser for scheme '{scheme}'. Status code: {status}. Please manually set NeoDonut Browser as default in System Settings > General > Default web browser."
             )
           };
           return Err(error_msg);
@@ -160,11 +160,11 @@ mod windows {
   use winreg::RegKey;
 
   /// The key Windows knows us by. Never shown to a person.
-  const APP_NAME: &str = "DonutBrowser";
+  const APP_NAME: &str = "NeoDonutBrowser";
   /// The name Windows shows in "Default apps" and in "Open with".
-  const DISPLAY_NAME: &str = "Donut Browser";
-  const DESCRIPTION: &str = "Donut Browser - Simple Yet Powerful Anti-Detect Browser";
-  const PROG_ID: &str = "DonutBrowser.HTML";
+  const DISPLAY_NAME: &str = "NeoDonut Browser";
+  const DESCRIPTION: &str = "NeoDonut Browser - Simple Yet Powerful Anti-Detect Browser";
+  const PROG_ID: &str = "NeoDonutBrowser.HTML";
 
   /// A web browser registers under `StartMenuInternet`, and
   /// `RegisteredApplications` points at the `Capabilities` subkey of that

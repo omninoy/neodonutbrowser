@@ -321,7 +321,7 @@
       "extensions": "Extensions"
     },
     "newProfile": "New",
-    "donutLogo": "Donut Browser logo",
+    "donutLogo": "NeoDonut Browser logo",
     "scrollGroupsLeft": "Scroll groups left",
     "scrollGroupsRight": "Scroll groups right",
     "allGroups": "All groups"
@@ -2324,7 +2324,7 @@
   "commercialTrial": {
     "title": "Commercial Trial Expired",
     "description": "Your 2-week commercial trial period has ended.",
-    "body": "If you are using Donut Browser for business purposes, you need to purchase a commercial license to continue. You can still use it for personal use for free.",
+    "body": "If you are using NeoDonut Browser for business purposes, you need to purchase a commercial license to continue. You can still use it for personal use for free.",
     "understandButton": "I Understand",
     "failed": "Could not save acknowledgment",
     "tryAgain": "Try again"
@@ -2596,7 +2596,7 @@
     },
     "warnings": {
       "forgetWarningTitle": "Important: this password is not recoverable",
-      "forgetWarningBody": "Donut Browser cannot reset, recover, or bypass this password. If you forget it, you will permanently lose access to this profile's data."
+      "forgetWarningBody": "NeoDonut Browser cannot reset, recover, or bypass this password. If you forget it, you will permanently lose access to this profile's data."
     },
     "modes": {
       "set": "Set",
@@ -3279,13 +3279,13 @@
     "zoomReset": "Default interface size"
   },
   "closeConfirm": {
-    "title": "Close Donut Browser?",
+    "title": "Close NeoDonut Browser?",
     "description": "Would you like to send the app to the system tray or quit?",
     "minimize": "Minimize to Tray",
     "quit": "Quit"
   },
   "tray": {
-    "show": "Show Donut Browser",
+    "show": "Show NeoDonut Browser",
     "quit": "Quit"
   },
   "onboarding": {
@@ -3295,7 +3295,7 @@
     }
   },
   "welcome": {
-    "title": "Welcome to Donut Browser",
+    "title": "Welcome to NeoDonut Browser",
     "tagline": "An open-source anti-detect browser for managing many identities at once.",
     "skip": "Skip",
     "next": "Next",
@@ -3307,7 +3307,7 @@
     },
     "license": {
       "title": "Licensing",
-      "body": "Donut Browser is open source and free to use.",
+      "body": "NeoDonut Browser is open source and free to use.",
       "agree": "I understand",
       "personalTitle": "Personal use",
       "personalDesc": "Free forever.",

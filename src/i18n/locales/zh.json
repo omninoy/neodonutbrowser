@@ -321,7 +321,7 @@
       "extensions": "扩展程序"
     },
     "newProfile": "新建",
-    "donutLogo": "Donut Browser 标识",
+    "donutLogo": "NeoDonut Browser 标识",
     "scrollGroupsLeft": "向左滚动分组",
     "scrollGroupsRight": "向右滚动分组",
     "allGroups": "所有分组"
@@ -1683,7 +1683,7 @@
     "launchHook": {
       "title": "启动钩子 URL",
       "label": "启动钩子 URL",
-      "description": "每次启动配置文件时，Donut Browser 都会向此 URL 发送一个 GET 请求。",
+      "description": "每次启动配置文件时，NeoDonut Browser 都会向此 URL 发送一个 GET 请求。",
       "placeholder": "https://example.com/hooks/profile-launch",
       "invalidUrlHint": "输入有效的 http:// 或 https:// URL。"
     },
@@ -2323,7 +2323,7 @@
   "commercialTrial": {
     "title": "商业试用期已过期",
     "description": "你的 2 周商业试用期已结束。",
-    "body": "如果你将 Donut Browser 用于商业目的,需要购买商业许可证才能继续。你仍然可以免费用于个人用途。",
+    "body": "如果你将 NeoDonut Browser 用于商业目的,需要购买商业许可证才能继续。你仍然可以免费用于个人用途。",
     "understandButton": "我明白了",
     "failed": "保存确认失败",
     "tryAgain": "重试"
@@ -2501,7 +2501,7 @@
   },
   "appUpdate": {
     "toast": {
-      "updateFailed": "更新 Donut Browser 失败",
+      "updateFailed": "更新 NeoDonut Browser 失败",
       "restartFailed": "重启失败",
       "updateReady": "更新就绪，重启以应用",
       "manualDownloadRequired": "需要手动下载",
@@ -2595,7 +2595,7 @@
     },
     "warnings": {
       "forgetWarningTitle": "重要:此密码无法恢复",
-      "forgetWarningBody": "Donut Browser 无法重置、恢复或绕过此密码。如果忘记,您将永久无法访问此配置文件的数据。"
+      "forgetWarningBody": "NeoDonut Browser 无法重置、恢复或绕过此密码。如果忘记,您将永久无法访问此配置文件的数据。"
     },
     "modes": {
       "set": "设置",
@@ -3279,13 +3279,13 @@
     "zoomReset": "默认界面大小"
   },
   "closeConfirm": {
-    "title": "关闭 Donut Browser？",
+    "title": "关闭 NeoDonut Browser？",
     "description": "您想将应用最小化到系统托盘还是退出？",
     "minimize": "最小化到托盘",
     "quit": "退出"
   },
   "tray": {
-    "show": "显示 Donut Browser",
+    "show": "显示 NeoDonut Browser",
     "quit": "退出"
   },
   "onboarding": {
@@ -3295,7 +3295,7 @@
     }
   },
   "welcome": {
-    "title": "欢迎使用 Donut Browser",
+    "title": "欢迎使用 NeoDonut Browser",
     "tagline": "一款开源的反检测浏览器，可同时管理多个身份。",
     "skip": "跳过",
     "next": "下一步",
@@ -3307,7 +3307,7 @@
     },
     "license": {
       "title": "许可",
-      "body": "Donut Browser 是开源软件，可免费使用。",
+      "body": "NeoDonut Browser 是开源软件，可免费使用。",
       "agree": "我知道了",
       "personalTitle": "个人使用",
       "personalDesc": "永久免费。",

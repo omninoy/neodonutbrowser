@@ -321,7 +321,7 @@
       "extensions": "확장 프로그램"
     },
     "newProfile": "새로 만들기",
-    "donutLogo": "Donut Browser 로고",
+    "donutLogo": "NeoDonut Browser 로고",
     "scrollGroupsLeft": "그룹 왼쪽으로 스크롤",
     "scrollGroupsRight": "그룹 오른쪽으로 스크롤",
     "allGroups": "모든 그룹"
@@ -1683,7 +1683,7 @@
     "launchHook": {
       "title": "실행 후크 URL",
       "label": "실행 후크 URL",
-      "description": "Donut Browser는 프로필이 실행될 때마다 이 URL로 GET 요청을 보냅니다.",
+      "description": "NeoDonut Browser는 프로필이 실행될 때마다 이 URL로 GET 요청을 보냅니다.",
       "placeholder": "https://example.com/hooks/profile-launch",
       "invalidUrlHint": "유효한 http:// 또는 https:// URL을 입력하세요."
     },
@@ -2312,7 +2312,7 @@
   },
   "wayfernTerms": {
     "title": "Wayfern 이용 약관",
-    "description": "Donut Browser를 사용하기 전에 Wayfern의 이용 약관을 읽고 동의해야 합니다.",
+    "description": "NeoDonut Browser를 사용하기 전에 Wayfern의 이용 약관을 읽고 동의해야 합니다.",
     "reviewLabel": "다음 위치에서 이용 약관을 검토하세요:",
     "agreeNotice": "\"동의함\"을 클릭하면 이 약관에 동의하는 것입니다.",
     "acceptButton": "동의함",
@@ -2323,7 +2323,7 @@
   "commercialTrial": {
     "title": "상업용 체험판 만료됨",
     "description": "2주 상업용 체험판 기간이 종료되었습니다.",
-    "body": "Donut Browser를 비즈니스 용도로 사용하는 경우 계속 사용하려면 상업용 라이선스를 구매해야 합니다. 개인 용도로는 계속 무료로 사용할 수 있습니다.",
+    "body": "NeoDonut Browser를 비즈니스 용도로 사용하는 경우 계속 사용하려면 상업용 라이선스를 구매해야 합니다. 개인 용도로는 계속 무료로 사용할 수 있습니다.",
     "understandButton": "이해했습니다",
     "failed": "확인 저장 실패",
     "tryAgain": "다시 시도하세요"
@@ -2501,7 +2501,7 @@
   },
   "appUpdate": {
     "toast": {
-      "updateFailed": "Donut Browser 업데이트 실패",
+      "updateFailed": "NeoDonut Browser 업데이트 실패",
       "restartFailed": "재시작 실패",
       "updateReady": "업데이트 준비됨, 적용하려면 재시작하세요",
       "manualDownloadRequired": "수동 다운로드 필요",
@@ -2595,7 +2595,7 @@
     },
     "warnings": {
       "forgetWarningTitle": "중요: 이 비밀번호는 복구할 수 없습니다",
-      "forgetWarningBody": "Donut Browser는 이 비밀번호를 재설정, 복구 또는 우회할 수 없습니다. 잊어버리면 이 프로필의 데이터에 영구적으로 액세스할 수 없게 됩니다."
+      "forgetWarningBody": "NeoDonut Browser는 이 비밀번호를 재설정, 복구 또는 우회할 수 없습니다. 잊어버리면 이 프로필의 데이터에 영구적으로 액세스할 수 없게 됩니다."
     },
     "modes": {
       "set": "설정",
@@ -3278,13 +3278,13 @@
     "zoomReset": "기본 인터페이스 크기"
   },
   "closeConfirm": {
-    "title": "Donut Browser를 닫으시겠습니까?",
+    "title": "NeoDonut Browser를 닫으시겠습니까?",
     "description": "앱을 시스템 트레이로 보내시겠습니까, 아니면 종료하시겠습니까?",
     "minimize": "트레이로 최소화",
     "quit": "종료"
   },
   "tray": {
-    "show": "Donut Browser 표시",
+    "show": "NeoDonut Browser 표시",
     "quit": "종료"
   },
   "onboarding": {
@@ -3294,7 +3294,7 @@
     }
   },
   "welcome": {
-    "title": "Donut Browser에 오신 것을 환영합니다",
+    "title": "NeoDonut Browser에 오신 것을 환영합니다",
     "tagline": "여러 ID를 한 번에 관리할 수 있는 오픈 소스 안티디텍트 브라우저입니다.",
     "skip": "건너뛰기",
     "next": "다음",
@@ -3306,7 +3306,7 @@
     },
     "license": {
       "title": "라이선스",
-      "body": "Donut Browser는 오픈 소스이며 무료로 사용할 수 있습니다.",
+      "body": "NeoDonut Browser는 오픈 소스이며 무료로 사용할 수 있습니다.",
       "agree": "이해했습니다",
       "personalTitle": "개인 사용",
       "personalDesc": "영구적으로 무료입니다.",

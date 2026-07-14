@@ -1,6 +1,8 @@
 # Security Policy
 
-## Reporting Security Issues
+Security reports for NeoDonut Browser should not be sent to the upstream Donut
+Browser maintainers unless the issue is confirmed to exist in unmodified
+upstream code.
 
 Thanks for helping keep Donut Browser safe.
 

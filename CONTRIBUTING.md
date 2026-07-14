@@ -1,4 +1,4 @@
-# Contributing to Donut Browser
+# Contributing to NeoDonut Browser
 
 Contributions are welcome. Don't open a PR just to get added to the contributors list. Reviewing PRs takes time, so open one only if you believe the change improves Donut for yourself and others. For a significant change, get in touch with the maintainer first.
 
@@ -27,37 +27,42 @@ By contributing, you agree your contributions will be licensed under the same te
 ### Using Nix (recommended)
 
 ```bash
-nix run .#setup     # Install dependencies
-nix run .#tauri-dev  # Start development server
-nix run .#test       # Run all checks
+git switch community
+git pull --ff-only origin community
+git switch -c feature/my-change
 ```
 
-Or enter the dev shell: `nix develop`
+Open pull requests against `community`. Use `sync/upstream-YYYY-MM-DD` branches
+for reviewed upstream merges. Never commit NeoDonut-specific changes directly
+to `main`.
 
-### Manual Setup
+## Development setup
 
 Requirements:
 
-- Node.js (see `.node-version`)
-- pnpm
-- Rust + Cargo (latest stable)
-- [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
+- Node.js from `.node-version`
+- pnpm from the `packageManager` field in `package.json`
+- latest stable Rust and Cargo
+- Tauri v2 platform prerequisites
 
 ```bash
-git checkout -b feature/my-feature-name
-pnpm install
+pnpm install --frozen-lockfile
 pnpm tauri dev
 ```
 
-## Quality Checks
+Nix users can run `nix develop` or `nix run .#setup`.
 
-Run before every commit:
+## Quality checks
+
+Run before opening a pull request:
 
 ```bash
-pnpm format && pnpm lint && pnpm test
+pnpm format
+pnpm lint
+pnpm test
 ```
 
-This runs:
+Important rules:
 
 - Biome: JS/TS linting and formatting
 - Clippy + rustfmt: Rust linting and formatting
@@ -66,11 +71,12 @@ This runs:
 - Unit tests: 330+ Rust tests
 - Integration tests: proxy, sync e2e
 
-### Running CodeQL locally
+## Licensing and attribution
 
-```bash
-# Install: brew install codeql
-codeql pack download codeql/javascript-queries codeql/rust-queries
+All fork contributions are accepted under AGPL-3.0. The upstream
+`CONTRIBUTOR_LICENSE_AGREEMENT.md` is retained for historical attribution and
+for contributors who separately choose to submit work to the upstream project;
+it is not a requirement for contributions made only to this fork.
 
 # JavaScript
 codeql database create /tmp/codeql-js --language=javascript --source-root=.

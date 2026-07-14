@@ -76,8 +76,8 @@ fn detect_linux_sandbox(
 /// dev/prod directories. The more specific `DONUTBROWSER_DATA_DIR` /
 /// `DONUTBROWSER_CACHE_DIR` overrides still take precedence over this.
 fn data_root() -> Option<PathBuf> {
-  std::env::var_os("DONUTBROWSER_DATA_ROOT")
-    .filter(|v| !v.is_empty())
+  std::env::var_os("NEODONUT_DATA_ROOT")
+    .filter(|value| !value.is_empty())
     .map(PathBuf::from)
 }
 
@@ -171,9 +171,9 @@ pub fn window_state_path<R: tauri::Runtime>(handle: &tauri::AppHandle<R>) -> Opt
 
 pub fn app_name() -> &'static str {
   if cfg!(debug_assertions) {
-    "DonutBrowserDev"
+    "NeoDonutBrowserDev"
   } else {
-    "DonutBrowser"
+    "NeoDonutBrowser"
   }
 }
 
@@ -185,7 +185,9 @@ pub fn data_dir() -> PathBuf {
     }
   }
 
-  if let Ok(dir) = std::env::var("DONUTBROWSER_DATA_DIR") {
+  if let Some(dir) = std::env::var_os("NEODONUT_DATA_DIR")
+    .filter(|value| !value.is_empty())
+  {
     return PathBuf::from(dir);
   }
 
@@ -208,7 +210,9 @@ pub fn cache_dir() -> PathBuf {
     }
   }
 
-  if let Ok(dir) = std::env::var("DONUTBROWSER_CACHE_DIR") {
+  if let Some(dir) = std::env::var_os("NEODONUT_CACHE_DIR")
+    .filter(|value| !value.is_empty())
+  {
     return PathBuf::from(dir);
   }
 
@@ -413,8 +417,8 @@ mod tests {
   fn test_app_name() {
     let name = app_name();
     assert!(
-      name == "DonutBrowser" || name == "DonutBrowserDev",
-      "app_name should be DonutBrowser or DonutBrowserDev, got: {name}"
+      name == "NeoDonutBrowser" || name == "NeoDonutBrowserDev",
+      "app_name should be NeoDonutBrowser or NeoDonutBrowserDev, got: {name}"
     );
   }
 

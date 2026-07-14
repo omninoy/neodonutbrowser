@@ -178,7 +178,7 @@ fn get_or_create_macos_ramdisk() -> Result<PathBuf, String> {
   let dev = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
   let fmt = std::process::Command::new("diskutil")
-    .args(["erasevolume", "HFS+", "DonutEphemeral", &dev])
+    .args(["erasevolume", "HFS+", "NeoDonutEphemeral", &dev])
     .output()
     .map_err(|e| format!("diskutil erasevolume failed: {e}"))?;
 

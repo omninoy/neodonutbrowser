@@ -1,5 +1,5 @@
 {
-  "name": "donutbrowser",
+  "name": "neodonutbrowser",
   "private": true,
   "license": "AGPL-3.0",
   "version": "0.36.0",
@@ -159,5 +159,14 @@
     "**/*.{rs,ts,tsx,js,jsx,md}": [
       "typos"
     ]
+  },
+  "description": "Independent AGPL-3.0 community fork with unlocked local privacy and automation features",
+  "homepage": "https://github.com/paracosm17/donutbrowser-neo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paracosm17/donutbrowser-neo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paracosm17/donutbrowser-neo/issues"
   }
 }

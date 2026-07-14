@@ -321,7 +321,7 @@
       "extensions": "拡張機能"
     },
     "newProfile": "新規",
-    "donutLogo": "Donut Browser ロゴ",
+    "donutLogo": "NeoDonut Browser ロゴ",
     "scrollGroupsLeft": "グループを左へスクロール",
     "scrollGroupsRight": "グループを右へスクロール",
     "allGroups": "すべてのグループ"
@@ -2312,7 +2312,7 @@
   },
   "wayfernTerms": {
     "title": "Wayfern 利用規約",
-    "description": "Donut Browser を使用する前に、Wayfern の利用規約を読み、同意する必要があります。",
+    "description": "NeoDonut Browser を使用する前に、Wayfern の利用規約を読み、同意する必要があります。",
     "reviewLabel": "次の URL で利用規約をご確認ください:",
     "agreeNotice": "「同意します」をクリックすると、これらの条項に拘束されることに同意します。",
     "acceptButton": "同意します",
@@ -2323,7 +2323,7 @@
   "commercialTrial": {
     "title": "商用試用期間が終了しました",
     "description": "2 週間の商用試用期間が終了しました。",
-    "body": "商用目的で Donut Browser を使用する場合は、続行するために商用ライセンスを購入する必要があります。個人利用は引き続き無料でお使いいただけます。",
+    "body": "商用目的で NeoDonut Browser を使用する場合は、続行するために商用ライセンスを購入する必要があります。個人利用は引き続き無料でお使いいただけます。",
     "understandButton": "了解しました",
     "failed": "確認の保存に失敗しました",
     "tryAgain": "もう一度お試しください"
@@ -2501,7 +2501,7 @@
   },
   "appUpdate": {
     "toast": {
-      "updateFailed": "Donut Browser の更新に失敗しました",
+      "updateFailed": "NeoDonut Browser の更新に失敗しました",
       "restartFailed": "再起動に失敗しました",
       "updateReady": "アップデートの準備完了。再起動して適用",
       "manualDownloadRequired": "手動ダウンロードが必要です",
@@ -2595,7 +2595,7 @@
     },
     "warnings": {
       "forgetWarningTitle": "重要: このパスワードは復元できません",
-      "forgetWarningBody": "Donut Browserはこのパスワードをリセット、復元、回避することはできません。忘れた場合、このプロファイルのデータへのアクセスは永続的に失われます。"
+      "forgetWarningBody": "NeoDonut Browserはこのパスワードをリセット、復元、回避することはできません。忘れた場合、このプロファイルのデータへのアクセスは永続的に失われます。"
     },
     "modes": {
       "set": "設定",
@@ -3278,13 +3278,13 @@
     "zoomReset": "表示サイズを標準に戻す"
   },
   "closeConfirm": {
-    "title": "Donut Browser を閉じますか？",
+    "title": "NeoDonut Browser を閉じますか？",
     "description": "アプリをシステムトレイに格納しますか、それとも終了しますか？",
     "minimize": "トレイに格納",
     "quit": "終了"
   },
   "tray": {
-    "show": "Donut Browser を表示",
+    "show": "NeoDonut Browser を表示",
     "quit": "終了"
   },
   "onboarding": {
@@ -3294,7 +3294,7 @@
     }
   },
   "welcome": {
-    "title": "Donut Browser へようこそ",
+    "title": "NeoDonut Browser へようこそ",
     "tagline": "複数のIDを同時に管理できるオープンソースのアンチディテクトブラウザ。",
     "skip": "スキップ",
     "next": "次へ",
@@ -3306,7 +3306,7 @@
     },
     "license": {
       "title": "ライセンス",
-      "body": "Donut Browser はオープンソースで、無料で利用できます。",
+      "body": "NeoDonut Browser はオープンソースで、無料で利用できます。",
       "agree": "了解しました",
       "personalTitle": "個人利用",
       "personalDesc": "永久に無料です。",

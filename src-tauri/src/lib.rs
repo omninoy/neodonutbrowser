@@ -1387,10 +1387,10 @@ fn add_mcp_to_claude_desktop_internal(target: &mcp_integrations::McpTarget) -> R
   let manifest = serde_json::json!({
     "manifest_version": "0.3",
     "name": "donut-browser",
-    "display_name": "Donut Browser",
+    "display_name": "NeoDonut Browser",
     "version": env!("CARGO_PKG_VERSION"),
-    "description": "Control Donut Browser profiles, proxies, and automation via MCP",
-    "author": { "name": "Donut Browser" },
+    "description": "Control NeoDonut Browser profiles, proxies, and automation via MCP",
+    "author": { "name": "NeoDonut Browser" },
     "tools_generated": true,
     "server": {
       "type": "node",
@@ -2745,7 +2745,7 @@ pub fn run_with_builder(
       }
       #[allow(unused_variables)]
       let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-        .title("Donut Browser")
+        .title("NeoDonut Browser")
         .inner_size(880.0, 500.0)
         .min_inner_size(640.0, 400.0)
         .resizable(true)

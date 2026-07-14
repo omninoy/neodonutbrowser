@@ -322,7 +322,7 @@
       "extensions": "Extensões"
     },
     "newProfile": "Novo",
-    "donutLogo": "Logotipo do Donut Browser",
+    "donutLogo": "Logotipo do NeoDonut Browser",
     "scrollGroupsLeft": "Rolar grupos para a esquerda",
     "scrollGroupsRight": "Rolar grupos para a direita",
     "allGroups": "Todos os grupos"
@@ -1694,7 +1694,7 @@
     "launchHook": {
       "title": "URL do hook de inicialização",
       "label": "URL do hook de inicialização",
-      "description": "O Donut Browser enviará uma requisição GET para esta URL toda vez que o perfil for iniciado.",
+      "description": "O NeoDonut Browser enviará uma requisição GET para esta URL toda vez que o perfil for iniciado.",
       "placeholder": "https://example.com/hooks/profile-launch",
       "invalidUrlHint": "Insira uma URL válida http:// ou https://."
     },
@@ -2342,7 +2342,7 @@
   "commercialTrial": {
     "title": "Período de teste comercial expirado",
     "description": "Seu período de teste comercial de 2 semanas terminou.",
-    "body": "Se você está usando o Donut Browser para fins comerciais, precisa adquirir uma licença comercial para continuar. Você ainda pode usá-lo gratuitamente para uso pessoal.",
+    "body": "Se você está usando o NeoDonut Browser para fins comerciais, precisa adquirir uma licença comercial para continuar. Você ainda pode usá-lo gratuitamente para uso pessoal.",
     "understandButton": "Entendi",
     "failed": "Falha ao salvar a confirmação",
     "tryAgain": "Tente novamente"
@@ -2520,7 +2520,7 @@
   },
   "appUpdate": {
     "toast": {
-      "updateFailed": "Falha ao atualizar o Donut Browser",
+      "updateFailed": "Falha ao atualizar o NeoDonut Browser",
       "restartFailed": "Falha ao reiniciar",
       "updateReady": "Atualização pronta, reinicie para aplicar",
       "manualDownloadRequired": "Download manual necessário",
@@ -2614,7 +2614,7 @@
     },
     "warnings": {
       "forgetWarningTitle": "Importante: esta senha não pode ser recuperada",
-      "forgetWarningBody": "O Donut Browser não pode redefinir, recuperar ou contornar esta senha. Se você esquecê-la, perderá permanentemente o acesso aos dados deste perfil."
+      "forgetWarningBody": "O NeoDonut Browser não pode redefinir, recuperar ou contornar esta senha. Se você esquecê-la, perderá permanentemente o acesso aos dados deste perfil."
     },
     "modes": {
       "set": "Definir",
@@ -3298,13 +3298,13 @@
     "zoomReset": "Tamanho padrão da interface"
   },
   "closeConfirm": {
-    "title": "Fechar Donut Browser?",
+    "title": "Fechar NeoDonut Browser?",
     "description": "Você deseja enviar o aplicativo para a bandeja do sistema ou sair?",
     "minimize": "Minimizar para a bandeja",
     "quit": "Sair"
   },
   "tray": {
-    "show": "Mostrar Donut Browser",
+    "show": "Mostrar NeoDonut Browser",
     "quit": "Sair"
   },
   "onboarding": {
@@ -3314,7 +3314,7 @@
     }
   },
   "welcome": {
-    "title": "Boas-vindas ao Donut Browser",
+    "title": "Boas-vindas ao NeoDonut Browser",
     "tagline": "Um navegador anti-detecção de código aberto para gerenciar várias identidades ao mesmo tempo.",
     "skip": "Pular",
     "next": "Próximo",
@@ -3326,7 +3326,7 @@
     },
     "license": {
       "title": "Licenciamento",
-      "body": "O Donut Browser é de código aberto e gratuito.",
+      "body": "O NeoDonut Browser é de código aberto e gratuito.",
       "agree": "Entendi",
       "personalTitle": "Uso pessoal",
       "personalDesc": "Gratuito para sempre.",

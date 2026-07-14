@@ -1,5 +1,5 @@
 {
-  description = "Donut Browser development environment and quick-start commands";
+  description = "NeoDonut Browser development environment and quick-start commands";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -307,7 +307,7 @@
             export PKG_CONFIG_PATH="${pkgConfigPath}:''${PKG_CONFIG_PATH:-}"
             export RUST_SRC_PATH="${pkgs.rustPlatform.rustLibSrc}"
 
-            echo "Donut Browser dev shell ready."
+            echo "NeoDonut Browser dev shell ready."
             echo "Quick start:"
             echo "  nix run .#setup"
             echo "  nix run .#tauri-dev"
@@ -379,7 +379,7 @@
           set -euo pipefail
 
           if [ ! -f "package.json" ]; then
-            echo "package.json not found. Run this from the donutbrowser repo root."
+            echo "package.json not found. Run this from the donutbrowser-neo repo root."
             exit 1
           fi
 
@@ -395,7 +395,7 @@
 
         apps."release-start" = {
           type = "app";
-          program = "${releaseLauncher}/bin/donut-release-start";
+          program = "${releaseLauncher}/bin/neodonut-release-start";
         };
 
         apps.default = self.apps.${system}.setup;

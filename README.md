@@ -1,9 +1,7 @@
 <div align="center">
-  <img src="assets/logo.png" alt="Donut Browser Logo" width="150">
-  <h1>Donut Browser</h1>
-  <strong>Open Source Anti-Detect Browser</strong>
-  <br>
-  <a href="https://donutbrowser.com">donutbrowser.com</a>
+  <img src="assets/logo.png" alt="NeoDonut Browser Logo" width="150">
+  <h1>NeoDonut Browser</h1>
+  <strong>Community-focused open source anti-detect browser</strong>
 </div>
 <br>
 
@@ -71,8 +69,10 @@ Start any profile from the local REST API on `127.0.0.1:10108`, then connect Pla
 
 ## Install
 
-<!-- install-links-start -->
-### macOS
+Builds are published on the
+[NeoDonut Browser Releases](https://github.com/paracosm17/donutbrowser-neo/releases)
+page. Release tags use the format `v<upstream-version>-neo.<revision>`, for
+example `v0.28.2-neo.2`.
 
 [Download DMG (Apple Silicon)](https://github.com/donutbrowser/donutbrowser/releases/download/v0.36.0/Donut_0.36.0_aarch64.dmg)
 

@@ -1,5 +1,5 @@
 use clap::{Arg, Command};
-use donutbrowser_lib::proxy_runner::{
+use neodonutbrowser_lib::proxy_runner::{
   start_proxy_process_with_profile, stop_all_proxy_processes, stop_proxy_process,
 };
 use donutbrowser_lib::proxy_server::{redacted_upstream, run_proxy_server};
@@ -386,7 +386,7 @@ async fn main() {
         }
       } else if let Some(upstream) = stop_matches.get_one::<String>("upstream") {
         // Find proxies with this upstream URL
-        let configs = donutbrowser_lib::proxy_storage::list_proxy_configs();
+        let configs = neodonutbrowser_lib::proxy_storage::list_proxy_configs();
         let matching_configs: Vec<_> = configs
           .iter()
           .filter(|config| config.upstream_url == *upstream)
@@ -419,7 +419,7 @@ async fn main() {
         }
       }
     } else if proxy_matches.subcommand_matches("list").is_some() {
-      let configs = donutbrowser_lib::proxy_storage::list_proxy_configs();
+      let configs = neodonutbrowser_lib::proxy_storage::list_proxy_configs();
       // Use println! here because this needs to go to stdout for parsing
       println!("{}", serde_json::to_string(&configs).unwrap());
       process::exit(0);
@@ -585,7 +585,7 @@ async fn main() {
         // Load config directly from the provided path
         match std::fs::read_to_string(path) {
           Ok(content) => match serde_json::from_str::<
-            donutbrowser_lib::vpn_worker_storage::VpnWorkerConfig,
+            neodonutbrowser_lib::vpn_worker_storage::VpnWorkerConfig,
           >(&content)
           {
             Ok(config) => config,
@@ -625,7 +625,7 @@ async fn main() {
 
       match config.vpn_type.as_str() {
         "wireguard" => {
-          let wg_config = match donutbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data) {
+          let wg_config = match neodonutbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data) {
             Ok(c) => c,
             Err(e) => exit_with(
               "wireguard_config_invalid",
@@ -634,7 +634,7 @@ async fn main() {
           };
 
           let server =
-            donutbrowser_lib::vpn::socks5_server::WireGuardSocks5Server::new(wg_config, port);
+            neodonutbrowser_lib::vpn::socks5_server::WireGuardSocks5Server::new(wg_config, port);
           if let Err(e) = server
             .run(id.clone(), config_path.map(std::path::PathBuf::from))
             .await

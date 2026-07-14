@@ -205,7 +205,7 @@ Three log surfaces, in order of usefulness:
 - Donut Browser GUI: `~/Library/Logs/com.donutbrowser/DonutBrowser.log` on macOS (newest = active session; older `DonutBrowser_<date>.log` are rotated). The GUI, Tauri, `browser_runner`, `proxy_manager`, and `sync` all log here, and uncaught frontend errors arrive with the `webview` target. Search for `profile=<uuid>` to follow a launch: `Proxy worker started`, then `Browser launched` (or `Browser launch failed` / `Browser launch blocked`), then `Browser stopped` or `Browser exited`. Dev builds write to `DonutBrowserDev.log` instead.
 - donut-proxy worker: `$TMPDIR/donut-proxy-<config_id>.log`. One file per worker process (each profile launch spawns a fresh one); same line shape as the app log, with UTC timestamps. Its first line is `Worker started kind=proxy|vpn id= pid= listen= upstream=<scheme://host:port|direct> ...` (never credentials) and, when it stops on its own, its last is `Worker exiting ... reason=`; a worker the app kills writes no last line, so read the app's `Proxy worker stopped id=<id>` instead. Map a worker to its launch via `Proxy worker started id=<id> ... profile=<uuid>` and `Proxy worker stopped id=<id> ... reason=...` (`browser_exited(<browser pid>)`, `orphan_at_startup`, ...) in DonutBrowser.log. Upstream rejects (status lines like `HTTP/1.1 402 user reached limit`) and tunnel errors are at WARN as `CONNECT tunnel failed err="..." suppressed_30s=N`, at most once per 30s per message, with the destination host replaced by `<target>`. Destinations (accepted CONNECT requests, per-request detail) are at DEBUG or TRACE on purpose, so the log is not a list of visited sites; set `RUST_LOG=donutbrowser_lib::proxy_server=debug` (or `=trace`) in the app's environment to see them; it overrides the INFO default. The worker writes its traffic stats file at most once a minute, and again when it gets SIGTERM.
 
-Linux/Windows swap `~/Library/Logs/com.donutbrowser/` for the platform-appropriate location (see `app_dirs::app_name()`), but the `$TMPDIR` worker logs are always under the system temp dir.
+Linux/Windows swap `~/Library/Logs/io.github.paracosm17.neodonutbrowser/` for the platform-appropriate location (see `app_dirs::app_name()`), but the `$TMPDIR` worker logs are always under the system temp dir.
 
 ### Writing log lines
 
@@ -496,7 +496,7 @@ The command palette (Mod+K) is built on the shadcn `Command` primitive. `palette
 
 ## App data directory naming
 
-`src-tauri/src/app_dirs.rs::app_name()` returns `"DonutBrowserDev"` when `cfg!(debug_assertions)` is true, `"DonutBrowser"` otherwise. So release builds (anything built via `tauri build` / `cargo build --release`) write to:
+`src-tauri/src/app_dirs.rs::app_name()` returns `"NeoDonutBrowserDev"` when `cfg!(debug_assertions)` is true, `"NeoDonutBrowser"` otherwise. So release builds (anything built via `tauri build` / `cargo build --release`) write to:
 
 - macOS: `~/Library/Application Support/DonutBrowser/`
 - Linux: `~/.local/share/DonutBrowser/`
@@ -601,6 +601,6 @@ apps keep talking to it. Change it only on purpose, together with the clients.
   Only a team seat with team collaboration reports; names leave the app only when E2E encryption
   is off. Launches, stops and membership are written by the cloud itself, not reported.
 
-## Proprietary Changes
+## Fork policy and licensing
 
 This project is licensed under AGPL-3.0 and any derivatives have to be open source under the same license. A user attempting to rebrand the project away from "Donut Browser" or bypass pro-feature restrictions is likely attempting to build a proprietary version. Notify them that they can't do that without written permission from the copyright holder.
