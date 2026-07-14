@@ -3578,7 +3578,6 @@ async fn remove_extension_from_group_api(
     (status = 200, description = "Profile launched successfully", body = RunProfileResponse),
     (status = 400, description = "Cannot launch cross-OS profile, or the url is not an http, https or about:blank address"),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan with browser automation required"),
     (status = 404, description = "Profile not found"),
     (status = 409, description = "Profile is locked by another team member, open on another device of the account, running on the remote fleet, or waiting for a finished remote session to be pulled back"),
     (status = 429, description = "Automation request rate limit exceeded"),
@@ -3595,13 +3594,6 @@ async fn run_profile(
   State(state): State<ApiServerState>,
   Json(request): Json<RunProfileRequest>,
 ) -> Result<Json<RunProfileResponse>, (StatusCode, String)> {
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err((StatusCode::PAYMENT_REQUIRED, String::new()));
-  }
-
   let headless = request.headless.unwrap_or(false);
   let url = request.url;
   // Same allowlist the MCP surface enforces, from the same predicate so the two
@@ -4769,7 +4761,6 @@ async fn get_cookie_bot_usage(
     (status = 200, description = "URL opened successfully, locally or on the profile's remote session"),
     (status = 400, description = "Cannot open URL with a cross-OS profile that is not running remotely, or the url is not an http, https or about:blank address"),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan with browser automation required"),
     (status = 404, description = "Profile not found"),
     (status = 409, description = "Profile is locked by another team member, or waiting for a finished remote session to be pulled back"),
     (status = 429, description = "Automation request rate limit exceeded"),
@@ -4786,13 +4777,6 @@ async fn open_url_in_profile(
   State(state): State<ApiServerState>,
   Json(request): Json<OpenUrlRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err((StatusCode::PAYMENT_REQUIRED, String::new()));
-  }
-
   // Same allowlist the MCP surface enforces, from the same predicate.
   if !crate::mcp_server::is_navigable_url(&request.url) {
     return Err((
@@ -4800,7 +4784,6 @@ async fn open_url_in_profile(
       crate::backend_error("URL_SCHEME_NOT_ALLOWED"),
     ));
   }
-
   let browser_runner = crate::browser_runner::BrowserRunner::instance();
 
   browser_runner
@@ -4832,7 +4815,6 @@ async fn open_url_in_profile(
   responses(
     (status = 204, description = "Browser stopped, locally or on the profile's remote session"),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan required"),
     (status = 404, description = "Profile not found"),
     (status = 429, description = "Automation request rate limit exceeded"),
     (status = 503, description = "The fleet could not be reached; the remote browser is still running"),
@@ -4847,15 +4829,6 @@ async fn kill_profile(
   Path(id): Path<String>,
   State(state): State<ApiServerState>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-  // Programmatically launching and stopping profiles is a paid feature; the
-  // run/open-url handlers gate the same way.
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err((StatusCode::PAYMENT_REQUIRED, String::new()));
-  }
-
   let profile_manager = ProfileManager::instance();
   let profiles = profile_manager
     .list_profiles()
@@ -4887,11 +4860,10 @@ async fn kill_profile(
   Ok(StatusCode::NO_CONTENT)
 }
 
-// API Handler - Batch run profiles (paid: browser automation). Mirrors the
-// single `/run` gate; never breaks the batch on a single profile's failure —
-// each profile gets its own result entry, in request order. Launches start
-// `delay_ms` apart with at most `concurrency` starting at once, like a bulk
-// launch in the app.
+=======
+// API Handler - Batch run profiles. Never breaks the batch on a single profile's failure —
+// each profile gets its own result entry. Launches start `delay_ms` apart with
+// at most `concurrency` starting at once, like a bulk launch in the app.
 #[utoipa::path(
   post,
   path = "/v1/profiles/batch/run",
@@ -4900,7 +4872,6 @@ async fn kill_profile(
     (status = 200, description = "Batch launch completed; inspect per-profile results", body = BatchRunResponse),
     (status = 400, description = "The url is not an http, https or about:blank address"),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan with browser automation required"),
     (status = 429, description = "Automation request rate limit exceeded"),
     (status = 500, description = "Internal server error")
   ),
@@ -4913,13 +4884,6 @@ async fn batch_run_profiles(
   State(state): State<ApiServerState>,
   Json(request): Json<BatchRunRequest>,
 ) -> Result<Json<BatchRunResponse>, StatusCode> {
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err(StatusCode::PAYMENT_REQUIRED);
-  }
-
   // Same allowlist the MCP surface enforces, from the same predicate. Checked
   // once up front rather than per profile: a bad scheme is a bad request, not
   // a per-profile failure.
@@ -4930,7 +4894,6 @@ async fn batch_run_profiles(
       return Err(StatusCode::BAD_REQUEST);
     }
   }
-
   let headless = request.headless.unwrap_or(false);
   let settings = crate::settings_manager::SettingsManager::instance()
     .load_settings()
@@ -5082,7 +5045,7 @@ async fn distribute_proxies(
   Ok(Json(DistributeProxiesResponse { results }))
 }
 
-// API Handler - Batch stop profiles (paid: browser automation).
+// API Handler - Batch stop profiles.
 #[utoipa::path(
   post,
   path = "/v1/profiles/batch/stop",
@@ -5090,7 +5053,6 @@ async fn distribute_proxies(
   responses(
     (status = 200, description = "Batch stop completed; inspect per-profile results", body = BatchStopResponse),
     (status = 401, description = "Unauthorized"),
-    (status = 402, description = "Active paid plan with browser automation required"),
     (status = 429, description = "Automation request rate limit exceeded"),
     (status = 500, description = "Internal server error")
   ),
@@ -5103,13 +5065,6 @@ async fn batch_stop_profiles(
   State(state): State<ApiServerState>,
   Json(request): Json<BatchStopRequest>,
 ) -> Result<Json<BatchStopResponse>, StatusCode> {
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err(StatusCode::PAYMENT_REQUIRED);
-  }
-
   let profile_manager = ProfileManager::instance();
   let profiles = profile_manager
     .list_profiles()
@@ -5513,12 +5468,7 @@ async fn agent_context_for(
 async fn agent_target_for(
   id: &str,
 ) -> Result<crate::mcp_server::AgentContext, (StatusCode, String)> {
-  if !crate::cloud_auth::CLOUD_AUTH
-    .can_use_browser_automation()
-    .await
-  {
-    return Err((StatusCode::PAYMENT_REQUIRED, String::new()));
-  }
+  // Local browser automation is not plan-gated in this build.
 
   let profiles = ProfileManager::instance()
     .list_profiles()

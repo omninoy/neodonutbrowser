@@ -13,10 +13,10 @@ interface Capabilities {
   scheduledAutomation: boolean;
 }
 
-const NONE: Entitlements = {
+const LOCAL_ONLY: Entitlements = {
   active: false,
-  browserAutomation: false,
-  crossOsFingerprints: false,
+  browserAutomation: true,
+  crossOsFingerprints: true,
   cloudBackup: false,
   teamCollaboration: false,
   cookieBot: false,
@@ -25,9 +25,21 @@ const NONE: Entitlements = {
   scheduledAutomation: false,
   agent: false,
   profileLimit: 0,
-  requestsPerHour: 0,
+  requestsPerHour: DEFAULT_REQUESTS_PER_HOUR,
   remoteBrowserHours: 0,
 };
+
+function withLocalCapabilities(entitlements: Entitlements): Entitlements {
+  return {
+    ...entitlements,
+    browserAutomation: true,
+    crossOsFingerprints: true,
+    requestsPerHour: Math.max(
+      entitlements.requestsPerHour,
+      DEFAULT_REQUESTS_PER_HOUR,
+    ),
+  };
+}
 
 // Mirror of the plan capability matrix the API resolves. Keep in sync — a new
 // plan must be declared here too, or it falls back to DEFAULT_PAID.
@@ -114,7 +126,7 @@ export function getEntitlements(
     //
     // `remoteBrowserHours` stays 0 because the spendable figure is whatever
     // `get_remote_hours_quota` reports, never a client guess.
-    return {
+    return withLocalCapabilities({
       ...server,
       cookieBot: server.cookieBot ?? server.browserAutomation,
       remoteInteractive: server.remoteInteractive ?? server.browserAutomation,
@@ -125,17 +137,17 @@ export function getEntitlements(
       scheduledAutomation: server.scheduledAutomation ?? false,
       agent: server.agent ?? false,
       remoteBrowserHours: server.remoteBrowserHours ?? 0,
-    };
+    });
   }
-  if (!user) return NONE;
+  if (!user) return LOCAL_ONLY;
 
   const active =
     user.plan !== "free" &&
     (user.subscriptionStatus === "active" || user.planPeriod === "lifetime");
-  if (!active) return NONE;
+  if (!active) return LOCAL_ONLY;
 
   const caps = PLAN_CAPABILITIES[user.plan] ?? DEFAULT_PAID;
-  return {
+  return withLocalCapabilities({
     active: true,
     browserAutomation: caps.browserAutomation,
     crossOsFingerprints: caps.crossOsFingerprints,
@@ -150,7 +162,7 @@ export function getEntitlements(
     profileLimit: user.profileLimit,
     requestsPerHour: caps.browserAutomation ? DEFAULT_REQUESTS_PER_HOUR : 0,
     remoteBrowserHours: 0,
-  };
+  });
 }
 
 /**

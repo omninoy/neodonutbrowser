@@ -165,7 +165,6 @@ function importSummary(
 interface ImportProfileDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  crossOsUnlocked?: boolean;
   subPage?: boolean;
 }
 
@@ -176,7 +175,6 @@ type DuplicateStrategy = "rename" | "skip";
 export function ImportProfileDialog({
   isOpen,
   onClose,
-  crossOsUnlocked,
   subPage,
 }: ImportProfileDialogProps) {
   const { t } = useTranslation();

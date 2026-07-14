@@ -176,7 +176,6 @@
       "passwordSaved": "Đã thiết lập mật khẩu mã hóa",
       "passwordMismatch": "Mật khẩu không khớp",
       "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
-      "requiresProOrOwner": "Mã hóa hồ sơ chỉ dành cho người dùng Pro và chủ nhóm.",
       "validatePassword": "Xác thực",
       "validateDialog": {
         "title": "Xác thực mật khẩu mã hóa",
@@ -458,7 +457,6 @@
       "stopLeader": "Dừng hồ sơ này và tất cả hồ sơ đi theo",
       "stopFollower": "Đang đi theo hành động của {{leaderName}}",
       "desyncedTooltip": "Đồng bộ thất bại tại {{url}}",
-      "paidFeature": "Trình đồng bộ là tính năng trả phí",
       "wayfernOnly": "Chỉ hồ sơ Wayfern mới có thể đồng bộ",
       "selectFollowers": "Chọn hồ sơ đi theo",
       "selectFollowersDesc": "Chọn các hồ sơ sẽ phản chiếu hành động của hồ sơ dẫn đầu. Chỉ hồ sơ Wayfern đã dừng mới có thể chọn.",
@@ -1275,8 +1273,7 @@
       "selectFile": "Chọn tệp",
       "preview": "Tìm thấy {{count}} cookie",
       "success": "Đã nhập thành công {{imported}} cookie (đã thay thế {{replaced}})",
-      "error": "Nhập cookie thất bại",
-      "proFeature": "Nhập cookie là tính năng Pro"
+      "error": "Nhập cookie thất bại"
     },
     "export": {
       "title": "Xuất cookie",
@@ -1591,7 +1588,6 @@
     "productSub": "Phụ phẩm",
     "brand": "Thương hiệu",
     "brandVersion": "Phiên bản thương hiệu",
-    "proFeature": "Đây là tính năng Pro",
     "generateFingerprint": "Tạo vân tay",
     "regenerateFingerprint": "Tạo lại vân tay",
     "regenerateConfirmTitle": "Tạo lại vân tay này?",
@@ -1829,7 +1825,6 @@
     "extensionsTab": "Tiện ích",
     "groupsTab": "Nhóm",
     "managedNotice": "Tiện ích được quản lý tại đây sẽ thay thế bất kỳ tiện ích nào được cài đặt thủ công trong profile khi khởi chạy.",
-    "proRequired": "Quản lý tiện ích là tính năng Pro",
     "empty": "Chưa tải lên tiện ích nào.",
     "createGroup": "Tạo nhóm",
     "newGroup": "Nhóm mới",
@@ -2659,7 +2654,6 @@
     "cookieImportRemoteSession": "Không thể nhập cookie khi một phiên từ xa đang giữ hồ sơ này. Hãy đợi quá trình đồng bộ hoàn tất.",
     "cookieImportNoCookies": "Không tìm thấy cookie nào trong nội dung bạn đã dán.",
     "selfHostedRequiresLogout": "Đăng xuất khỏi tài khoản Donut trước khi cấu hình máy chủ tự lưu trữ.",
-    "fingerprintRequiresPro": "Xem hoặc chỉnh sửa vân tay yêu cầu gói trả phí đang hoạt động. Tính năng bảo vệ được bao gồm trong mọi gói.",
     "proxyNotWorking": "Proxy đã chọn không hoạt động, nên profile chưa được tạo.",
     "proxyPaymentRequired": "Proxy đã chọn yêu cầu thanh toán (402). Gói đăng ký của nó có thể đã hết hạn. Profile chưa được tạo.",
     "vpnNotWorking": "VPN đã chọn không hoạt động, nên profile chưa được tạo.",

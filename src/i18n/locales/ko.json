@@ -176,7 +176,6 @@
       "passwordSaved": "암호화 비밀번호가 설정되었습니다",
       "passwordMismatch": "비밀번호가 일치하지 않습니다",
       "passwordTooShort": "비밀번호는 8자 이상이어야 합니다",
-      "requiresProOrOwner": "프로필 암호화는 Pro 사용자 및 팀 소유자만 사용할 수 있습니다.",
       "validatePassword": "확인",
       "validateDialog": {
         "title": "암호화 비밀번호 확인",
@@ -458,7 +457,6 @@
       "stopLeader": "이 프로필과 모든 팔로워 중지",
       "stopFollower": "{{leaderName}}의 작업을 따르는 중",
       "desyncedTooltip": "{{url}}에서 동기화 실패",
-      "paidFeature": "동기화는 유료 기능입니다",
       "wayfernOnly": "Wayfern 프로필만 동기화할 수 있습니다",
       "selectFollowers": "팔로워 프로필 선택",
       "selectFollowersDesc": "리더 프로필의 작업을 미러링할 프로필을 선택하세요. 중지된 Wayfern 프로필만 선택할 수 있습니다.",
@@ -1275,8 +1273,7 @@
       "selectFile": "파일 선택",
       "preview": "{{count}}개 쿠키 발견",
       "success": "{{imported}}개 쿠키를 가져왔습니다 ({{replaced}}개 교체됨)",
-      "error": "쿠키 가져오기 실패",
-      "proFeature": "쿠키 가져오기는 Pro 기능입니다"
+      "error": "쿠키 가져오기 실패"
     },
     "export": {
       "title": "쿠키 내보내기",
@@ -1591,7 +1588,6 @@
     "productSub": "제품 보조",
     "brand": "브랜드",
     "brandVersion": "브랜드 버전",
-    "proFeature": "이것은 Pro 기능입니다",
     "generateFingerprint": "핑거프린트 생성",
     "regenerateFingerprint": "핑거프린트 재생성",
     "regenerateConfirmTitle": "이 핑거프린트를 재생성할까요?",
@@ -1829,7 +1825,6 @@
     "extensionsTab": "확장 프로그램",
     "groupsTab": "그룹",
     "managedNotice": "여기서 관리되는 확장 프로그램은 실행 시 프로필에 수동으로 설치된 확장 프로그램을 대체합니다.",
-    "proRequired": "확장 프로그램 관리는 Pro 기능입니다",
     "empty": "아직 업로드된 확장 프로그램이 없습니다.",
     "createGroup": "그룹 생성",
     "newGroup": "새 그룹",
@@ -2659,7 +2654,6 @@
     "cookieImportRemoteSession": "원격 세션이 이 프로필을 사용하는 동안에는 쿠키를 가져올 수 없습니다. 동기화가 끝날 때까지 기다리세요.",
     "cookieImportNoCookies": "붙여넣은 내용에서 쿠키를 찾지 못했습니다.",
     "selfHostedRequiresLogout": "자체 호스팅 서버를 구성하기 전에 Donut 계정에서 로그아웃하세요.",
-    "fingerprintRequiresPro": "핑거프린트를 보거나 편집하려면 활성 유료 요금제가 필요합니다. 보호 기능은 모든 요금제에 포함되어 있습니다.",
     "proxyNotWorking": "선택한 프록시가 작동하지 않아 프로필이 생성되지 않았습니다.",
     "proxyPaymentRequired": "선택한 프록시는 결제가 필요합니다(402). 구독이 만료되었을 수 있어 프로필이 생성되지 않았습니다.",
     "vpnNotWorking": "선택한 VPN이 작동하지 않아 프로필이 생성되지 않았습니다.",

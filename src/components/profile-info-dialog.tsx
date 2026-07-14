@@ -162,7 +162,6 @@ interface ProfileInfoDialogProps {
   onSetPassword?: (profile: BrowserProfile) => void;
   onChangePassword?: (profile: BrowserProfile) => void;
   onRemovePassword?: (profile: BrowserProfile) => void;
-  crossOsUnlocked?: boolean;
   isRunning?: boolean;
   isDisabled?: boolean;
   isCrossOs?: boolean;
@@ -703,7 +702,6 @@ function ProfileInfoContents({
   onSetPassword,
   onChangePassword,
   onRemovePassword,
-  crossOsUnlocked = false,
   isRunning = false,
   isDisabled = false,
   isCrossOs = false,
@@ -836,7 +834,6 @@ function ProfileInfoContents({
     onClick: () => void;
     disabled?: boolean;
     destructive?: boolean;
-    proBadge?: boolean;
     runningBadge?: boolean;
     hidden?: boolean;
   }
@@ -878,9 +875,7 @@ function ProfileInfoContents({
       onClick: () => {
         handleAction(() => onConfigureWayfern?.(profile));
       },
-      // Viewing and editing fingerprints both require an active paid plan.
-      disabled: isDisabled || !crossOsUnlocked,
-      proBadge: !crossOsUnlocked,
+      disabled: isDisabled,
       runningBadge: isRunning,
       hidden: !isWayfern || !onConfigureWayfern,
     },
@@ -891,8 +886,7 @@ function ProfileInfoContents({
       onClick: () => {
         handleAction(() => onLaunchWithSync?.(profile));
       },
-      disabled: isDisabled || isRunning || !crossOsUnlocked,
-      proBadge: !crossOsUnlocked,
+      disabled: isDisabled || isRunning,
       hidden: profile.browser !== "wayfern" || !onLaunchWithSync,
     },
     {
@@ -1095,7 +1089,6 @@ interface ProfileInfoLayoutProps {
     onClick: () => void;
     disabled?: boolean;
     destructive?: boolean;
-    proBadge?: boolean;
     runningBadge?: boolean;
   }[];
   t: (key: string, options?: Record<string, unknown>) => string;

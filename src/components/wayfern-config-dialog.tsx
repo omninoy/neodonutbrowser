@@ -31,7 +31,6 @@ interface WayfernConfigDialogProps {
   profile: BrowserProfile | null;
   onSave: (profile: BrowserProfile, config: WayfernConfig) => Promise<void>;
   isRunning?: boolean;
-  crossOsUnlocked?: boolean;
 }
 
 export function WayfernConfigDialog({
@@ -40,7 +39,6 @@ export function WayfernConfigDialog({
   profile,
   onSave,
   isRunning = false,
-  crossOsUnlocked = false,
 }: WayfernConfigDialogProps) {
   const { t } = useTranslation();
   const [config, setConfig] = useState<WayfernConfig>(() => ({
@@ -128,8 +126,6 @@ export function WayfernConfigDialog({
               onConfigChange={updateConfig}
               forceAdvanced={true}
               readOnly={isRunning}
-              crossOsUnlocked={crossOsUnlocked}
-              limitedMode={!crossOsUnlocked}
               profileVersion={profile.version}
               profileBrowser="wayfern"
               profileId={profile.id}

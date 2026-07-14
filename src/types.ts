@@ -122,12 +122,9 @@ export interface SyncServerCheck {
 }
 
 /**
- * Capability/limit set derived from the plan by the backend. Features are gated
- * on these flags instead of a single "is paid?" check, so a plan like "solo"
- * (cloud backup + nightly cookie bot, no automation, no fingerprint editing, no
- * hands-on remote session) is just data. Mirrors the capability matrix the
- * cloud API resolves. Resolve via `getEntitlements()` — the desktop populates
- * it, but it stays optional for safety on older state.
+ * Capability/limit set returned with cloud account data. Local browser
+ * automation and fingerprint controls are normalized to enabled by the desktop;
+ * cloud backup and team collaboration remain plan-derived.
  */
 export interface Entitlements {
   active: boolean;
@@ -229,8 +226,7 @@ export interface CloudUser {
   teamName?: string;
   teamRole?: string;
   // This device's position among the user's active devices (oldest = 1).
-  // Ordinal 1 / isPrimaryDevice === true is the only device that can run
-  // browser automation. Optional: older backends omit them.
+  // Optional: older backends omit these fields.
   deviceOrdinal?: number | null;
   deviceCount?: number | null;
   isPrimaryDevice?: boolean | null;

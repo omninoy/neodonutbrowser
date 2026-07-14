@@ -176,7 +176,6 @@
       "passwordSaved": "暗号化パスワードが設定されました",
       "passwordMismatch": "パスワードが一致しません",
       "passwordTooShort": "パスワードは8文字以上である必要があります",
-      "requiresProOrOwner": "プロファイルの暗号化はProユーザーとチームオーナーのみ利用できます。",
       "validatePassword": "確認",
       "validateDialog": {
         "title": "暗号化パスワードを確認",
@@ -458,7 +457,6 @@
       "stopLeader": "このプロフィールとすべてのフォロワーを停止",
       "stopFollower": "{{leaderName}}のアクションを追従中",
       "desyncedTooltip": "{{url}}で同期に失敗しました",
-      "paidFeature": "シンクロナイザーは有料機能です",
       "wayfernOnly": "Wayfernプロフィールのみ同期可能です",
       "selectFollowers": "フォロワープロフィールを選択",
       "selectFollowersDesc": "リーダープロフィールのアクションを複製するプロフィールを選択してください。停止中のWayfernプロフィールのみ選択できます。",
@@ -1275,8 +1273,7 @@
       "selectFile": "ファイルを選択",
       "preview": "{{count}}件のCookieが見つかりました",
       "success": "{{imported}}件のCookieをインポートしました（{{replaced}}件を置換）",
-      "error": "Cookieのインポートに失敗しました",
-      "proFeature": "Cookieのインポートはプロ機能です"
+      "error": "Cookieのインポートに失敗しました"
     },
     "export": {
       "title": "Cookieのエクスポート",
@@ -1591,7 +1588,6 @@
     "productSub": "プロダクトサブ",
     "brand": "ブランド",
     "brandVersion": "ブランドバージョン",
-    "proFeature": "これはPro機能です",
     "generateFingerprint": "フィンガープリントを生成",
     "regenerateFingerprint": "フィンガープリントを再生成",
     "regenerateConfirmTitle": "このフィンガープリントを再生成しますか？",
@@ -1829,7 +1825,6 @@
     "extensionsTab": "拡張機能",
     "groupsTab": "グループ",
     "managedNotice": "ここで管理される拡張機能は、起動時にプロファイルに手動でインストールされた拡張機能を置き換えます。",
-    "proRequired": "拡張機能管理はプロ機能です",
     "empty": "まだ拡張機能がアップロードされていません。",
     "createGroup": "グループを作成",
     "newGroup": "新しいグループ",
@@ -2659,7 +2654,6 @@
     "cookieImportRemoteSession": "リモートセッションがこのプロファイルを使用している間は Cookie をインポートできません。同期の完了をお待ちください。",
     "cookieImportNoCookies": "貼り付けた内容から Cookie が見つかりませんでした。",
     "selfHostedRequiresLogout": "セルフホストサーバーを設定する前に Donut アカウントからサインアウトしてください。",
-    "fingerprintRequiresPro": "フィンガープリントの表示または編集には有効な有料プランが必要です。保護機能はすべてのプランに含まれています。",
     "proxyNotWorking": "選択したプロキシが機能していないため、プロファイルは作成されませんでした。",
     "proxyPaymentRequired": "選択したプロキシは支払いが必要です（402）。サブスクリプションが期限切れの可能性があります。そのため、プロファイルは作成されませんでした。",
     "vpnNotWorking": "選択したVPNが機能していないため、プロファイルは作成されませんでした。",

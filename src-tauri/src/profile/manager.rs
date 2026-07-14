@@ -3190,14 +3190,6 @@ pub async fn create_browser_profile_new(
 ) -> Result<BrowserProfile, String> {
   // Checked before anything is created, so a bad page leaves nothing behind.
   let start_urls = start_urls.map(checked_start_urls).transpose()?;
-  let fingerprint_os = wayfern_config.as_ref().and_then(|c| c.os.as_deref());
-
-  if !crate::cloud_auth::CLOUD_AUTH
-    .is_fingerprint_os_allowed(fingerprint_os)
-    .await
-  {
-    return Err(serde_json::json!({ "code": "FINGERPRINT_REQUIRES_PRO" }).to_string());
-  }
 
   // A dead/unreachable proxy or VPN (or a 402 from an expired proxy
   // subscription) cancels creation with a translatable error.

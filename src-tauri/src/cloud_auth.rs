@@ -160,6 +160,15 @@ pub struct Entitlements {
   pub remote_browser_hours: i64,
 }
 
+fn with_local_capabilities(mut entitlements: Entitlements) -> Entitlements {
+  entitlements.browser_automation = true;
+  entitlements.cross_os_fingerprints = true;
+  entitlements.requests_per_hour = entitlements
+    .requests_per_hour
+    .max(DEFAULT_REQUESTS_PER_HOUR);
+  entitlements
+}
+
 /// Local fallback mirror of the backend plan -> capability matrix, used only when
 /// the server hasn't sent an entitlements object (older cached state / backend).
 fn derive_entitlements(
@@ -171,10 +180,10 @@ fn derive_entitlements(
   let active =
     plan != "free" && (subscription_status == "active" || plan_period == Some("lifetime"));
   if !active {
-    return Entitlements {
+    return with_local_capabilities(Entitlements {
       active: false,
-      browser_automation: false,
-      cross_os_fingerprints: false,
+      browser_automation: true,
+      cross_os_fingerprints: true,
       cloud_backup: false,
       team_collaboration: false,
       cookie_bot: false,
@@ -183,9 +192,9 @@ fn derive_entitlements(
       scheduled_automation: false,
       agent: false,
       profile_limit: 0,
-      requests_per_hour: 0,
+      requests_per_hour: DEFAULT_REQUESTS_PER_HOUR,
       remote_browser_hours: 0,
-    };
+    });
   }
   // Tuple order: (browser_automation, cross_os_fingerprints, cloud_backup,
   // team_collaboration, cookie_bot, remote_interactive, remote_control).
@@ -215,7 +224,7 @@ fn derive_entitlements(
     "pro" => (true, true, true, false, true, true, true),
     _ => (true, true, true, false, true, true, false),
   };
-  Entitlements {
+  with_local_capabilities(Entitlements {
     active,
     browser_automation,
     cross_os_fingerprints,
@@ -228,15 +237,11 @@ fn derive_entitlements(
     scheduled_automation: matches!(plan, "solo" | "pro" | "team" | "enterprise"),
     agent: false,
     profile_limit,
-    requests_per_hour: if browser_automation {
-      DEFAULT_REQUESTS_PER_HOUR
-    } else {
-      0
-    },
-    // Deliberately 0 in the fallback: the allowance is the server's to state and
-    // guessing it here would show a customer hours they may not have.
-    remote_browser_hours: 0,
-  }
+      requests_per_hour: DEFAULT_REQUESTS_PER_HOUR,
+      // Deliberately 0 in the fallback: the allowance is the server's to state and
+      // guessing it here would show a customer hours they may not have.
+      remote_browser_hours: 0,
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -271,8 +276,9 @@ pub struct CloudUser {
   #[serde(rename = "effectivePlan", default)]
   pub effective_plan: Option<String>,
   // This desktop session's position among the user's active devices, oldest
-  // first, as the cloud API reports it. Shown in the UI. `default` keeps older
-  // login/state payloads (which lack these fields) deserializing cleanly.
+=======
+  // first. `default` keeps older login/state payloads (which lack these fields)
+  // deserializing cleanly.
   #[serde(rename = "deviceOrdinal", default)]
   pub device_ordinal: Option<i64>,
   #[serde(rename = "deviceCount", default)]
@@ -297,14 +303,8 @@ impl CloudUser {
   /// locally from the plan fields (keeps older cached state / backends working).
   pub fn entitlements(&self) -> Entitlements {
     if let Some(e) = &self.entitlements {
-      // Returned verbatim, INCLUDING the `#[serde(default)]` false that a
-      // backend older than this release leaves on `cookie_bot` /
-      // `remote_interactive`. Repairing it here is impossible anyway — serde's
-      // default erases the difference between "sent false" and "not sent" — and
-      // it is not this layer's job: nothing in Rust gates on either flag, and
-      // `getEntitlements()` in `src/lib/entitlements.ts` fills both gaps at the
-      // single point every UI consumer already goes through.
-      return e.clone();
+=======
+      return with_local_capabilities(e.clone());
     }
     derive_entitlements(
       &self.plan,
@@ -1372,35 +1372,14 @@ impl CloudAuthManager {
       .unwrap_or(false)
   }
 
+  /// Local API, MCP automation, and bulk profile actions are available to all users.
   pub async fn can_use_browser_automation(&self) -> bool {
-    #[cfg(feature = "e2e")]
-    if crate::e2e_automation_enabled()
-      && std::env::var_os("WAYFERN_TEST_TOKEN").is_some_and(|token| !token.is_empty())
-    {
-      return true;
-    }
-
-    self
-      .entitlements()
-      .await
-      .map(|e| e.browser_automation)
-      .unwrap_or(false)
+    true
   }
 
-  /// Edit fingerprints / use a non-native OS fingerprint.
+  /// Fingerprint editing and cross-OS fingerprints are local features available to all users.
   pub async fn can_use_cross_os_fingerprints(&self) -> bool {
-    #[cfg(feature = "e2e")]
-    if crate::e2e_automation_enabled()
-      && std::env::var_os("WAYFERN_TEST_TOKEN").is_some_and(|token| !token.is_empty())
-    {
-      return true;
-    }
-
-    self
-      .entitlements()
-      .await
-      .map(|e| e.cross_os_fingerprints)
-      .unwrap_or(false)
+    true
   }
 
   /// Cloud profile sync / backup (async).
@@ -1443,13 +1422,8 @@ impl CloudAuthManager {
     (limit > 0).then_some((state.user.id, limit as u64))
   }
 
-  pub async fn is_fingerprint_os_allowed(&self, fingerprint_os: Option<&str>) -> bool {
-    let host_os = crate::profile::types::get_host_os();
-    match fingerprint_os {
-      None => true,
-      Some(os) if os == host_os => true,
-      Some(_) => self.can_use_cross_os_fingerprints().await,
-    }
+  pub async fn is_fingerprint_os_allowed(&self, _fingerprint_os: Option<&str>) -> bool {
+    true
   }
 
   pub async fn is_on_team_plan(&self) -> bool {
@@ -1662,22 +1636,9 @@ impl CloudAuthManager {
       .await
   }
 
-  /// Request a wayfern token from the cloud API. Only succeeds for plans that
-  /// include browser automation.
-  ///
-  /// Self-gating on purpose: every caller used to repeat the check, and the one
-  /// they repeated was the wrong one. A plan without automation is not an error
-  /// state here — it clears any stale token and reports success, because there
-  /// is nothing to fetch and nothing wrong.
+  /// Request a wayfern token from the cloud API. Minted for every signed-in
+  /// user: local fingerprint controls are not plan-gated.
   pub async fn request_wayfern_token(&self) -> Result<(), String> {
-    if !self.is_entitled_to_wayfern_token().await {
-      // Ok(()) here means callers log nothing, so a session that declined to
-      // mint left no trace at all and looked identical to one that succeeded.
-      log::info!("Wayfern token not requested: plan not active");
-      self.clear_wayfern_token().await;
-      return Ok(());
-    }
-
     let result = self
       .api_call_with_retry(|access_token| {
         let url = format!("{CLOUD_API_URL}/api/auth/wayfern-start");
@@ -1720,27 +1681,13 @@ impl CloudAuthManager {
     let token = match result {
       Ok(token) => token,
       Err(e) => {
-        // A 403 rejects the entitlement without invalidating the login session.
-        // Clear the browser token and refresh account state before notifying UI.
+=======
+        // A rejected token request must not invalidate the cloud session or
+        // prevent a local browser launch. Drop any stale token and continue with
+        // the browser's local capabilities.
         if e.contains("(403") || e.contains("Forbidden") {
-          WAYFERN_TOKEN.failed(format!("refused: {}", refusal_message(&e)));
+          log::warn!("Wayfern token request rejected by backend (403): {e}");
           self.clear_wayfern_token().await;
-          if let Err(fetch_err) = self.fetch_profile().await {
-            PROFILE_REFRESH.failed(fetch_err);
-          }
-          // Only the device rules produce a restriction the user can lift, and
-          // the toast tells them to sign other devices out — so only those may
-          // raise it. A plan-level refusal that slipped past the gate above
-          // (cached entitlements the re-fetch just corrected) must stay silent:
-          // telling a Solo customer they are "temporarily restricted" describes
-          // a lockout that does not exist and hides the real answer, which is
-          // that their plan does not include browser automation.
-          if is_device_restriction(&e) {
-            self.set_wayfern_device_refusal(Some(refusal_message(&e)));
-            let _ = crate::events::emit_empty("wayfern-paid-blocked");
-          }
-        } else {
-          WAYFERN_TOKEN.failed(&e);
         }
         return Err(e);
       }
@@ -1898,7 +1845,7 @@ impl CloudAuthManager {
       // transition, so a session that signed in before upgrading stayed
       // tokenless for up to ten hours while reporting the feature as unlocked.
       // A plan change revokes the server's tokens, so it mints one too.
-      let missing_entitled_token = CLOUD_AUTH.is_entitled_to_wayfern_token().await
+      let missing_entitled_token = CLOUD_AUTH.is_logged_in().await
         && CLOUD_AUTH.get_wayfern_token().await.is_none();
       let plan_changed = CLOUD_AUTH.plan_marker().await != plan_before;
       if CLOUD_AUTH.wayfern_token_due(crate::proxy_manager::now_secs())
@@ -2003,15 +1950,17 @@ pub async fn cloud_exchange_device_code(
     has_subscription
   );
 
-  // Pre-fetch sync token so sync can start immediately
+  // Pre-fetch sync token so paid cloud sync can start immediately.
   if has_subscription {
     // Failures of both are logged inside.
     if let Ok(None) = CLOUD_AUTH.get_or_refresh_sync_token().await {
       log::warn!("Sync token missing despite an active subscription");
     }
+  }
 
-    // Request wayfern token for paid users
-    let _ = CLOUD_AUTH.request_wayfern_token().await;
+    // Request a Wayfern token for every signed-in user.
+    if let Err(e) = CLOUD_AUTH.request_wayfern_token().await {
+      log::warn!("Failed to request wayfern token after login: {e}");
   }
 
   // Sync cloud proxy after login
@@ -2096,7 +2045,7 @@ pub async fn cloud_refresh_profile() -> Result<CloudUser, String> {
   // that upgraded after its last sign-in therefore refreshed into the correct
   // entitlements while still holding no token, and "Refresh" did not fix it.
   // Only mint when one is genuinely missing, so this stays a no-op afterwards.
-  if CLOUD_AUTH.is_entitled_to_wayfern_token().await
+  if CLOUD_AUTH.is_logged_in().await
     && CLOUD_AUTH.get_wayfern_token().await.is_none()
   {
     // Failures are logged inside.

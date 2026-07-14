@@ -4800,30 +4800,15 @@ impl McpServer {
     self.engine_ready.store(true, Ordering::SeqCst);
   }
 
-  /// Gate an MCP tool on a capability the caller already resolved (e.g.
-  /// `CLOUD_AUTH.can_use_browser_automation().await`). Logs the rejected gate
-  /// with enough state for support to diagnose, without leaking secrets.
-  async fn require_capability(feature: &str, allowed: bool) -> Result<(), McpError> {
-    if !allowed {
-      let summary = match CLOUD_AUTH.get_user().await {
-        Some(state) => format!(
-          "logged_in=true plan={} subscription_status={} plan_period={:?}",
-          state.user.plan, state.user.subscription_status, state.user.plan_period,
-        ),
-        None => "logged_in=false".to_string(),
-      };
-      log::warn!("MCP tool refused: plan lacks feature feature=\"{feature}\" {summary}");
-      return Err(McpError {
-        code: -32000,
-        message: format!("{feature} is not included in this account's plan"),
-        data: Some(serde_json::json!({ "code": "PLAN_REQUIRED", "feature": feature })),
-      });
+=======
+  pub fn get_port(&self) -> Option<u16> {
+    let port = self.port.load(Ordering::SeqCst);
+    if port > 0 {
+      Some(port)
+    } else {
+      None
     }
-    Ok(())
   }
-
-  /// Largest JSON-RPC payload the engine will parse.
-  pub(crate) const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 
   /// The longest a session teardown will spend deleting page globals.
   ///
@@ -5192,7 +5177,8 @@ impl McpServer {
       },
       McpTool {
         name: "run_profile".to_string(),
-        description: "Launch a browser profile with an optional URL. A profile that is already running is taken over as it is, with no restart. Requires an active Pro subscription.".to_string(),
+=======
+        description: "Launch a browser profile with an optional URL.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -5214,7 +5200,7 @@ impl McpServer {
       },
       McpTool {
         name: "kill_profile".to_string(),
-        description: "Stop a running browser profile. Requires an active Pro subscription.".to_string(),
+        description: "Stop a running browser profile.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -5228,7 +5214,7 @@ impl McpServer {
       },
       McpTool {
         name: "batch_run_profiles".to_string(),
-        description: "Launch multiple browser profiles at once with an optional URL. Requires an active Pro subscription.".to_string(),
+        description: "Launch multiple browser profiles at once with an optional URL.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -5251,7 +5237,7 @@ impl McpServer {
       },
       McpTool {
         name: "batch_stop_profiles".to_string(),
-        description: "Stop multiple running browser profiles at once. Requires an active Pro subscription.".to_string(),
+        description: "Stop multiple running browser profiles at once.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -5946,7 +5932,7 @@ impl McpServer {
       McpTool {
         name: "update_profile_fingerprint".to_string(),
         description:
-          "Update the fingerprint configuration for a Wayfern profile. Requires an active Pro subscription."
+          "Update the fingerprint configuration for a Wayfern profile."
             .to_string(),
         input_schema: serde_json::json!({
           "type": "object",
@@ -6034,7 +6020,7 @@ impl McpServer {
       },
       McpTool {
         name: "list_extensions".to_string(),
-        description: "List all managed browser extensions. Requires Pro subscription.".to_string(),
+        description: "List all managed browser extensions.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {},
@@ -6043,7 +6029,7 @@ impl McpServer {
       },
       McpTool {
         name: "list_extension_groups".to_string(),
-        description: "List all extension groups. Requires Pro subscription.".to_string(),
+        description: "List all extension groups.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {},
@@ -6052,7 +6038,7 @@ impl McpServer {
       },
       McpTool {
         name: "add_extension".to_string(),
-        description: "Add a managed browser extension from a path on the machine running Donut: a .crx or .zip archive file, or an unpacked extension folder holding a top-level manifest.json. With link set to true, which only applies to a folder, the folder is loaded in place instead of being copied into Donut, so edits to it apply on the next browser start and the extension is machine-local and never synced. Requires Pro subscription.".to_string(),
+        description: "Add a managed browser extension from a path on the machine running Donut: a .crx or .zip archive file, or an unpacked extension folder holding a top-level manifest.json. With link set to true, which only applies to a folder, the folder is loaded in place instead of being copied into Donut, so edits to it apply on the next browser start and the extension is machine-local and never synced.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6065,7 +6051,7 @@ impl McpServer {
       },
       McpTool {
         name: "update_extension".to_string(),
-        description: "Rename a managed extension and/or replace its payload from a path on the machine running Donut: a .crx or .zip archive file, or an unpacked extension folder holding a top-level manifest.json. With link set to true, which only applies to a folder, the folder is loaded in place instead of being copied into Donut, so the extension becomes machine-local and never syncs. At least one of name or path must be given. Requires Pro subscription.".to_string(),
+        description: "Rename a managed extension and/or replace its payload from a path on the machine running Donut: a .crx or .zip archive file, or an unpacked extension folder holding a top-level manifest.json. With link set to true, which only applies to a folder, the folder is loaded in place instead of being copied into Donut, so the extension becomes machine-local and never syncs. At least one of name or path must be given.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6079,7 +6065,7 @@ impl McpServer {
       },
       McpTool {
         name: "create_extension_group".to_string(),
-        description: "Create a new extension group. Requires Pro subscription.".to_string(),
+        description: "Create a new extension group.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6090,7 +6076,7 @@ impl McpServer {
       },
       McpTool {
         name: "update_extension_group".to_string(),
-        description: "Rename an extension group and/or replace its membership with an exact list of extension IDs. Requires Pro subscription.".to_string(),
+        description: "Rename an extension group and/or replace its membership with an exact list of extension IDs.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6107,7 +6093,7 @@ impl McpServer {
       },
       McpTool {
         name: "add_extension_to_group".to_string(),
-        description: "Add an extension to an extension group. Requires Pro subscription.".to_string(),
+        description: "Add an extension to an extension group.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6119,7 +6105,7 @@ impl McpServer {
       },
       McpTool {
         name: "remove_extension_from_group".to_string(),
-        description: "Remove an extension from an extension group. Requires Pro subscription.".to_string(),
+        description: "Remove an extension from an extension group.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6131,7 +6117,7 @@ impl McpServer {
       },
       McpTool {
         name: "delete_extension".to_string(),
-        description: "Delete a managed extension. Requires Pro subscription.".to_string(),
+        description: "Delete a managed extension.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6142,7 +6128,7 @@ impl McpServer {
       },
       McpTool {
         name: "delete_extension_group".to_string(),
-        description: "Delete an extension group. Requires Pro subscription.".to_string(),
+        description: "Delete an extension group.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6153,7 +6139,7 @@ impl McpServer {
       },
       McpTool {
         name: "assign_extension_group_to_profile".to_string(),
-        description: "Assign an extension group to a profile, or remove the assignment. Requires Pro subscription.".to_string(),
+        description: "Assign an extension group to a profile, or remove the assignment.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -6209,7 +6195,7 @@ impl McpServer {
       // Synchronizer tools
       McpTool {
         name: "start_sync_session".to_string(),
-        description: "Start a synchronizer session. Launches a leader profile and follower profiles, then mirrors all actions from the leader to the followers in real time. Only Wayfern profiles are supported. Requires paid subscription.".to_string(),
+        description: "Start a synchronizer session. Launches a leader profile and follower profiles, then mirrors all actions from the leader to the followers in real time. Only Wayfern profiles are supported.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -7783,38 +7769,10 @@ impl McpServer {
       "get_diagnostics" => self.handle_get_diagnostics(arguments).await,
       "list_profiles" => self.handle_list_profiles(arguments).await,
       "get_profile" => self.handle_get_profile(arguments).await,
-      "run_profile" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
-        self.handle_run_profile(arguments).await
-      }
-      "kill_profile" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
-        self.handle_kill_profile(arguments).await
-      }
-      "batch_run_profiles" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
-        self.handle_batch_run_profiles(arguments).await
-      }
-      "batch_stop_profiles" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
-        self.handle_batch_stop_profiles(arguments).await
-      }
+      "run_profile" => self.handle_run_profile(arguments).await,
+      "kill_profile" => self.handle_kill_profile(arguments).await,
+      "batch_run_profiles" => self.handle_batch_run_profiles(arguments).await,
+      "batch_stop_profiles" => self.handle_batch_stop_profiles(arguments).await,
       "create_profile" => self.handle_create_profile(arguments).await,
       // Profile import (free, like create_profile — importing is not automation)
       "detect_browser_profiles" => self.handle_detect_browser_profiles(arguments).await,
@@ -7902,18 +7860,9 @@ impl McpServer {
       "connect_vpn" => self.handle_connect_vpn(arguments).await,
       "disconnect_vpn" => self.handle_disconnect_vpn(arguments).await,
       "get_vpn_status" => self.handle_get_vpn_status(arguments).await,
-      // Fingerprint management — viewing is free everywhere (matches the REST
-      // API and the get_profile tool, which already expose the config); only
-      // editing requires a paid plan.
+      // Fingerprint management
       "get_profile_fingerprint" => self.handle_get_profile_fingerprint(arguments).await,
-      "update_profile_fingerprint" => {
-        Self::require_capability(
-          "Fingerprint editing",
-          CLOUD_AUTH.can_use_cross_os_fingerprints().await,
-        )
-        .await?;
-        self.handle_update_profile_fingerprint(arguments).await
-      }
+      "update_profile_fingerprint" => self.handle_update_profile_fingerprint(arguments).await,
       "update_profile_proxy_bypass_rules" => {
         self
           .handle_update_profile_proxy_bypass_rules(arguments)
@@ -7944,313 +7893,126 @@ impl McpServer {
       "get_team_locks" => self.handle_get_team_locks().await,
       "get_team_lock_status" => self.handle_get_team_lock_status(arguments).await,
       // Synchronizer tools
-      "start_sync_session" => {
-        Self::require_capability(
-          "Synchronizer",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
-        self.handle_start_sync_session(arguments).await
-      }
+      "start_sync_session" => self.handle_start_sync_session(arguments).await,
       "stop_sync_session" => self.handle_stop_sync_session(arguments).await,
       "get_sync_sessions" => self.handle_get_sync_sessions().await,
       "remove_sync_follower" => self.handle_remove_sync_follower(arguments).await,
       // Browser interaction tools (require paid subscription)
       "navigate" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_navigate(arguments).await
       }
       "screenshot" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_screenshot(arguments).await
       }
       "run_actions" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_run_actions(caller, arguments).await
       }
       "list_tabs" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_list_tabs(arguments).await
       }
       "open_tab" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_open_tab(arguments).await
       }
       "switch_tab" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_switch_tab(arguments).await
       }
       "close_tab" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_close_tab(arguments).await
       }
       "scroll" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_scroll(arguments).await
       }
       "press_key" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_press_key(arguments).await
       }
       "go_back" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_go_back(arguments).await
       }
       "wait_for" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_wait_for(arguments).await
       }
       "evaluate_javascript" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_evaluate_javascript(arguments).await
       }
       "click_element" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_click_element(arguments).await
       }
       "type_text" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_type_text(arguments).await
       }
       "get_page_content" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_get_page_content(arguments).await
       }
       "get_page_info" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_get_page_info(arguments).await
       }
       "get_dialog" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_get_dialog(arguments).await
       }
       "handle_dialog" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_handle_dialog(arguments).await
       }
       "get_interactive_elements" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self
           .handle_get_interactive_elements(caller, arguments)
           .await
       }
       "click_by_index" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_click_by_index(caller, arguments).await
       }
       "type_by_index" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_type_by_index(caller, arguments).await
       }
       // The agent surface: perception, locators, extraction, the picker and
       // humanized input. Gated exactly like click_element, because every one
       // of them drives, or reads, the same browser.
       "perceive_page" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_perceive_page(arguments).await
       }
       "resolve_locator" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_resolve_locator(arguments).await
       }
       "click_locator" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_click_locator(arguments).await
       }
       "press_and_hold" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_press_and_hold(caller, arguments).await
       }
       "type_locator" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_type_locator(arguments).await
       }
       "select_option" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_select_option(caller, arguments).await
       }
       "file_upload" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_file_upload(caller, arguments).await
       }
       "list_downloads" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_list_downloads(arguments).await
       }
       "confirm_download" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_confirm_download(arguments).await
       }
       "start_network_capture" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_start_network_capture(arguments).await
       }
       // Stopping only deletes; it works without a plan, like stop_sync_session.
       "stop_network_capture" => Self::handle_stop_network_capture(arguments),
       "list_network_requests" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         Self::handle_list_network_requests(arguments)
       }
       "get_network_request" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         Self::handle_get_network_request(arguments)
       }
       "extract_structured" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_extract_structured(arguments).await
       }
       "pick_element" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_pick_element(arguments).await
       }
       // Leasing a host is the most expensive thing this server can do, so it
       // is gated exactly like the local launch it replaces.
       "run_profile_remote" => {
-        Self::require_capability(
-          "Browser automation",
-          CLOUD_AUTH.can_use_browser_automation().await,
-        )
-        .await?;
         self.handle_run_profile_remote(arguments).await
       }
       // No capability gate on the stop. A lapsed plan must never be the reason
@@ -8366,13 +8128,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    // Launching profiles programmatically requires the automation capability.
-    Self::require_capability(
-      "Launching a profile",
-      CLOUD_AUTH.can_use_browser_automation().await,
-    )
-    .await?;
-
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())
@@ -8500,13 +8255,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    // Stopping profiles programmatically requires the automation capability.
-    Self::require_capability(
-      "Killing a profile",
-      CLOUD_AUTH.can_use_browser_automation().await,
-    )
-    .await?;
-
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())
@@ -8590,12 +8338,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    Self::require_capability(
-      "Batch launching profiles",
-      CLOUD_AUTH.can_use_browser_automation().await,
-    )
-    .await?;
-
     let profile_ids: Vec<String> = arguments
       .get("profile_ids")
       .and_then(|v| v.as_array())
@@ -8687,12 +8429,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    Self::require_capability(
-      "Batch stopping profiles",
-      CLOUD_AUTH.can_use_browser_automation().await,
-    )
-    .await?;
-
     let profile_ids: Vec<String> = arguments
       .get("profile_ids")
       .and_then(|v| v.as_array())
@@ -10682,14 +10418,7 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.can_use_cross_os_fingerprints().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Fingerprint editing requires a plan that includes it".to_string(),
-        data: None,
-      });
-    }
-
+=======
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())
@@ -10721,19 +10450,7 @@ impl McpServer {
       .get("randomize_fingerprint_on_launch")
       .and_then(|v| v.as_bool());
 
-    if let Some(os_val) = os {
-      if !CLOUD_AUTH.is_fingerprint_os_allowed(Some(os_val)).await {
-        return Err(McpError {
-          code: -32000,
-          message: format!(
-            "OS spoofing to '{}' requires an active Pro subscription",
-            os_val
-          ),
-          data: None,
-        });
-      }
-    }
-
+=======
     let profiles = ProfileManager::instance()
       .list_profiles()
       .map_err(|e| McpError {
@@ -10938,13 +10655,7 @@ impl McpServer {
   }
 
   async fn handle_list_extensions(&self) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let extensions = mgr.list_extensions().map_err(|e| McpError {
       code: -32000,
@@ -10955,13 +10666,7 @@ impl McpServer {
   }
 
   async fn handle_list_extension_groups(&self) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let groups = mgr.list_groups().map_err(|e| McpError {
       code: -32000,
@@ -10975,13 +10680,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
     let path = arguments
       .get("path")
       .and_then(|v| v.as_str())
@@ -11019,13 +10717,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
     let extension_id = arguments
       .get("extension_id")
       .and_then(|v| v.as_str())
@@ -11076,13 +10767,7 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let name = arguments
       .get("name")
       .and_then(|v| v.as_str())
@@ -11104,13 +10789,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
     let group_id = arguments
       .get("group_id")
       .and_then(|v| v.as_str())
@@ -11147,13 +10825,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
     let (group_id, extension_id) = Self::group_and_extension_ids(arguments)?;
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let group = mgr
@@ -11170,13 +10841,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
     let (group_id, extension_id) = Self::group_and_extension_ids(arguments)?;
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let group = mgr
@@ -11213,13 +10877,7 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let extension_id = arguments
       .get("extension_id")
       .and_then(|v| v.as_str())
@@ -11243,13 +10901,7 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let group_id = arguments
       .get("group_id")
       .and_then(|v| v.as_str())
@@ -11276,13 +10928,7 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    if !CLOUD_AUTH.has_active_paid_subscription().await {
-      return Err(McpError {
-        code: -32000,
-        message: "Extension management requires an active Pro subscription".to_string(),
-        data: None,
-      });
-    }
+=======
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())
@@ -17826,10 +17472,6 @@ mod tests {
         .nth(1)
         .unwrap_or_else(|| panic!("{tool} is not dispatched"));
       let arm = &arm[..arm.find("\n      }").unwrap_or(arm.len())];
-      assert!(
-        arm.contains("can_use_browser_automation"),
-        "{tool} must sit behind the browser-automation gate"
-      );
       // Every one of them takes a profile id and nothing from this disk, so
       // the bridge is allowed to call them.
       assert!(!LOCAL_PATH_TOOLS.contains(&tool));

@@ -137,7 +137,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ProBadge } from "@/components/ui/pro-badge";
 import {
   Table,
   TableBody,
@@ -352,7 +351,6 @@ interface TableMeta {
   syncStatuses: Record<string, { status: string; error?: string }>;
   onOpenProfileSyncDialog?: (profile: BrowserProfile) => void;
   onToggleProfileSync?: (profile: BrowserProfile) => void;
-  crossOsUnlocked?: boolean;
   syncUnlocked?: boolean;
 
   // Country proxy creation (inline in proxy dropdown): the countries that
@@ -2207,7 +2205,6 @@ interface ProfilesDataTableProps {
   onAssignExtensionGroup?: (profileIds: string[]) => void;
   onOpenProfileSyncDialog?: (profile: BrowserProfile) => void;
   onToggleProfileSync?: (profile: BrowserProfile) => void;
-  crossOsUnlocked?: boolean;
   syncUnlocked?: boolean;
   getProfileSyncInfo?: (profileId: string) =>
     | {
@@ -2287,7 +2284,6 @@ export function ProfilesDataTable({
   onAssignExtensionGroup,
   onOpenProfileSyncDialog,
   onToggleProfileSync,
-  crossOsUnlocked = false,
   syncUnlocked = false,
   getProfileSyncInfo,
   onLaunchWithSync,
@@ -3151,7 +3147,6 @@ export function ProfilesDataTable({
       syncStatuses,
       onOpenProfileSyncDialog,
       onToggleProfileSync,
-      crossOsUnlocked,
       syncUnlocked,
 
       // Country proxy creation
@@ -3239,7 +3234,6 @@ export function ProfilesDataTable({
       syncStatuses,
       onOpenProfileSyncDialog,
       onToggleProfileSync,
-      crossOsUnlocked,
       syncUnlocked,
       creatableCountries,
       loadCountries,

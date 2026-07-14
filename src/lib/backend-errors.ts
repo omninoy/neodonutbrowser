@@ -94,8 +94,6 @@ export type BackendErrorCode =
   | "CANNOT_MODIFY_CLOUD_MANAGED_PROXY"
   | "SYNC_LOCKED_BY_PROFILE"
   | "SYNC_NOT_CONFIGURED"
-  | "FINGERPRINT_REQUIRES_PRO"
-  | "WAYFERN_LAUNCH_ARGS_REQUIRES_PRO"
   | "WAYFERN_LAUNCH_ARG_INVALID"
   | "WAYFERN_LAUNCH_ARG_RESERVED"
   | "WAYFERN_LAUNCH_ARG_NOT_ALLOWED"
@@ -687,10 +685,6 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       return t("backendErrors.syncLockedByProfile");
     case "SYNC_NOT_CONFIGURED":
       return t("backendErrors.syncNotConfigured");
-    case "FINGERPRINT_REQUIRES_PRO":
-      return t("backendErrors.fingerprintRequiresPro");
-    case "WAYFERN_LAUNCH_ARGS_REQUIRES_PRO":
-      return t("backendErrors.wayfernLaunchArgsRequiresPro");
     case "WAYFERN_LAUNCH_ARG_INVALID":
       return t("backendErrors.wayfernLaunchArgInvalid");
     case "WAYFERN_LAUNCH_ARG_RESERVED":

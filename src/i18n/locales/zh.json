@@ -176,7 +176,6 @@
       "passwordSaved": "加密密码已设置",
       "passwordMismatch": "密码不匹配",
       "passwordTooShort": "密码必须至少8个字符",
-      "requiresProOrOwner": "配置文件加密仅适用于Pro用户和团队所有者。",
       "validatePassword": "验证",
       "validateDialog": {
         "title": "验证加密密码",
@@ -458,7 +457,6 @@
       "stopLeader": "停止此配置文件及其所有跟随者",
       "stopFollower": "正在跟随 {{leaderName}} 的操作",
       "desyncedTooltip": "在 {{url}} 同步失败",
-      "paidFeature": "同步器是付费功能",
       "wayfernOnly": "只有 Wayfern 配置文件可以同步",
       "selectFollowers": "选择跟随者配置文件",
       "selectFollowersDesc": "选择将复制领导者配置文件操作的配置文件。只能选择已停止的 Wayfern 配置文件。",
@@ -1275,8 +1273,7 @@
       "selectFile": "选择文件",
       "preview": "找到 {{count}} 个 Cookies",
       "success": "成功导入 {{imported}} 个 Cookies（替换了 {{replaced}} 个）",
-      "error": "导入 Cookies 失败",
-      "proFeature": "导入 Cookies 是 Pro 功能"
+      "error": "导入 Cookies 失败"
     },
     "export": {
       "title": "导出 Cookies",
@@ -1591,7 +1588,6 @@
     "productSub": "产品子版本",
     "brand": "品牌",
     "brandVersion": "品牌版本",
-    "proFeature": "这是 Pro 功能",
     "generateFingerprint": "生成指纹",
     "regenerateFingerprint": "重新生成指纹",
     "regenerateConfirmTitle": "要重新生成此指纹吗？",
@@ -1829,7 +1825,6 @@
     "extensionsTab": "扩展程序",
     "groupsTab": "分组",
     "managedNotice": "此处管理的扩展程序将在启动时替换配置文件中手动安装的所有扩展程序。",
-    "proRequired": "扩展程序管理是 Pro 功能",
     "empty": "尚未上传任何扩展程序。",
     "createGroup": "创建分组",
     "newGroup": "新建分组",
