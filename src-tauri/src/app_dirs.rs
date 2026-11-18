@@ -108,7 +108,7 @@ pub const WINDOW_STATE_FILENAME: &str = ".window-state.json";
 /// True when app state has been moved off the platform default location, by
 /// portable mode or by either directory override.
 fn state_is_relocated() -> bool {
-  std::env::var_os("DONUTBROWSER_DATA_DIR").is_some_and(|v| !v.is_empty())
+  std::env::var_os("NEODONUT_DATA_DIR").is_some_and(|v| !v.is_empty())
     || data_root().is_some()
     || portable_dir().is_some()
 }

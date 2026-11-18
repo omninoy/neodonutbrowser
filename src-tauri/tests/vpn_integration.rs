@@ -7,7 +7,7 @@ mod common;
 mod test_harness;
 
 use common::TestUtils;
-use neodonutbrowser_lib::vpn::{
+use donutbrowser_lib::vpn::{
   detect_vpn_type, parse_wireguard_config, VpnConfig, VpnStorage, VpnType, WireGuardConfig,
 };
 use serde_json::Value;
@@ -303,7 +303,7 @@ async fn test_wireguard_tunnel_init() {
     preshared_key: None,
   };
 
-  use neodonutbrowser_lib::vpn::{VpnTunnel, WireGuardTunnel};
+  use donutbrowser_lib::vpn::{VpnTunnel, WireGuardTunnel};
 
   let tunnel = WireGuardTunnel::new("test-wg".to_string(), config);
   assert_eq!(tunnel.vpn_id(), "test-wg");
@@ -315,7 +315,7 @@ async fn test_wireguard_tunnel_init() {
 #[tokio::test]
 #[serial]
 async fn test_tunnel_manager() {
-  use neodonutbrowser_lib::vpn::{TunnelManager, VpnStatus, VpnTunnel};
+  use donutbrowser_lib::vpn::{TunnelManager, VpnStatus, VpnTunnel};
 
   // Create a mock tunnel for testing the manager
   struct MockTunnel {
@@ -325,12 +325,12 @@ async fn test_tunnel_manager() {
 
   #[async_trait::async_trait]
   impl VpnTunnel for MockTunnel {
-    async fn connect(&mut self) -> Result<(), neodonutbrowser_lib::vpn::VpnError> {
+    async fn connect(&mut self) -> Result<(), donutbrowser_lib::vpn::VpnError> {
       self.connected = true;
       Ok(())
     }
 
-    async fn disconnect(&mut self) -> Result<(), neodonutbrowser_lib::vpn::VpnError> {
+    async fn disconnect(&mut self) -> Result<(), donutbrowser_lib::vpn::VpnError> {
       self.connected = false;
       Ok(())
     }
@@ -622,8 +622,8 @@ async fn raw_http_request_via_proxy(
 }
 
 async fn cleanup_runtime() {
-  let _ = neodonutbrowser_lib::proxy_runner::stop_all_proxy_processes().await;
-  let _ = neodonutbrowser_lib::vpn_worker_runner::stop_all_vpn_workers().await;
+  let _ = donutbrowser_lib::proxy_runner::stop_all_proxy_processes().await;
+  let _ = donutbrowser_lib::vpn_worker_runner::stop_all_vpn_workers().await;
   test_harness::stop_vpn_servers().await;
 }
 
@@ -680,7 +680,7 @@ async fn run_proxy_feature_suite(
   vpn_id: &str,
   server_tunnel_ip: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-  let vpn_worker = neodonutbrowser_lib::vpn_worker_runner::start_vpn_worker(vpn_id)
+  let vpn_worker = donutbrowser_lib::vpn_worker_runner::start_vpn_worker(vpn_id)
     .await
     .map_err(|error| error.to_string())?;
   let vpn_upstream = vpn_worker
@@ -804,7 +804,7 @@ async fn run_proxy_feature_suite(
   stop_proxy(binary_path, &bypass_proxy.id).await?;
   bypass_server.abort();
 
-  neodonutbrowser_lib::vpn_worker_runner::stop_vpn_worker(&vpn_worker.id)
+  donutbrowser_lib::vpn_worker_runner::stop_vpn_worker(&vpn_worker.id)
     .await
     .map_err(|error| error.to_string())?;
   Ok(())
@@ -833,7 +833,7 @@ async fn test_wireguard_traffic_flows_through_donut_proxy(
     build_wireguard_config(&wg_config),
   );
   {
-    let storage = neodonutbrowser_lib::vpn::VPN_STORAGE.lock().unwrap();
+    let storage = donutbrowser_lib::vpn::VPN_STORAGE.lock().unwrap();
     storage.save_config(&vpn_config)?;
   }
 
