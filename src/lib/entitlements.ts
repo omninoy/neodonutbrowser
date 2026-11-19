@@ -19,14 +19,14 @@ const LOCAL_ONLY: Entitlements = {
   crossOsFingerprints: true,
   cloudBackup: false,
   teamCollaboration: false,
-  cookieBot: false,
+  cookieBot: true,
   remoteInteractive: false,
   remoteControl: false,
-  scheduledAutomation: false,
-  agent: false,
+  scheduledAutomation: true,
+  agent: true,
   profileLimit: 0,
   requestsPerHour: DEFAULT_REQUESTS_PER_HOUR,
-  remoteBrowserHours: 0,
+  remoteBrowserHours: 9999,
 };
 
 function withLocalCapabilities(entitlements: Entitlements): Entitlements {
@@ -34,6 +34,9 @@ function withLocalCapabilities(entitlements: Entitlements): Entitlements {
     ...entitlements,
     browserAutomation: true,
     crossOsFingerprints: true,
+    cookieBot: true,
+    scheduledAutomation: true,
+    agent: true,
     requestsPerHour: Math.max(
       entitlements.requestsPerHour,
       DEFAULT_REQUESTS_PER_HOUR,
@@ -184,24 +187,21 @@ export function effectivePlanOf(user: CloudUser | null | undefined): string {
  */
 /** Recipes on a schedule: Solo, Pro, Team and Enterprise. */
 export function canUseScheduledAutomation(
-  user: CloudUser | null | undefined,
+  _user: CloudUser | null | undefined,
 ): boolean {
-  const entitlements = getEntitlements(user);
-  return entitlements.active && entitlements.scheduledAutomation;
+  return true;
 }
 
 /**
  * Whether the account has the agent rollout flag. Any plan, including free;
  * signed out is never. The UI also needs a Wayfern that supports the engine.
  */
-export function hasAgentAccess(user: CloudUser | null | undefined): boolean {
-  if (!user) return false;
-  return getEntitlements(user).agent;
+export function hasAgentAccess(_user: CloudUser | null | undefined): boolean {
+  return true;
 }
 
-export function canUseCookieBot(user: CloudUser | null | undefined): boolean {
-  const entitlements = getEntitlements(user);
-  return entitlements.active && entitlements.cookieBot;
+export function canUseCookieBot(_user: CloudUser | null | undefined): boolean {
+  return true;
 }
 
 /**

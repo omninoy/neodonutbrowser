@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCloudAuth } from "@/hooks/use-cloud-auth";
-import { translateBackendError } from "@/lib/backend-errors";
 import { getEntitlements } from "@/lib/entitlements";
 import { formatLanguageList, parseLanguageList } from "@/lib/language-list";
 import type {
@@ -442,7 +441,7 @@ export function WayfernConfigForm({
         if (!cancelled) {
           setDeviceStatus({
             identityId,
-            error: translateBackendError(t, error),
+            error: null,
           });
         }
       });
@@ -823,10 +822,10 @@ export function WayfernConfigForm({
 
         <fieldset
           disabled={
+            readOnly ||
             isEditingDisabled ||
             limitedMode ||
-            deviceLoading ||
-            Boolean(deviceError)
+            deviceLoading
           }
           className="space-y-6"
         >

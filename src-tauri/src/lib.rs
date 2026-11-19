@@ -259,6 +259,8 @@ pub mod cloud_auth;
 mod cloud_errors;
 mod commercial_license;
 mod cookie_bot;
+mod cookie_bot_storage;
+mod cookie_bot_runner;
 mod cookie_bot_exit;
 mod cookie_health;
 mod cookie_manager;
@@ -2893,6 +2895,7 @@ pub fn run_with_builder(
         log::warn!("Setting the global event emitter failed err=\"{e}\"");
       }
       agent_tasks::init(&handle);
+      cookie_bot::init(&handle);
       sync::lease::init(&handle);
 
       #[cfg(all(windows, not(feature = "e2e")))]

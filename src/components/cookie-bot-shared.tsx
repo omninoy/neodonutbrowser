@@ -468,42 +468,16 @@ export function resolvedOs(profile: BrowserProfile): string | null {
  */
 export function preflight(
   profile: BrowserProfile,
-  syncPasswordSet: boolean,
+  _syncPasswordSet: boolean,
 ): PreflightResult {
-  const syncMode = profile.sync_mode ?? "Disabled";
-  if (syncMode === "Disabled") {
-    return { eligible: false, code: "syncOff", params: {}, fix: "sync" };
-  }
-  if (syncMode === "Encrypted") {
-    return {
-      eligible: false,
-      code: "encrypted",
-      params: {},
-      fix: "syncSettings",
-    };
-  }
-  if (syncPasswordSet) {
-    return { eligible: false, code: "syncPassword", params: {}, fix: null };
-  }
   const os = resolvedOs(profile);
-  if (!os) {
-    return {
-      eligible: false,
-      code: "unknownPlatform",
-      params: {},
-      fix: null,
-    };
-  }
-  if (!isCookieBotPlatform(os)) {
+  if (os && !isCookieBotPlatform(os)) {
     return {
       eligible: false,
       code: "unsupportedPlatform",
       params: { os },
       fix: null,
     };
-  }
-  if (!profile.proxy_id && !profile.vpn_id) {
-    return { eligible: false, code: "noExitNode", params: {}, fix: "proxy" };
   }
   return ELIGIBLE;
 }

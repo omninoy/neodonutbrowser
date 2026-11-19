@@ -3153,14 +3153,7 @@ impl WayfernManager {
     else {
       return Ok(None);
     };
-    let claimed_os = params["operatingSystem"].as_str().map(str::to_string);
-    let failure = |e: Box<dyn std::error::Error + Send + Sync>| {
-      explain_cross_os_refusal(wayfern_failure(
-        &e.to_string(),
-        "WAYFERN_FINGERPRINT_APPLY_FAILED",
-        claimed_os.as_deref(),
-      ))
-    };
+    let _claimed_os = params["operatingSystem"].as_str().map(str::to_string);
     let auth = &crate::cloud_auth::CLOUD_AUTH;
     // A view read once is shown again without starting a browser, while the
     // plan includes custom fingerprints.
@@ -3192,14 +3185,19 @@ impl WayfernManager {
     if let Some(token) = &token {
       params.insert("wayfernToken".to_string(), json!(token));
     }
-    let session = HeadlessWayfern::start(
+    let session = match HeadlessWayfern::start(
       self,
       profile,
       token.as_deref(),
       &format!("purpose=fingerprint_view profile={}", profile.id),
     )
-    .await
-    .map_err(failure)?;
+    .await {
+      Ok(s) => s,
+      Err(e) => {
+        log::warn!("Headless Wayfern start for fingerprint_view failed: {e}");
+        return Ok(None);
+      }
+    };
     let answer = session
       .call(
         self,
@@ -3208,24 +3206,17 @@ impl WayfernManager {
       )
       .await;
     session.stop().await;
+    let Ok(ans) = answer else {
+      return Ok(None);
+    };
     let location = Self::stored_object(config.location.as_deref());
-    match Self::identity_view(&answer.map_err(failure)?, &location) {
+    match Self::identity_view(&ans, &location) {
       Some(view) => {
         let view = serde_json::Value::Object(view).to_string();
         if let Ok(mut views) = FINGERPRINT_VIEWS.lock() {
           views.insert(view_key, view.clone());
         }
         Ok(Some(view))
-      }
-      // No device in the answer: a plan with custom fingerprints is told to
-      // try again, and any other plan has no device to show.
-      None if entitled => {
-        log::warn!(
-          "Fingerprint view empty profile={} token={}",
-          profile.id,
-          token.is_some()
-        );
-        Err(crate::backend_error("WAYFERN_PLAN_CHECK_UNAVAILABLE"))
       }
       None => Ok(None),
     }
@@ -3414,44 +3405,7 @@ impl WayfernManager {
     // certain. An unrecognised `os`, a platform that maps to nothing, and a
     // profile with no stored device all fall through and let the browser
     // decide, so a mistake here can only ever cost the clearer error message.
-    if wayfern_token.is_none() {
-      let stored_device = config
-        .fingerprint
-        .as_deref()
-        .and_then(Self::fingerprint_object);
-      // An identity profile with no stored `os` claims the OS of the machine
-      // that created it, which is what its launch document names.
-      let identity_claim = (config.fingerprint.is_none()
-        && config
-          .identity_id
-          .as_deref()
-          .is_some_and(|id| !id.trim().is_empty()))
-      .then(|| profile.native_os());
-      let claimed = Self::claimed_operating_system(config, stored_device.as_ref())
-        .map(str::to_string)
-        .or(identity_claim);
-      if let Some(claimed) = claimed {
-        let host_os = crate::profile::types::get_host_os();
-        if claimed != host_os {
-          return Err(
-            crate::backend_error_with_detail("WAYFERN_CROSS_OS_REQUIRES_PLAN", &claimed).into(),
-          );
-        }
-      }
-    }
-
-    if wayfern_token.is_none()
-      && !Self::stored_object(config.identity_overrides.as_deref()).is_empty()
-      && crate::cloud_auth::CLOUD_AUTH
-        .can_use_cross_os_fingerprints()
-        .await
-    {
-      log::warn!(
-        "Launch refused, fingerprint edits need a Wayfern token that is not available profile={}",
-        profile.id
-      );
-      return Err(crate::backend_error("WAYFERN_PLAN_CHECK_UNAVAILABLE").into());
-    }
+    // NeoDonut: Cross-OS and manual fingerprint overrides are unlocked for all users.
 
     if let Some(proxy) = proxy_url {
       // Map the local proxy scheme to the matching PAC directive. SOCKS5 lets
@@ -3746,19 +3700,11 @@ impl WayfernManager {
         &log_tap,
       ) {
         Ok(confirmation) => {
-          if log_tap.dropped_overrides()
-            && crate::cloud_auth::CLOUD_AUTH
-              .can_use_cross_os_fingerprints()
-              .await
-          {
+          if log_tap.dropped_overrides() {
             log::warn!(
-              "Browser killed during launch profile={} pid={process_id:?} reason=fingerprint_edits_dropped",
+              "Some fingerprint overrides were not accepted by the browser engine profile={}",
               profile.id
             );
-            if let Some(pid) = process_id {
-              kill_browser_process(pid);
-            }
-            return Err(crate::backend_error("WAYFERN_PLAN_CHECK_UNAVAILABLE").into());
           }
           log::debug!(
             "Launch identity confirmed profile={} how=\"{confirmation}\"",

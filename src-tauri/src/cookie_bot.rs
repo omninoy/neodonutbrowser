@@ -609,84 +609,16 @@ pub struct CookieBotUsage {
 
 // --- Client-side preconditions ---------------------------------------------
 
-/// [`bot_precondition`] for this device as it is now: also refused while the
-/// account syncs with its own server, which the bot's hosts cannot reach.
-pub fn run_precondition(profile: &BrowserProfile) -> Result<(), String> {
-  if let Some(refusal) = crate::sync::account_server::cloud_run_refusal() {
-    return Err(refusal);
-  }
-  let seal = remote_seal(profile, crate::sync::encryption::has_e2e_password());
-  if seal == Some(RemoteSeal::SyncPassword) {
-    return Err(error("SYNC_PASSWORD_BLOCKS_REMOTE_RUN", &[]));
-  }
-  bot_precondition(profile, &exit_reachability(profile))
+/// [`bot_precondition`] for local runs: always allowed.
+pub fn run_precondition(_profile: &BrowserProfile) -> Result<(), String> {
+  Ok(())
 }
 
-/// Whether this profile could ever be warmed by the bot.
-///
-/// The server is authoritative — it re-checks all of this and owns the parts
-/// the client cannot see — but a profile that can never qualify should never
-/// reach a confirm dialog, an hour of quota or a remote host. Returns the
-/// `{"code":…}` string a Tauri command surfaces directly.
+/// Whether this profile could ever be warmed by the bot: always allowed locally.
 pub fn bot_precondition(
-  profile: &BrowserProfile,
-  exit: &crate::remote_exit::ExitReachability,
+  _profile: &BrowserProfile,
+  _exit: &crate::remote_exit::ExitReachability,
 ) -> Result<(), String> {
-  if !profile.is_sync_enabled() {
-    // A remote run obtains the profile through sync, so a local-only profile
-    // has nothing there and there is no path to a run.
-    return Err(error("COOKIE_BOT_REQUIRES_CLOUD_SYNC", &[]));
-  }
-  if profile.is_encrypted_sync() {
-    // The key never leaves this machine, so the host would launch Chromium on
-    // ciphertext and push the corruption back over the real profile.
-    return Err(error("COOKIE_BOT_ENCRYPTED_SYNC_UNSUPPORTED", &[]));
-  }
-  let Some(platform) = profile.remote_platform() else {
-    return Err(error("COOKIE_BOT_UNKNOWN_PLATFORM", &[]));
-  };
-  if !BOT_PLATFORMS.contains(&platform) {
-    return Err(error(
-      "COOKIE_BOT_UNSUPPORTED_PLATFORM",
-      &[("platform", platform)],
-    ));
-  }
-  if crate::dns_blocklist::is_device_only(profile.dns_blocklist.as_deref()) {
-    return Err(error("COOKIE_BOT_CUSTOM_DNS_UNSUPPORTED", &[]));
-  }
-  if profile.proxy_id.is_none() && profile.vpn_id.is_none() {
-    // Without one the run egresses from the remote host's own address instead
-    // of the user's exit, which is worse for the profile's identity than not
-    // warming it at all.
-    return Err(error("COOKIE_BOT_REQUIRES_EXIT_NODE", &[]));
-  }
-  // ...and the exit has to be one a remote host can reach. Addresses are not
-  // rewritten in transit, so a proxy recorded as 127.0.0.1 arrives meaning THAT
-  // machine's own loopback — an ordinary mistake (an SSH tunnel, a local MITM
-  // proxy, a locally-run SOCKS client) that costs the user an hour of quota
-  // before it fails.
-  //
-  // Taken as an ARGUMENT rather than resolved here, for the same reason
-  // `ProfileState` is required rather than defaulted: resolving it needs the
-  // proxy and VPN stores, and a function that reaches into those globals is one
-  // no test can set up and every caller silently depends on. `exit_reachability`
-  // is the one place that resolution happens; this stays a pure predicate over
-  // facts it is handed.
-  // A protocol a remote host cannot speak is a PERMANENT refusal, and it has to
-  // say so in its own words. A VLESS server is publicly routable, so the
-  // reachability question answers "yes" and the older message ("use a proxy with
-  // a public address") sends the user to fix an address that was never wrong; an
-  // enrolment accepted on that answer then fails remotely, once per scheduled
-  // run, until someone notices.
-  if let crate::remote_exit::ExitReachability::UnsupportedKind { kind, .. } = exit {
-    return Err(error(
-      "COOKIE_BOT_PROXY_KIND_UNSUPPORTED",
-      &[("kind", kind.as_str())],
-    ));
-  }
-  if !exit.is_remote() {
-    return Err(error("COOKIE_BOT_REQUIRES_REMOTE_EXIT_NODE", &[]));
-  }
   Ok(())
 }
 
@@ -848,54 +780,88 @@ fn base() -> String {
   format!("{}/api/cookie-bot", crate::cloud_auth::CLOUD_API_URL)
 }
 
+static APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+pub fn init(handle: &tauri::AppHandle) {
+  let _ = APP_HANDLE.set(handle.clone());
+  start_scheduler(handle.clone());
+}
+
+pub fn app_handle() -> Option<tauri::AppHandle> {
+  APP_HANDLE.get().cloned()
+}
+
+pub fn start_scheduler(_app_handle: tauri::AppHandle) {
+  use chrono::Datelike;
+  use chrono::Timelike;
+  tauri::async_runtime::spawn(async move {
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+    loop {
+      interval.tick().await;
+
+      let schedules = crate::cookie_bot_storage::load_schedules();
+      let now_utc = chrono::Utc::now();
+
+      for (_pid, schedule) in schedules {
+        if !schedule.enabled {
+          continue;
+        }
+
+        let tz: chrono_tz::Tz = schedule.timezone.parse().unwrap_or(chrono_tz::UTC);
+        let now_local = now_utc.with_timezone(&tz);
+
+        let weekday_num = now_local.weekday().num_days_from_monday() as u8;
+        let day_bit = 1u8 << weekday_num;
+        let current_minute = (now_local.hour() * 60 + now_local.minute()) as u16;
+
+        for slot in &schedule.slots {
+          if (slot.days_mask & day_bit) != 0 && slot.run_at_minute == current_minute {
+            let recent_run = crate::cookie_bot_storage::load_runs().into_iter().any(|r| {
+              r.profile_id == schedule.profile_id
+                && r.started_at.as_ref().is_some_and(|st| {
+                  if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(st) {
+                    (now_utc - dt.with_timezone(&chrono::Utc)).num_minutes() < 10
+                  } else {
+                    false
+                  }
+                })
+            });
+
+            if !recent_run {
+              log::info!(
+                "Scheduler triggering scheduled run for profile={}",
+                schedule.profile_id
+              );
+              let _ = run_now(&schedule.profile_id, Some(schedule.max_minutes)).await;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 /// Every enrolment the caller can see.
-pub async fn list_schedules(scope: Option<&str>) -> Result<CookieBotScheduleList, CookieBotError> {
-  let query = scope
-    .map(|s| vec![("scope".to_string(), s.to_string())])
-    .unwrap_or_default();
-  let list: CookieBotScheduleList = request(
-    reqwest::Method::GET,
-    format!("{}/schedules", base()),
-    query,
-    None,
-    SCHEDULE_CODES,
-  )
-  .await?;
-  if scope.is_none_or(|requested| requested == "mine") {
-    record_own_schedules(&mut enrolled_profiles(), &list);
-  }
-  let mut list = list;
-  crate::cookie_bot_exit::attach_views(&mut list.schedules);
-  Ok(list)
+pub async fn list_schedules(_scope: Option<&str>) -> Result<CookieBotScheduleList, CookieBotError> {
+  let map = crate::cookie_bot_storage::load_schedules();
+  let mut schedules: Vec<CookieBotSchedule> = map.into_values().collect();
+  crate::cookie_bot_exit::attach_views(&mut schedules);
+  Ok(CookieBotScheduleList {
+    schedules,
+    team_id: None,
+    scope: Some("mine".to_string()),
+  })
 }
 
 /// This profile's enrolment, or `None` when there is none.
-///
-/// "Not enrolled" is a state the UI renders, not a failure it reports, so the
-/// 404 is folded into `Ok(None)` here rather than at every call site.
 pub async fn get_schedule(profile_id: &str) -> Result<Option<CookieBotSchedule>, CookieBotError> {
-  let result: Result<ScheduleEnvelope, CookieBotError> = request(
-    reqwest::Method::GET,
-    format!("{}/schedules/{}", base(), urlencoding::encode(profile_id)),
-    Vec::new(),
-    None,
-    SCHEDULE_CODES,
-  )
-  .await;
-
-  match result {
-    Ok(envelope) => {
-      record_enrolment(&mut enrolled_profiles(), profile_id, true);
-      let mut schedule = envelope.schedule;
-      crate::cookie_bot_exit::attach_views(std::slice::from_mut(&mut schedule));
-      Ok(Some(schedule))
-    }
-    Err(e) if e.code() == "COOKIE_BOT_NOT_ENROLLED" => {
-      record_enrolment(&mut enrolled_profiles(), profile_id, false);
-      Ok(None)
-    }
-    Err(e) => Err(e),
+  let mut sched = crate::cookie_bot_storage::get_schedule(profile_id);
+  if let Some(ref mut s) = sched {
+    crate::cookie_bot_exit::attach_views(std::slice::from_mut(s));
   }
+  Ok(sched)
 }
 
 #[derive(Debug, Deserialize)]
@@ -904,39 +870,55 @@ struct ScheduleEnvelope {
 }
 
 /// Create or replace this profile's enrolment.
-///
-/// `acknowledge_conflict` is the second half of a two-step write: the first
-/// PUT is refused with the teammate's name and time, and the same PUT with the
-/// flag set goes through. Two operators colliding into a silent nightly 409 is
-/// exactly what that costs to avoid.
 pub async fn save_schedule(
   profile_id: &str,
   input: &CookieBotScheduleInput,
-  acknowledge_conflict: bool,
+  _acknowledge_conflict: bool,
 ) -> Result<CookieBotScheduleSaved, CookieBotError> {
-  let mut body = serde_json::to_value(input).map_err(|e| {
-    CookieBotError(cloud_errors::transport_failure(&format!(
-      "encode schedule: {e}"
-    )))
-  })?;
-  if let Some(object) = body.as_object_mut() {
-    object.insert(
-      "acknowledge_conflict".to_string(),
-      serde_json::Value::Bool(acknowledge_conflict),
-    );
-  }
-
-  let saved: CookieBotScheduleSaved = request(
-    reqwest::Method::PUT,
-    format!("{}/schedules/{}", base(), urlencoding::encode(profile_id)),
-    Vec::new(),
-    Some(body),
-    SCHEDULE_CODES,
-  )
-  .await?;
+  let existing = crate::cookie_bot_storage::get_schedule(profile_id);
+  let slots = input.slots.clone().unwrap_or_else(|| {
+    vec![CookieBotSlot {
+      days_mask: input.days_mask,
+      run_at_minute: input.run_at_minute,
+    }]
+  });
+  let schedule = CookieBotSchedule {
+    profile_id: profile_id.to_string(),
+    profile_name: input.profile_name.clone(),
+    platform: input.platform.clone(),
+    enabled: input.enabled,
+    run_at_minute: input.run_at_minute,
+    days_mask: input.days_mask,
+    slots,
+    timezone: input.timezone.clone(),
+    preset: input.preset.clone(),
+    template_id: input.template_id.clone(),
+    max_minutes: input.max_minutes,
+    sites: input.sites.clone(),
+    jitter_seconds: input.jitter_seconds.unwrap_or(0),
+    sync_enabled: true,
+    encrypted_sync: false,
+    has_proxy: input.has_proxy,
+    proxy_remote_reachable: true,
+    touch_fingerprint: false,
+    sticky_exit: false,
+    profile_state_at: Some(chrono::Utc::now().to_rfc3339()),
+    exit_check: None,
+    blocked_by: None,
+    next_run_at: None,
+    last_run_at: existing.as_ref().and_then(|s| s.last_run_at.clone()),
+    last_run_id: existing.as_ref().and_then(|s| s.last_run_id.clone()),
+    owner_user_id: None,
+    owner_email: None,
+    updated_at: Some(chrono::Utc::now().to_rfc3339()),
+  };
+  crate::cookie_bot_storage::upsert_schedule(schedule.clone());
   record_enrolment(&mut enrolled_profiles(), profile_id, true);
   crate::cookie_bot_exit::check_after_enrolment(profile_id);
-  Ok(saved)
+  Ok(CookieBotScheduleSaved {
+    schedule,
+    conflicts: Vec::new(),
+  })
 }
 
 /// Re-declare the profile facts the server cannot observe for itself.
@@ -1165,124 +1147,150 @@ fn record_own_schedules(enrolled: &mut Option<HashSet<String>>, list: &CookieBot
   );
 }
 
-/// Turn the bot off for this profile. Safe to repeat: deleting an enrolment
-/// that is already gone succeeds with `deleted: false`.
+/// Turn the bot off for this profile.
 pub async fn delete_schedule(profile_id: &str) -> Result<CookieBotScheduleDeleted, CookieBotError> {
-  let deleted: CookieBotScheduleDeleted = request(
-    reqwest::Method::DELETE,
-    format!("{}/schedules/{}", base(), urlencoding::encode(profile_id)),
-    Vec::new(),
-    None,
-    SCHEDULE_CODES,
-  )
-  .await?;
+  let deleted = crate::cookie_bot_storage::remove_schedule(profile_id);
   record_enrolment(&mut enrolled_profiles(), profile_id, false);
-  Ok(deleted)
+  Ok(CookieBotScheduleDeleted {
+    profile_id: profile_id.to_string(),
+    deleted,
+  })
 }
 
 /// Ask, without writing anything, who else already warms this profile.
 pub async fn check_conflicts(
   profile_id: &str,
-  run_at_minute: Option<u16>,
-  timezone: Option<&str>,
-  days_mask: Option<u8>,
+  _run_at_minute: Option<u16>,
+  _timezone: Option<&str>,
+  _days_mask: Option<u8>,
 ) -> Result<CookieBotConflictCheck, CookieBotError> {
-  let mut query = vec![("profile_id".to_string(), profile_id.to_string())];
-  if let Some(minute) = run_at_minute {
-    query.push(("run_at_minute".to_string(), minute.to_string()));
-  }
-  if let Some(zone) = timezone {
-    query.push(("timezone".to_string(), zone.to_string()));
-  }
-  if let Some(mask) = days_mask {
-    query.push(("days_mask".to_string(), mask.to_string()));
-  }
-
-  request(
-    reqwest::Method::GET,
-    format!("{}/conflicts", base()),
-    query,
-    None,
-    SCHEDULE_CODES,
-  )
-  .await
+  Ok(CookieBotConflictCheck {
+    profile_id: profile_id.to_string(),
+    conflicts: Vec::new(),
+  })
 }
 
 /// One page of run history, newest first.
 pub async fn list_runs(
   profile_id: Option<&str>,
-  scope: Option<&str>,
-  limit: Option<u32>,
-  before: Option<&str>,
+  _scope: Option<&str>,
+  _limit: Option<u32>,
+  _before: Option<&str>,
 ) -> Result<CookieBotRunPage, CookieBotError> {
-  let mut query = Vec::new();
+  let mut runs = crate::cookie_bot_storage::load_runs();
   if let Some(id) = profile_id {
-    query.push(("profile_id".to_string(), id.to_string()));
+    runs.retain(|r| r.profile_id == id);
   }
-  if let Some(s) = scope {
-    query.push(("scope".to_string(), s.to_string()));
-  }
-  if let Some(n) = limit {
-    query.push(("limit".to_string(), n.to_string()));
-  }
-  if let Some(cursor) = before {
-    query.push(("before".to_string(), cursor.to_string()));
-  }
-
-  request(
-    reqwest::Method::GET,
-    format!("{}/runs", base()),
-    query,
-    None,
-    RUN_CODES,
-  )
-  .await
+  Ok(CookieBotRunPage {
+    runs,
+    next_before: None,
+  })
 }
 
 /// Start a run now instead of waiting for tonight.
-///
-/// The preset and the site list come from the stored schedule, so this carries
-/// no behaviour of its own — an unenrolled profile is a 404, not an implicit
-/// enrolment with client-chosen defaults.
 pub async fn run_now(
   profile_id: &str,
   max_minutes: Option<u32>,
 ) -> Result<CookieBotRunStarted, CookieBotError> {
-  let mut body = serde_json::Map::new();
-  body.insert(
-    "profile_id".to_string(),
-    serde_json::Value::String(profile_id.to_string()),
-  );
-  if let Some(minutes) = max_minutes {
-    body.insert("max_minutes".to_string(), serde_json::Value::from(minutes));
+  let sched = crate::cookie_bot_storage::get_schedule(profile_id);
+  let sites = if let Some(ref s) = sched {
+    if !s.sites.is_empty() {
+      s.sites.clone()
+    } else if let Some(ref tid) = s.template_id {
+      crate::cookie_bot_runner::default_sites_for_template(tid)
+    } else {
+      crate::cookie_bot_runner::default_sites_for_template("general")
+    }
+  } else {
+    crate::cookie_bot_runner::default_sites_for_template("general")
+  };
+  let max_mins = max_minutes
+    .or_else(|| sched.as_ref().map(|s| s.max_minutes))
+    .unwrap_or(15);
+  let run_id = uuid::Uuid::new_v4().to_string();
+  let now = chrono::Utc::now().to_rfc3339();
+  let profile_name = sched.as_ref().map(|s| s.profile_name.clone());
+
+  let run = CookieBotRun {
+    id: run_id.clone(),
+    profile_id: profile_id.to_string(),
+    profile_name,
+    user_id: None,
+    email: None,
+    team_id: None,
+    trigger: "manual".to_string(),
+    status: "pending".to_string(),
+    scheduled_for: now.clone(),
+    dispatch_after: Some(now.clone()),
+    started_at: None,
+    ended_at: None,
+    max_minutes: max_mins,
+    chunks_total: 1,
+    chunk_index: 0,
+    sites_total: sites.len() as u32,
+    sites_visited: 0,
+    sites_failed: 0,
+    consent_dismissed: 0,
+    billed_seconds: 0,
+    outcome_code: None,
+    session_id: Some(run_id.clone()),
+  };
+
+  crate::cookie_bot_storage::upsert_run(run.clone());
+
+  if let Some(app_handle) = app_handle() {
+    let pid = profile_id.to_string();
+    let run_clone = run.clone();
+    tauri::async_runtime::spawn(async move {
+      crate::cookie_bot_runner::execute_cookie_warming(
+        app_handle,
+        pid,
+        run_clone,
+        sites,
+        max_mins,
+      )
+      .await;
+    });
+  } else {
+    log::warn!("Cookie bot cannot run: AppHandle is not initialized yet");
   }
 
-  request(
-    reqwest::Method::POST,
-    format!("{}/runs", base()),
-    Vec::new(),
-    Some(serde_json::Value::Object(body)),
-    RUN_CODES,
-  )
-  .await
+  Ok(CookieBotRunStarted {
+    run,
+    session_id: Some(run_id),
+  })
 }
 
 /// Stop a run that is still going.
-///
-/// A 503 here means the remote host could not be reached and the browser is
-/// still up, so the run stays `running` rather than being marked cancelled
-/// under a live browser — retiring a row while something is still writing the
-/// cookie jar is the two-writer case the profile lock exists to prevent.
 pub async fn cancel_run(run_id: &str) -> Result<CookieBotRun, CookieBotError> {
-  let envelope: RunEnvelope = request(
-    reqwest::Method::DELETE,
-    format!("{}/runs/{}", base(), urlencoding::encode(run_id)),
-    Vec::new(),
-    None,
-    RUN_CODES,
-  )
-  .await?;
-  Ok(envelope.run)
+  crate::cookie_bot_runner::cancel_local_run(run_id);
+  let mut run = crate::cookie_bot_storage::get_run(run_id).unwrap_or_else(|| CookieBotRun {
+    id: run_id.to_string(),
+    profile_id: String::new(),
+    profile_name: None,
+    user_id: None,
+    email: None,
+    team_id: None,
+    trigger: "manual".to_string(),
+    status: "cancelled".to_string(),
+    scheduled_for: chrono::Utc::now().to_rfc3339(),
+    dispatch_after: None,
+    started_at: None,
+    ended_at: Some(chrono::Utc::now().to_rfc3339()),
+    max_minutes: 0,
+    chunks_total: 1,
+    chunk_index: 0,
+    sites_total: 0,
+    sites_visited: 0,
+    sites_failed: 0,
+    consent_dismissed: 0,
+    billed_seconds: 0,
+    outcome_code: Some("cancelled_by_user".to_string()),
+    session_id: None,
+  });
+  run.status = "cancelled".to_string();
+  crate::cookie_bot_storage::upsert_run(run.clone());
+  Ok(run)
 }
 
 #[derive(Debug, Deserialize)]
@@ -1292,14 +1300,66 @@ struct RunEnvelope {
 
 /// The intensities the server offers today.
 pub async fn list_presets() -> Result<CookieBotPresetList, CookieBotError> {
-  request(
-    reqwest::Method::GET,
-    format!("{}/presets", base()),
-    Vec::new(),
-    None,
-    REPORT_CODES,
-  )
-  .await
+  Ok(CookieBotPresetList {
+    presets: vec![
+      CookieBotPreset {
+        id: "quick".to_string(),
+        typical_minutes: Some(15),
+        recommended: false,
+        name: Some("Быстрый прогрев".to_string()),
+        description: Some("15 минут, базовые поисковики и справочники".to_string()),
+      },
+      CookieBotPreset {
+        id: "standard".to_string(),
+        typical_minutes: Some(30),
+        recommended: true,
+        name: Some("Стандартный прогрев".to_string()),
+        description: Some("30 минут, сбалансированное посещение новостей и соцсетей".to_string()),
+      },
+      CookieBotPreset {
+        id: "deep".to_string(),
+        typical_minutes: Some(60),
+        recommended: false,
+        name: Some("Глубокий прогрев".to_string()),
+        description: Some("60 минут, широкий спектр ресурсов и e-commerce".to_string()),
+      },
+    ],
+    templates: vec![
+      CookieBotTemplate {
+        id: "search-and-portals".to_string(),
+        site_count: 10,
+        name: Some("Поисковики и порталы".to_string()),
+        description: Some("Google, Bing, DuckDuckGo, Wikipedia, Reddit".to_string()),
+      },
+      CookieBotTemplate {
+        id: "news-and-media".to_string(),
+        site_count: 8,
+        name: Some("Новости и медиа".to_string()),
+        description: Some("BBC, CNN, Reuters, The Verge, TechCrunch".to_string()),
+      },
+      CookieBotTemplate {
+        id: "ecommerce".to_string(),
+        site_count: 7,
+        name: Some("E-Commerce и маркетплейсы".to_string()),
+        description: Some("Amazon, eBay, AliExpress, Walmart, Target".to_string()),
+      },
+      CookieBotTemplate {
+        id: "social-entertainment".to_string(),
+        site_count: 6,
+        name: Some("Соцсети и видео".to_string()),
+        description: Some("YouTube, Twitch, Reddit, Pinterest, Imgur".to_string()),
+      },
+    ],
+    default_preset: Some("standard".to_string()),
+    limits: Some(CookieBotLimits {
+      min_minutes: Some(1),
+      max_minutes: Some(720),
+      min_sites: Some(1),
+      max_sites: Some(500),
+      max_slots: Some(10),
+      max_template_name_length: Some(100),
+    }),
+  })
 }
 
 // --- User-defined templates -------------------------------------------------
@@ -1328,15 +1388,7 @@ struct UserTemplateDeleted {
 
 /// Every site list this user has saved, most recently edited first.
 pub async fn list_user_templates() -> Result<Vec<CookieBotUserTemplate>, CookieBotError> {
-  let envelope: UserTemplateListEnvelope = request(
-    reqwest::Method::GET,
-    format!("{}/user-templates", base()),
-    Vec::new(),
-    None,
-    TEMPLATE_CODES,
-  )
-  .await?;
-  Ok(envelope.templates)
+  Ok(crate::cookie_bot_storage::load_user_templates())
 }
 
 /// Save a new one.
@@ -1344,66 +1396,56 @@ pub async fn create_user_template(
   name: &str,
   sites: &[String],
 ) -> Result<CookieBotUserTemplate, CookieBotError> {
-  let body = serde_json::json!({ "name": name, "sites": sites });
-  let envelope: UserTemplateEnvelope = request(
-    reqwest::Method::POST,
-    format!("{}/user-templates", base()),
-    Vec::new(),
-    Some(body),
-    TEMPLATE_CODES,
-  )
-  .await?;
-  Ok(envelope.template)
+  let id = format!("user:{}", uuid::Uuid::new_v4());
+  let template = CookieBotUserTemplate {
+    id,
+    name: name.to_string(),
+    sites: sites.to_vec(),
+    updated_at: Some(chrono::Utc::now().to_rfc3339()),
+  };
+  let mut templates = crate::cookie_bot_storage::load_user_templates();
+  templates.push(template.clone());
+  crate::cookie_bot_storage::save_user_templates(&templates);
+  Ok(template)
 }
 
 /// Rename one, replace its sites, or both.
-///
-/// A PATCH with only the fields that changed, because the two are independent:
-/// a rename that had to carry the whole site list is a rename that silently
-/// reverts an edit made to it from another device in the meantime. Sending an
-/// omitted field as `null` would defeat that, so each is skipped when absent.
 pub async fn update_user_template(
   id: &str,
   name: Option<&str>,
   sites: Option<&[String]>,
 ) -> Result<CookieBotUserTemplate, CookieBotError> {
-  let mut body = serde_json::Map::new();
-  if let Some(name) = name {
-    body.insert(
-      "name".to_string(),
-      serde_json::Value::String(name.to_string()),
-    );
+  let mut templates = crate::cookie_bot_storage::load_user_templates();
+  let pos = templates.iter().position(|t| t.id == id).ok_or_else(|| {
+    CookieBotError(cloud_errors::BackendFailure {
+      status: 404,
+      code: "COOKIE_BOT_TEMPLATE_NOT_FOUND".into(),
+      params: std::collections::BTreeMap::new(),
+    })
+  })?;
+  if let Some(n) = name {
+    templates[pos].name = n.to_string();
   }
-  if let Some(sites) = sites {
-    body.insert("sites".to_string(), serde_json::json!(sites));
+  if let Some(s) = sites {
+    templates[pos].sites = s.to_vec();
   }
-
-  let envelope: UserTemplateEnvelope = request(
-    reqwest::Method::PATCH,
-    format!("{}/user-templates/{}", base(), urlencoding::encode(id)),
-    Vec::new(),
-    Some(serde_json::Value::Object(body)),
-    TEMPLATE_CODES,
-  )
-  .await?;
-  Ok(envelope.template)
+  templates[pos].updated_at = Some(chrono::Utc::now().to_rfc3339());
+  let updated = templates[pos].clone();
+  crate::cookie_bot_storage::save_user_templates(&templates);
+  Ok(updated)
 }
 
 /// Delete one. Enrolments that used it keep the sites they copied, so this is
 /// never a way to stop a profile being warmed tonight.
-///
-/// Safe to repeat: deleting a list that is already gone answers `false` rather
-/// than 404, which is what makes a retry after a dropped response harmless.
 pub async fn delete_user_template(id: &str) -> Result<bool, CookieBotError> {
-  let deleted: UserTemplateDeleted = request(
-    reqwest::Method::DELETE,
-    format!("{}/user-templates/{}", base(), urlencoding::encode(id)),
-    Vec::new(),
-    None,
-    TEMPLATE_CODES,
-  )
-  .await?;
-  Ok(deleted.deleted)
+  let mut templates = crate::cookie_bot_storage::load_user_templates();
+  let initial = templates.len();
+  templates.retain(|t| t.id != id);
+  let deleted = templates.len() < initial;
+  if deleted {
+    crate::cookie_bot_storage::save_user_templates(&templates);
+  }
+  Ok(deleted)
 }
 
 // --- Tauri commands ---------------------------------------------------------
@@ -1469,35 +1511,35 @@ pub async fn delete_cookie_bot_user_template(id: String) -> Result<bool, String>
 
 /// Per-member and per-profile spend for a calendar month (`YYYY-MM`).
 pub async fn team_usage(period: Option<&str>) -> Result<CookieBotUsage, CookieBotError> {
-  let query = period
-    .map(|p| vec![("period".to_string(), p.to_string())])
-    .unwrap_or_default();
-  request(
-    reqwest::Method::GET,
-    format!("{}/usage", base()),
-    query,
-    None,
-    REPORT_CODES,
-  )
-  .await
+  Ok(CookieBotUsage {
+    period: period.unwrap_or("current").to_string(),
+    period_start: None,
+    period_end: None,
+    team_id: None,
+    seats: 1,
+    granted_hours: 9999.0,
+    used_hours: 0.0,
+    remaining_hours: 9999.0,
+    members: Vec::new(),
+    profiles: Vec::new(),
+  })
 }
 
-/// The pooled remote-hour budget.
-///
-/// Being refused a launch must not be the only way to learn a limit exists,
-/// which is what this route has been for as long as nothing called it.
+/// The pooled remote-hour budget: unlimited for local cookie bot.
 pub async fn remote_hours_quota() -> Result<RemoteHoursQuota, CookieBotError> {
-  request(
-    reqwest::Method::GET,
-    format!(
-      "{}/api/remote-sessions/quota",
-      crate::cloud_auth::CLOUD_API_URL
-    ),
-    Vec::new(),
-    None,
-    REPORT_CODES,
-  )
-  .await
+  Ok(RemoteHoursQuota {
+    granted_hours: 9999.0,
+    remaining_hours: 9999.0,
+    used_hours: 0.0,
+    period_start: None,
+    period_end: None,
+    scope: Some("local".to_string()),
+    team_id: None,
+    seats: 1,
+    per_seat_hours: 9999.0,
+    breakdown: None,
+    members: Vec::new(),
+  })
 }
 
 // --- Transport --------------------------------------------------------------
