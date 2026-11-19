@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables, unused_imports)]
+
 //! Cookie-bot transport.
 //!
 //! The bot warms a profile's cookies overnight by driving it on a remote host.

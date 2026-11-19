@@ -822,10 +822,7 @@ export function WayfernConfigForm({
 
         <fieldset
           disabled={
-            readOnly ||
-            isEditingDisabled ||
-            limitedMode ||
-            deviceLoading
+            readOnly || isEditingDisabled || limitedMode || deviceLoading
           }
           className="space-y-6"
         >

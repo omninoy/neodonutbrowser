@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables, unused_imports)]
+
 //! Local headless CDP warming runner for Cookie Bot.
 
 use crate::cookie_bot::CookieBotRun;

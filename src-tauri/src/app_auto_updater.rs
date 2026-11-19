@@ -114,7 +114,7 @@ fn null_as_empty<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<St
 }
 
 /// GitHub's API for this repository.
-const GITHUB_REPO_API: &str = "https://api.github.com/repos/donutbrowser/donutbrowser";
+const GITHUB_REPO_API: &str = "https://api.github.com/repos/omninoy/neodonutbrowser";
 /// Donut's copy of the newest stable and nightly releases, which the cloud
 /// reads from GitHub with a token. It still answers when GitHub refuses an
 /// address that many installs share (60 unauthenticated requests an hour).
@@ -252,7 +252,7 @@ impl AppAutoUpdater {
   ) -> Result<Option<AppUpdateInfo>, Box<dyn std::error::Error + Send + Sync>> {
     // Updates disabled in this community build: never self-replace with
     // upstream releases. Check GitHub manually if a newer build is needed.
-    return Ok(None);
+    Ok(None)
   }
 
   /// Runs one check and writes its one result line: at info when the outcome
@@ -339,7 +339,7 @@ impl AppAutoUpdater {
     }
 
     let release_page_url = format!(
-      "https://github.com/donutbrowser/donutbrowser/releases/tag/{}",
+      "https://github.com/omninoy/neodonutbrowser/releases/tag/{}",
       latest_release.tag_name
     );
 

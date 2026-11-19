@@ -1863,12 +1863,14 @@ impl CloudAuthManager {
 /// Matches on the server's message because that is the only thing that
 /// distinguishes them: both arrive as a bare 403. Only these two are a state
 /// the user can clear themselves, which is what the toast asks them to do.
+#[allow(dead_code)]
 fn is_device_restriction(error: &str) -> bool {
   error.contains("primary device") || error.contains("requires the desktop app")
 }
 
 /// The `message` of the JSON body in a refused token request, or the whole
 /// error when the body is not JSON.
+#[allow(dead_code)]
 fn refusal_message(error: &str) -> String {
   error
     .find('{')
