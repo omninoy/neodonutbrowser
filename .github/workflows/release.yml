@@ -147,7 +147,8 @@ jobs:
             cp "src-tauri/target/${{ matrix.target }}/release/WebView2Loader.dll" "$PORTABLE_DIR/"
           fi
           touch "$PORTABLE_DIR/.portable"
-          7z a "NeoDonut_Browser_${VERSION}_x64-portable.zip" "$PORTABLE_DIR"
+          7z a "Donut_${VERSION}_x64-portable.zip" "$PORTABLE_DIR"
+          cp "Donut_${VERSION}_x64-portable.zip" "NeoDonut_Browser_${VERSION}_x64-portable.zip"
 
       - name: Upload portable Windows ZIP
         if: matrix.platform == 'windows-latest'
@@ -157,6 +158,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           VERSION="${TAG#v}"
+          gh release upload "$TAG" "Donut_${VERSION}_x64-portable.zip" --clobber
           gh release upload "$TAG" "NeoDonut_Browser_${VERSION}_x64-portable.zip" --clobber
 
   checksums:
