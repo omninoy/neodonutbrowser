@@ -58,6 +58,7 @@ import {
   AnimatedTabsList,
   AnimatedTabsTrigger,
 } from "@/components/ui/animated-tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -520,31 +521,36 @@ export function ProxyManagementDialog({
             : proxyProtocolToken(canonicalProxyType(proxyType)) ||
               t("proxies.management.protocolUnknown");
           return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <KindLabel
-                  data-first-hop={
-                    encrypted
-                      ? "encrypted"
+            <span className="flex items-center gap-1.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <KindLabel
+                    data-first-hop={
+                      encrypted
+                        ? "encrypted"
+                        : cipherUndecided
+                          ? "cipher"
+                          : "plaintext"
+                    }
+                    icon={encrypted ? <LuLock aria-hidden="true" /> : null}
+                  >
+                    {protocolLabel}
+                  </KindLabel>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {encrypted
+                      ? t("proxies.management.firstHopEncryptedTooltip")
                       : cipherUndecided
-                        ? "cipher"
-                        : "plaintext"
-                  }
-                  icon={encrypted ? <LuLock aria-hidden="true" /> : null}
-                >
-                  {protocolLabel}
-                </KindLabel>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {encrypted
-                    ? t("proxies.management.firstHopEncryptedTooltip")
-                    : cipherUndecided
-                      ? t("proxies.management.firstHopCipherTooltip")
-                      : t("proxies.management.firstHopPlaintextTooltip")}
-                </p>
-              </TooltipContent>
-            </Tooltip>
+                        ? t("proxies.management.firstHopCipherTooltip")
+                        : t("proxies.management.firstHopPlaintextTooltip")}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              {row.original.rotation_url && (
+                <ProxyRotationBadge proxy={row.original} />
+              )}
+            </span>
           );
         },
       },
@@ -1524,5 +1530,47 @@ export function ProxyManagementDialog({
         isLoading={isBulkDeletingVpns}
       />
     </>
+  );
+}
+
+/**
+ * Marks a proxy that can change its own IP: a rotation link is stored, so
+ * auto-rotation or rotate-before-launch may fire while profiles run on it.
+ * The tooltip spells out which of the two is armed, since the two fire on
+ * different clocks — one on a timer, one on a launch.
+ */
+function ProxyRotationBadge({ proxy }: { proxy: StoredProxy }) {
+  const { t } = useTranslation();
+  const intervalMins = proxy.rotation_interval_mins ?? 0;
+  const rotateOnLaunch = proxy.rotate_on_launch ?? false;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="soft"
+          className="h-5 cursor-default gap-1 rounded-md px-1.5 text-[11px] tabular-nums"
+        >
+          <LuRefreshCcwDot aria-hidden="true" />
+          {t("proxies.rotation.autoBadge")}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-64">
+        <p className="flex flex-col gap-1">
+          {intervalMins > 0 && (
+            <span>
+              {t("proxies.rotation.autoBadgeTooltipInterval", {
+                mins: intervalMins,
+              })}
+            </span>
+          )}
+          {rotateOnLaunch && (
+            <span>{t("proxies.rotation.autoBadgeTooltipLaunch")}</span>
+          )}
+          {intervalMins <= 0 && !rotateOnLaunch && (
+            <span>{t("proxies.rotation.actionTooltip")}</span>
+          )}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

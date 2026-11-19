@@ -23,6 +23,12 @@ const DEFAULT_DELAY_SECS = 3;
 const MIN_DELAY_SECS = 1;
 const MAX_DELAY_SECS = 600;
 
+/**
+ * One-tap pauses that cover the common "don't hammer the machine" choices.
+ * The field itself still takes any value in range; these only fill it.
+ */
+const DELAY_PRESET_SECS = [1, 3, 5, 10, 30, 60];
+
 interface StaggeredProgress {
   done: number;
   total: number;
@@ -39,9 +45,12 @@ interface StaggeredProgress {
  */
 export function StaggeredLaunchButton({
   profileIds,
+  profileNames,
   disabled,
 }: {
   profileIds: string[];
+  /** Names parallel to `profileIds`, for naming the profile the queue is on. */
+  profileNames?: string[];
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
@@ -51,6 +60,15 @@ export function StaggeredLaunchButton({
   const [progress, setProgress] = React.useState<StaggeredProgress | null>(
     null,
   );
+  // The pause the running queue was started with, kept as its own state so
+  // the countdown below survives edits to the field while a queue runs.
+  const [activeDelayMs, setActiveDelayMs] = React.useState(
+    DEFAULT_DELAY_SECS * 1000,
+  );
+  // Seconds until the queue launches its next profile. Reset on every progress
+  // event (each one lands right after a launch), so it always counts down the
+  // same pause the backend sleeps.
+  const [secondsToNext, setSecondsToNext] = React.useState<number | null>(null);
 
   // The queue outlives the popover and this table: the listener follows the
   // run from start to finish, and the popover reopens onto its progress.
@@ -65,6 +83,28 @@ export function StaggeredLaunchButton({
     };
   }, [isLaunching]);
 
+  // The "next profile in Ns" tick. Restarted by every progress event because
+  // `progress` is a fresh object each time; a 250 ms step keeps the last
+  // second from lingering on screen for a whole interval.
+  React.useEffect(() => {
+    if (!isLaunching || !progress || progress.done >= progress.total) {
+      setSecondsToNext(null);
+      return;
+    }
+    const totalSecs = Math.max(1, Math.round(activeDelayMs / 1000));
+    setSecondsToNext(totalSecs);
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      const left = Math.max(0, totalSecs - elapsed);
+      setSecondsToNext(left);
+      if (left === 0) window.clearInterval(timer);
+    }, 250);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [isLaunching, progress, activeDelayMs]);
+
   const start = async () => {
     const parsed = Number.parseInt(delaySecs, 10);
     const delayMs =
@@ -75,6 +115,7 @@ export function StaggeredLaunchButton({
           Number.isNaN(parsed) ? DEFAULT_DELAY_SECS : parsed,
         ),
       ) * 1000;
+    setActiveDelayMs(delayMs);
     setIsLaunching(true);
     setProgress({
       done: 0,
@@ -102,6 +143,7 @@ export function StaggeredLaunchButton({
     } finally {
       setIsLaunching(false);
       setProgress(null);
+      setSecondsToNext(null);
     }
   };
 
@@ -112,6 +154,12 @@ export function StaggeredLaunchButton({
   const done = progress?.done ?? 0;
   const total = progress?.total ?? profileIds.length;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  // The queue walks the ids in order, so the entry just past the last done is
+  // the launch in waiting; hidden the moment the queue is finished.
+  const nextProfileName =
+    progress && progress.done < progress.total
+      ? (profileNames?.[progress.done] ?? null)
+      : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -140,12 +188,27 @@ export function StaggeredLaunchButton({
               {t("profiles.staggered.progress", { done, total })}
             </p>
             <Progress value={percent} />
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {t("profiles.staggered.counts", {
-                launched: progress?.launched ?? 0,
-                failed: progress?.failed ?? 0,
-              })}
-            </p>
+            <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+              <p className="text-muted-foreground">
+                {t("profiles.staggered.counts", {
+                  launched: progress?.launched ?? 0,
+                  failed: progress?.failed ?? 0,
+                })}
+              </p>
+              {secondsToNext !== null && (
+                <span className="inline-flex shrink-0 items-center gap-1 text-foreground">
+                  <LuTimer className="size-3 text-muted-foreground" />
+                  {t("profiles.staggered.nextIn", { secs: secondsToNext })}
+                </span>
+              )}
+            </div>
+            {nextProfileName && (
+              <p className="truncate text-xs text-muted-foreground">
+                {t("profiles.staggered.nextProfile", {
+                  name: nextProfileName,
+                })}
+              </p>
+            )}
             <Button variant="outline" size="sm" onClick={cancel}>
               {t("profiles.staggered.cancel")}
             </Button>
@@ -172,6 +235,36 @@ export function StaggeredLaunchButton({
                 }
               }}
             />
+            {/* One-tap pauses: filling the field beats typing it, and the
+                active chip doubles as "this is what will run". */}
+            <div
+              role="group"
+              aria-label={t("profiles.staggered.delayLabel")}
+              className="flex flex-wrap gap-1"
+            >
+              {DELAY_PRESET_SECS.map((preset) => {
+                const active = delaySecs === String(preset);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    aria-pressed={active}
+                    title={t("profiles.staggered.secondsShort", {
+                      secs: preset,
+                    })}
+                    onClick={() => setDelaySecs(String(preset))}
+                    className={cn(
+                      "h-6 cursor-pointer rounded-md px-2 text-[11px] font-medium tabular-nums transition-colors duration-100",
+                      active
+                        ? "bg-foreground text-background"
+                        : "bg-foreground/5 text-muted-foreground hover:bg-foreground/12 hover:text-foreground",
+                    )}
+                  >
+                    {t("profiles.staggered.secondsShort", { secs: preset })}
+                  </button>
+                );
+              })}
+            </div>
             <p className="text-xs text-muted-foreground">
               {t("profiles.staggered.delayHint")}
             </p>

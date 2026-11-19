@@ -3,8 +3,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { LuCheck, LuInfo, LuX } from "react-icons/lu";
 import { toast } from "sonner";
 import { LoadingButton } from "@/components/loading-button";
+import { AnimatedSwitch } from "@/components/ui/animated-switch";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { translateBackendError } from "@/lib/backend-errors";
 import { looksLikeRotationUrl } from "@/lib/proxy-rotation";
 import {
@@ -33,6 +39,7 @@ import {
   pickParsedProxy,
 } from "@/lib/proxy-string";
 import { canonicalProxyType } from "@/lib/proxy-type";
+import { cn } from "@/lib/utils";
 import type { ProxyParseResult, StoredProxy } from "@/types";
 import { RippleButton } from "./ui/ripple";
 
@@ -439,6 +446,15 @@ export function ProxyFormDialog({
         form.port <= 65535 &&
         (!isShadowsocks || (form.username.trim() && form.password.trim())));
 
+  // Live verdict for the change-IP link: null while it is empty, otherwise
+  // whether it has the shape of a provider rotation link. Same check the
+  // submit path runs, shown early so the fix costs one keystroke.
+  const trimmedRotationUrl = form.rotation_url.trim();
+  const rotationUrlVerdict =
+    trimmedRotationUrl.length === 0
+      ? null
+      : looksLikeRotationUrl(trimmedRotationUrl);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
@@ -650,22 +666,54 @@ export function ProxyFormDialog({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="proxy-rotation-url">
-              {t("proxies.rotation.label")}
-            </Label>
-            <Input
-              id="proxy-rotation-url"
-              value={form.rotation_url}
-              onChange={(e) => {
-                setForm({ ...form, rotation_url: e.target.value });
-              }}
-              placeholder={t("proxies.rotation.placeholder")}
-              spellCheck={false}
-              autoComplete="off"
-              disabled={isSubmitting}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("proxies.rotation.hint")}
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="proxy-rotation-url">
+                {t("proxies.rotation.label")}
+              </Label>
+              <RotationUrlHint />
+            </div>
+            <div className="relative">
+              <Input
+                id="proxy-rotation-url"
+                value={form.rotation_url}
+                onChange={(e) => {
+                  setForm({ ...form, rotation_url: e.target.value });
+                }}
+                placeholder={t("proxies.rotation.placeholder")}
+                spellCheck={false}
+                autoComplete="off"
+                disabled={isSubmitting}
+                className="pr-8"
+              />
+              {/* The verdict lives inside the field: a link is either shaped
+                  like one or it is not, and the icon says which before the
+                  save button ever gets pressed. */}
+              {rotationUrlVerdict !== null && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2"
+                >
+                  {rotationUrlVerdict ? (
+                    <LuCheck className="size-4 text-success" />
+                  ) : (
+                    <LuX className="size-4 text-destructive-text" />
+                  )}
+                </span>
+              )}
+            </div>
+            <p
+              className={cn(
+                "text-xs",
+                rotationUrlVerdict === false
+                  ? "text-destructive-text"
+                  : "text-muted-foreground",
+              )}
+            >
+              {rotationUrlVerdict === false
+                ? t("backendErrors.proxyRotationUrlInvalid")
+                : rotationUrlVerdict === true
+                  ? t("proxies.rotation.urlLooksValid")
+                  : t("proxies.rotation.hint")}
             </p>
           </div>
 
@@ -695,12 +743,19 @@ export function ProxyFormDialog({
             </div>
 
             <div className="grid content-start gap-2">
-              <Label>{t("proxies.rotation.rotateOnLaunchLabel")}</Label>
+              <Label htmlFor="proxy-rotate-on-launch">
+                {t("proxies.rotation.rotateOnLaunchLabel")}
+              </Label>
+              {/* A switch in a bordered row, so both columns of this grid end
+                  with a control of the same height and the hints line up. */}
               <label
                 htmlFor="proxy-rotate-on-launch"
-                className="flex w-fit cursor-pointer items-center gap-2 text-sm"
+                className={cn(
+                  "flex min-h-9 cursor-pointer items-center gap-2.5 rounded-lg border border-border/60 px-3 text-sm transition-colors duration-100 hover:bg-foreground/5",
+                  isSubmitting && "pointer-events-none opacity-60",
+                )}
               >
-                <Checkbox
+                <AnimatedSwitch
                   id="proxy-rotate-on-launch"
                   checked={form.rotate_on_launch}
                   onCheckedChange={(value) => {
@@ -735,5 +790,29 @@ export function ProxyFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * What a change-IP link actually is, at the field that asks for it. Mobile
+ * providers hand out a GET/POST URL that swaps the exit IP on request; a
+ * first-time user has no way to know that from the label alone.
+ */
+function RotationUrlHint() {
+  const { t } = useTranslation();
+  const label = t("proxies.rotation.urlTooltip");
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="inline-flex cursor-help text-muted-foreground transition-colors duration-100 hover:text-foreground focus-visible:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <LuInfo className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-72">{label}</TooltipContent>
+    </Tooltip>
   );
 }

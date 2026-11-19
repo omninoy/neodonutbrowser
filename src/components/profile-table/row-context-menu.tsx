@@ -202,14 +202,21 @@ export function RowContextMenuContent({
         </>
       )}
       {actions.onCleanCache && (
-        <ContextMenuItem
-          data-slot="profile-row-clean-cache"
-          disabled={actions.isRunning}
-          onSelect={actions.onCleanCache}
-        >
-          <LuEraser />
-          {t("profileTable.menu.cleanCache")}
-        </ContextMenuItem>
+        <>
+          {/* Cache wiping is housekeeping, not data exchange: the separator
+              keeps it out of the cookie cluster above. */}
+          {(actions.onExportCookies || actions.onImportCookies) && (
+            <ContextMenuSeparator />
+          )}
+          <ContextMenuItem
+            data-slot="profile-row-clean-cache"
+            disabled={actions.isRunning}
+            onSelect={actions.onCleanCache}
+          >
+            <LuEraser />
+            {t("profileTable.menu.cleanCache")}
+          </ContextMenuItem>
+        </>
       )}
       {actions.onAskAgent && (
         <ContextMenuItem

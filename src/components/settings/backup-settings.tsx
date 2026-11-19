@@ -4,13 +4,20 @@ import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { LuArchiveRestore, LuDatabaseBackup } from "react-icons/lu";
+import {
+  LuArchiveRestore,
+  LuDatabaseBackup,
+  LuEye,
+  LuEyeOff,
+  LuLoaderCircle,
+} from "react-icons/lu";
 import { LoadingButton } from "@/components/loading-button";
 import {
   RowIcon,
   SettingRow,
   SettingsCard,
 } from "@/components/settings/settings-primitives";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -121,13 +128,22 @@ function ProfileChecklist({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="flex items-center gap-2 text-sm">
-        <Checkbox
-          checked={allSelected ? true : someSelected ? "indeterminate" : false}
-          onCheckedChange={(checked) => onToggleAll(checked === true)}
-        />
-        {t("settings.backup.selectAll")}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={allSelected ? true : someSelected ? "indeterminate" : false}
+            onCheckedChange={(checked) => onToggleAll(checked === true)}
+          />
+          {t("settings.backup.selectAll")}
+        </Label>
+        {/* What the archive will actually hold, at the control that decides it. */}
+        <Badge variant="soft" className="tabular-nums">
+          {t("settings.backup.selectedCount", {
+            selected: selected.size,
+            total: profiles.length,
+          })}
+        </Badge>
+      </div>
       <div className="max-h-44 overflow-y-auto rounded-md border border-foreground/10 p-1.5">
         {profiles.map((profile) => (
           <Label
@@ -143,6 +159,67 @@ function ProfileChecklist({
         ))}
       </div>
     </div>
+  );
+}
+
+/** A password input with a show/hide eye, for the archive passphrase. */
+function PasswordField({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (next: string) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [visible, setVisible] = React.useState(false);
+  const label = visible
+    ? t("settings.backup.hidePassword")
+    : t("settings.backup.showPassword");
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={visible ? "text" : "password"}
+        value={value}
+        placeholder={t("settings.backup.passwordPlaceholder")}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        autoComplete="off"
+        className="pr-9"
+      />
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={visible}
+        title={label}
+        onClick={() => setVisible((current) => !current)}
+        className="absolute top-1/2 right-1 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-100 hover:bg-foreground/8 hover:text-foreground"
+      >
+        {visible ? (
+          <LuEyeOff className="size-4" />
+        ) : (
+          <LuEye className="size-4" />
+        )}
+      </button>
+    </div>
+  );
+}
+
+/** The spinner line shown while the archive is being packed or unpacked. */
+function BackupBusyNote({ label }: { label: string }) {
+  return (
+    <p
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-2 text-xs text-muted-foreground"
+    >
+      <LuLoaderCircle className="size-3.5 shrink-0 animate-spin" />
+      {label}
+    </p>
   );
 }
 
@@ -292,18 +369,20 @@ function CreateBackupDialog({
               <Label htmlFor="backup-password" className="text-sm">
                 {t("settings.backup.password")}
               </Label>
-              <Input
+              <PasswordField
                 id="backup-password"
-                type="password"
                 value={password}
-                placeholder={t("settings.backup.passwordPlaceholder")}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={setPassword}
+                disabled={isCreating}
               />
               <p className="text-xs text-muted-foreground">
                 {t("settings.backup.passwordHint")}
               </p>
             </div>
           </div>
+        )}
+        {isCreating && (
+          <BackupBusyNote label={t("settings.backup.creatingStatus")} />
         )}
         <DialogFooter>
           <Button
@@ -428,12 +507,11 @@ function RestoreBackupDialog({
             <Label htmlFor="restore-password" className="text-sm">
               {t("settings.backup.password")}
             </Label>
-            <Input
+            <PasswordField
               id="restore-password"
-              type="password"
               value={password}
-              placeholder={t("settings.backup.passwordPlaceholder")}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={setPassword}
+              disabled={isRestoring}
             />
           </div>
           <Label className="flex items-start gap-2 text-sm">
@@ -450,6 +528,9 @@ function RestoreBackupDialog({
             </span>
           </Label>
         </div>
+        {isRestoring && (
+          <BackupBusyNote label={t("settings.backup.restoringStatus")} />
+        )}
         <DialogFooter>
           <Button
             variant="soft"

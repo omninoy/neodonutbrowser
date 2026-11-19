@@ -4574,6 +4574,12 @@ export function ProfilesDataTable({
     }
     return ids;
   }, [selectedDragProfiles, tableMeta]);
+  // Same order as the ids: the queue names the profile it is about to start.
+  const staggeredProfileNames = React.useMemo(
+    () =>
+      staggeredProfileIds.map((id) => profilesById.get(id)?.name ?? ""),
+    [staggeredProfileIds, profilesById],
+  );
 
   // Row motion. Rows slide to their new place when the order changes (sort,
   // filter, group, a row added or removed), never on scroll; rows that come
@@ -5111,6 +5117,7 @@ export function ProfilesDataTable({
         {selectedProfiles.length >= 2 && (
           <StaggeredLaunchButton
             profileIds={staggeredProfileIds}
+            profileNames={staggeredProfileNames}
             disabled={staggeredProfileIds.length === 0}
           />
         )}

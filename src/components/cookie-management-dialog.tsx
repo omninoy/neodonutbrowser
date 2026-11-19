@@ -5,7 +5,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuChevronRight } from "react-icons/lu";
+import { LuCheck, LuChevronRight, LuCopy } from "react-icons/lu";
 import { toast } from "sonner";
 import { CookiePastePanel, IssueRow } from "@/components/cookie-paste-panel";
 import { LoadingButton } from "@/components/loading-button";
@@ -31,14 +31,9 @@ import {
 import { FadingScrollArea } from "@/components/ui/fading-scroll-area";
 import { Label } from "@/components/ui/label";
 import { RippleButton } from "@/components/ui/ripple";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { translateBackendError } from "@/lib/backend-errors";
+import { showSuccessToast } from "@/lib/toast-utils";
+import { cn } from "@/lib/utils";
 import type {
   BrowserProfile,
   CookieAnalysis,
@@ -569,24 +564,29 @@ export function CookieManagementDialog({
           <AnimatedTabsContent value="export" className="mt-4 space-y-3">
             <div className="space-y-2">
               <Label>{t("cookies.export.formatLabel")}</Label>
-              <Select
+              {/* A two-way choice reads better as a segmented control than as
+                  a dropdown that opens to show exactly two options. */}
+              <AnimatedTabs
                 value={format}
                 onValueChange={(v) => {
                   setFormat(v as "netscape" | "json");
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="json">
+                <AnimatedTabsList>
+                  <AnimatedTabsTrigger
+                    value="json"
+                    className="h-7 px-2.5 text-xs"
+                  >
                     {t("cookies.export.json")}
-                  </SelectItem>
-                  <SelectItem value="netscape">
+                  </AnimatedTabsTrigger>
+                  <AnimatedTabsTrigger
+                    value="netscape"
+                    className="h-7 px-2.5 text-xs"
+                  >
                     {t("cookies.export.netscape")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  </AnimatedTabsTrigger>
+                </AnimatedTabsList>
+              </AnimatedTabs>
             </div>
 
             <div className="space-y-2">
@@ -646,6 +646,14 @@ export function CookieManagementDialog({
               <RippleButton variant="outline" onClick={handleClose}>
                 {t("common.buttons.cancel")}
               </RippleButton>
+              <CopyExportButton
+                disabled={selectedExportCount === 0}
+                buildContent={() =>
+                  format === "json"
+                    ? formatJsonCookies(getSelectedCookies())
+                    : formatNetscapeCookies(getSelectedCookies())
+                }
+              />
               <LoadingButton
                 isLoading={isExporting}
                 onClick={() => void handleExport()}
@@ -668,6 +676,64 @@ function ResultCounter({ label, value }: { label: string; value: number }) {
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-lg font-medium tabular-nums">{value}</div>
     </div>
+  );
+}
+
+/**
+ * Copies the export text straight to the clipboard, beside the file export.
+ * The icon crossfades to a check and holds for two seconds, so the copy is
+ * confirmed without a toast having to be caught in the act.
+ */
+function CopyExportButton({
+  buildContent,
+  disabled,
+}: {
+  buildContent: () => string;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const copy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(buildContent());
+      setCopied(true);
+      showSuccessToast(t("toasts.success.copied"), { sound: "copy" });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy cookies:", error);
+    }
+  }, [buildContent, t]);
+
+  const label = t("cookies.export.copyToClipboard");
+  return (
+    <RippleButton
+      variant="soft"
+      onClick={() => void copy()}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+    >
+      <span className="inline-flex items-center gap-1.5">
+        <span className="relative inline-flex size-3.5 items-center justify-center">
+          <LuCopy
+            aria-hidden="true"
+            className={cn(
+              "size-3.5 transition-all duration-150",
+              copied ? "scale-0 opacity-0" : "scale-100 opacity-100",
+            )}
+          />
+          <LuCheck
+            aria-hidden="true"
+            className={cn(
+              "absolute inset-0 m-auto size-3.5 text-success transition-all duration-150",
+              copied ? "scale-100 opacity-100" : "scale-0 opacity-0",
+            )}
+          />
+        </span>
+        {label}
+      </span>
+    </RippleButton>
   );
 }
 

@@ -12,11 +12,15 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  LuCheck,
   LuChevronRight,
+  LuCode,
+  LuCoins,
   LuDices,
   LuInfo,
   LuPencil,
   LuPlus,
+  LuShoppingBag,
   LuTrash2,
   LuX,
 } from "react-icons/lu";
@@ -40,6 +44,7 @@ import {
   weekdayNames,
   weeklyRuns,
 } from "@/components/cookie-bot-shared";
+import { FlagIcon } from "@/components/flag-icon";
 import {
   AnimatedDisclosureChevron,
   AnimatedDisclosureContent,
@@ -50,6 +55,7 @@ import {
   AnimatedTabsTrigger,
 } from "@/components/ui/animated-tabs";
 import { AutoHeight } from "@/components/ui/auto-height";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -167,6 +173,20 @@ const TEMPLATE_LABEL_KEYS: Record<string, { name: string; hint: string }> = {
     name: "cookieBot.template.cryptoWeb3",
     hint: "cookieBot.template.cryptoWeb3Hint",
   },
+};
+
+/**
+ * A glanceable marker per curated template: a flag for the geo lists, a
+ * subject glyph for the interest ones. Templates the server added after this
+ * release simply render without one.
+ */
+const TEMPLATE_ICONS: Record<string, ReactNode> = {
+  "geo-ru": <FlagIcon countryCode="RU" squared />,
+  "geo-us": <FlagIcon countryCode="US" squared />,
+  "geo-eu": <FlagIcon countryCode="EU" squared />,
+  "tech-dev": <LuCode aria-hidden="true" />,
+  "crypto-web3": <LuCoins aria-hidden="true" />,
+  "low-intent-purchaser": <LuShoppingBag aria-hidden="true" />,
 };
 
 /** Where this enrolment's sites come from. */
@@ -1602,40 +1622,59 @@ function CuratedPanel({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {templates.map((template) => {
-        const selected = template.id === selectedId;
-        const keys = TEMPLATE_LABEL_KEYS[template.id];
-        return (
-          <button
-            key={template.id}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => {
-              onSelect(template.id);
-            }}
-            className={cn(
-              "flex w-full cursor-pointer flex-col gap-0.5 rounded-md border px-3 py-2 text-left transition-colors duration-100",
-              selected
-                ? "border-primary/50 bg-primary/8"
-                : "border-border hover:bg-foreground/5",
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
-                {keys ? t(keys.name) : (template.name ?? template.id)}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-1.5">
+        {templates.map((template) => {
+          const selected = template.id === selectedId;
+          const keys = TEMPLATE_LABEL_KEYS[template.id];
+          const icon = TEMPLATE_ICONS[template.id];
+          return (
+            <button
+              key={template.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => {
+                onSelect(template.id);
+              }}
+              className={cn(
+                "flex w-full cursor-pointer flex-col gap-1 rounded-lg border p-2.5 text-left transition-colors duration-100",
+                selected
+                  ? "border-primary/50 bg-primary/8"
+                  : "border-border hover:bg-foreground/5",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {icon && (
+                  <span className="inline-flex size-4 shrink-0 items-center justify-center text-sm leading-none">
+                    {icon}
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+                  {keys ? t(keys.name) : (template.name ?? template.id)}
+                </span>
+                {selected && (
+                  <LuCheck
+                    className="size-3.5 shrink-0 text-primary"
+                    aria-hidden="true"
+                  />
+                )}
               </span>
-              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                {t("cookieBot.enrol.listSites", {
-                  count: template.site_count,
-                })}
+              <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                {keys ? t(keys.hint) : (template.description ?? "")}
               </span>
-            </span>
-            <span className="text-[11px] leading-snug text-muted-foreground">
-              {keys ? t(keys.hint) : (template.description ?? "")}
-            </span>
-          </button>
-        );
-      })}
+              <span>
+                <Badge
+                  variant="soft"
+                  className="h-5 rounded-md px-1.5 text-[11px] tabular-nums"
+                >
+                  {t("cookieBot.enrol.listSites", {
+                    count: template.site_count,
+                  })}
+                </Badge>
+              </span>
+            </button>
+          );
+        })}
+      </div>
       <p className="text-[11px] leading-snug text-muted-foreground">
         {t("cookieBot.enrol.curatedNote")}
       </p>

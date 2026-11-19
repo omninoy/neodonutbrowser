@@ -5,11 +5,19 @@ import { listen } from "@tauri-apps/api/event";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  LuChevronRight,
   LuFileSpreadsheet,
   LuFileUp,
   LuListPlus,
+  LuLoaderCircle,
   LuUpload,
 } from "react-icons/lu";
+import {
+  AnimatedDisclosureChevron,
+  AnimatedDisclosureContent,
+} from "@/components/ui/animated-disclosure";
+import { AutoHeight } from "@/components/ui/auto-height";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,6 +39,11 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { translateBackendError } from "@/lib/backend-errors";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import { cn } from "@/lib/utils";
@@ -42,6 +55,21 @@ const PARSE_DEBOUNCE_MS = 250;
 const PREVIEW_LIMIT = 100;
 /** Records in one run, mirroring the backend's own ceiling. */
 const MAX_RECORDS = 100;
+
+/**
+ * A worked CSV and JSON example beside each other, so the format is readable
+ * at a glance instead of reverse-engineered from the placeholder. The data is
+ * deliberately identical in both: the same three profiles, so the overlap
+ * teaches the two shapes rather than two datasets.
+ */
+const EXAMPLE_CSV = `name,proxy,os,tags,notes
+Shop,pool-1,windows,work|vip,Buyer account
+Mail,192.168.1.1:8000,macos,,Spam check`;
+
+const EXAMPLE_JSON = `[
+  { "name": "Shop", "proxy": "pool-1", "os": "windows", "tags": ["work", "vip"] },
+  { "name": "Mail", "proxy": "192.168.1.1:8000", "os": "macos" }
+]`;
 
 interface BulkCreateDialogProps {
   isOpen: boolean;
@@ -56,6 +84,7 @@ export function BulkCreateDialog({ isOpen, onClose }: BulkCreateDialogProps) {
   const [dragOver, setDragOver] = React.useState(false);
   const [records, setRecords] = React.useState<BulkProfileRecord[]>([]);
   const [autoAssignProxies, setAutoAssignProxies] = React.useState(true);
+  const [examplesOpen, setExamplesOpen] = React.useState(false);
   const [isParsing, setIsParsing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
   const [progress, setProgress] = React.useState<{
@@ -240,7 +269,7 @@ export function BulkCreateDialog({ isOpen, onClose }: BulkCreateDialogProps) {
             <Tabs
               value={tab}
               onValueChange={setTab}
-              className="flex min-h-0 flex-col"
+              className="@container flex min-h-0 flex-col"
             >
               <TabsList className="w-fit">
                 <TabsTrigger value="paste">
@@ -264,6 +293,46 @@ export function BulkCreateDialog({ isOpen, onClose }: BulkCreateDialogProps) {
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   {t("bulkCreate.formatHint")}
                 </p>
+
+                {/* A worked example in both accepted shapes, collapsible so it
+                    never pushes the preview off screen. Same three profiles in
+                    each, so the two formats teach themselves by comparison. */}
+                <div className="mt-2 rounded-xl bg-foreground/5">
+                  <button
+                    type="button"
+                    onClick={() => setExamplesOpen((open) => !open)}
+                    aria-expanded={examplesOpen}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors duration-100 hover:bg-foreground/5"
+                  >
+                    <AnimatedDisclosureChevron open={examplesOpen}>
+                      <LuChevronRight className="size-3.5" />
+                    </AnimatedDisclosureChevron>
+                    {t("bulkCreate.examplesToggle")}
+                  </button>
+                  <AutoHeight deps={[examplesOpen]}>
+                    <AnimatedDisclosureContent
+                      open={examplesOpen}
+                      className="grid grid-cols-1 gap-2 border-t border-foreground/8 px-3 py-3 @sm:grid-cols-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                          {t("bulkCreate.exampleCsvTitle")}
+                        </p>
+                        <pre className="overflow-x-auto rounded-lg bg-background px-2.5 py-2 font-mono text-[11px] leading-relaxed text-foreground">
+                          {EXAMPLE_CSV}
+                        </pre>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                          {t("bulkCreate.exampleJsonTitle")}
+                        </p>
+                        <pre className="overflow-x-auto rounded-lg bg-background px-2.5 py-2 font-mono text-[11px] leading-relaxed text-foreground">
+                          {EXAMPLE_JSON}
+                        </pre>
+                      </div>
+                    </AnimatedDisclosureContent>
+                  </AutoHeight>
+                </div>
               </TabsContent>
 
               <TabsContent value="file" className="mt-2">
@@ -313,18 +382,45 @@ export function BulkCreateDialog({ isOpen, onClose }: BulkCreateDialogProps) {
             </div>
 
             <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-border/60">
-              <div className="flex items-center justify-between border-b border-border/60 px-3 py-1.5">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <LuFileSpreadsheet className="size-3.5" />
-                  {fileName
-                    ? t("bulkCreate.previewFromFile", { file: fileName })
-                    : t("bulkCreate.previewTitle")}
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-1.5">
+                <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <LuFileSpreadsheet className="size-3.5 shrink-0" />
+                  <span className="truncate">
+                    {fileName
+                      ? t("bulkCreate.previewFromFile", { file: fileName })
+                      : t("bulkCreate.previewTitle")}
+                  </span>
                 </span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {isParsing
-                    ? t("bulkCreate.parsing")
-                    : t("bulkCreate.recordCount", { count: total })}
-                </span>
+                {/* The parse verdict as a badge: green-ish while it reads,
+                    spinning while it parses, red the moment the run would be
+                    refused — the state the confirm button acts on. */}
+                {isParsing ? (
+                  <Badge
+                    variant="soft"
+                    className="shrink-0 gap-1.5 tabular-nums"
+                  >
+                    <LuLoaderCircle className="size-3 animate-spin" />
+                    {t("bulkCreate.parsing")}
+                  </Badge>
+                ) : overLimit ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="destructive"
+                        className="shrink-0 cursor-default tabular-nums"
+                      >
+                        {t("bulkCreate.recordCount", { count: total })}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {t("bulkCreate.tooManyRecords", { max: MAX_RECORDS })}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Badge variant="soft" className="shrink-0 tabular-nums">
+                    {t("bulkCreate.recordCount", { count: total })}
+                  </Badge>
+                )}
               </div>
               <div className="max-h-48 overflow-y-auto">
                 <Table>
@@ -372,11 +468,14 @@ export function BulkCreateDialog({ isOpen, onClose }: BulkCreateDialogProps) {
                   </TableBody>
                 </Table>
                 {total === 0 && (
-                  <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-                    {isParsing
-                      ? t("bulkCreate.parsing")
-                      : t("bulkCreate.noRecords")}
-                  </p>
+                  <div className="flex flex-col items-center gap-1.5 px-3 py-6 text-center">
+                    <LuListPlus className="size-5 text-muted-foreground/60" />
+                    <p className="text-xs text-muted-foreground">
+                      {isParsing
+                        ? t("bulkCreate.parsing")
+                        : t("bulkCreate.noRecords")}
+                    </p>
+                  </div>
                 )}
                 {total > PREVIEW_LIMIT && (
                   <p className="border-t border-border/60 px-3 py-2 text-center text-xs text-muted-foreground">
