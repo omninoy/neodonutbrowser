@@ -101,6 +101,14 @@ export function windowsExtractionInvocation(archive, destinationDir) {
 
 function extractArchive(archive, destinationDir, windowsTarget) {
   if (windowsTarget) {
+    const tarResult = spawnSync("tar", ["-xf", archive, "-C", destinationDir]);
+    if (tarResult.status === 0) {
+      return {
+        binary: join(destinationDir, "xray.exe"),
+        license: join(destinationDir, "LICENSE"),
+      };
+    }
+
     const { args, env } = windowsExtractionInvocation(archive, destinationDir);
     const result = spawnSync("powershell", args, { stdio: "inherit", env });
     if (result.status !== 0) {
