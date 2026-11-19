@@ -343,6 +343,10 @@
       "restoringStatus": "Extraction de l'archive — cela peut prendre du temps avec de grandes sauvegardes…",
       "createdEncrypted": "La sauvegarde est chiffrée avec votre mot de passe.",
       "restoreSkipped": "{{count}} profils ignorés car déjà présents sur cet ordinateur."
+    },
+    "addons": {
+      "title": "Apparence et extensions",
+      "description": "Personnalisez les thèmes, les extraits CSS et les plugins."
     }
   },
   "header": {

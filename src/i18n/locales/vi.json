@@ -342,6 +342,10 @@
       "restoringStatus": "Đang giải nén tệp lưu trữ — bản sao lưu lớn có thể mất thời gian…",
       "createdEncrypted": "Bản sao lưu được mã hóa bằng mật khẩu của bạn.",
       "restoreSkipped": "Đã bỏ qua {{count}} hồ sơ vốn đã có trên máy tính này."
+    },
+    "addons": {
+      "title": "Giao diện & Tiện ích mở rộng",
+      "description": "Tùy chỉnh giao diện, đoạn mã CSS và plugin."
     }
   },
   "header": {

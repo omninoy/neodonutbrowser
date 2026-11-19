@@ -342,6 +342,10 @@
       "restoringStatus": "아카이브를 푸는 중입니다. 큰 백업은 시간이 걸릴 수 있습니다…",
       "createdEncrypted": "백업이 비밀번호로 암호화되었습니다.",
       "restoreSkipped": "이 컴퓨터에 이미 있던 {{count}}개 프로필을 건너뛰었습니다."
+    },
+    "addons": {
+      "title": "모양 및 확장 프로그램",
+      "description": "테마, CSS 스니펫 및 플러그인을 맞춤 설정합니다."
     }
   },
   "header": {

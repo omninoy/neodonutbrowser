@@ -342,6 +342,10 @@
       "restoringStatus": "Arşiv açılıyor — büyük yedekler bu işlemi uzatabilir…",
       "createdEncrypted": "Yedek parolanla şifrelendi.",
       "restoreSkipped": "Bu bilgisayarda zaten olan {{count}} profil atlandı."
+    },
+    "addons": {
+      "title": "Görünüm ve Uzantılar",
+      "description": "Temaları, CSS parçacıklarını ve eklentileri özelleştirin."
     }
   },
   "header": {

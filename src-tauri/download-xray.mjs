@@ -42,6 +42,10 @@ export const XRAY_ASSETS = {
     name: "Xray-windows-64.zip",
     sha256: "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
   },
+  "x86_64-pc-windows-gnu": {
+    name: "Xray-windows-64.zip",
+    sha256: "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
+  },
 };
 
 const MANIFEST_DIR = dirname(fileURLToPath(import.meta.url));

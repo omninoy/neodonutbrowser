@@ -78,14 +78,14 @@ fn main() {
     // or they crash with STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139). We embed the
     // manifest for all targets, then suppress the duplicate for bins with /MANIFEST:NO
     // (tauri_build's resource-embedded manifest still takes effect for bins).
-    if build_target.contains("windows") {
+    if build_target.contains("windows") && build_target.contains("msvc") {
       embed_windows_manifest();
       println!("cargo:rustc-link-arg-bins=/MANIFEST:NO");
     }
   } else {
     println!("cargo:warning=Skipping tauri_build: external binaries not found. This is expected when building sidecar binaries.");
 
-    if build_target.contains("windows") {
+    if build_target.contains("windows") && build_target.contains("msvc") {
       embed_windows_manifest();
     }
   }

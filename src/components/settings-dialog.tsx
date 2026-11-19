@@ -27,6 +27,7 @@ import {
   LuMonitorCog,
   LuNetwork,
   LuPalette,
+  LuPuzzle,
   LuRocket,
   LuRotateCcw,
   LuSearch,
@@ -35,6 +36,7 @@ import {
   LuWrench,
   LuX,
 } from "react-icons/lu";
+import { AddonsSettingsPage } from "@/components/addons/addons-settings-page";
 import { DnsBlocklistDialog } from "@/components/dns-blocklist-dialog";
 import { LoadingButton } from "@/components/loading-button";
 import { LogViewer } from "@/components/log-viewer";
@@ -137,6 +139,18 @@ const SECTIONS: Array<{
     title: "settings.appearance.title",
     icon: <LuPalette />,
     search: ["settings.appearance", "settings.language"],
+  },
+  {
+    id: "addons",
+    title: "settings.addons.title",
+    icon: <LuPuzzle />,
+    search: [
+      "settings.addons.title",
+      "settings.addons.description",
+      "themes",
+      "plugins",
+      "css",
+    ],
   },
   {
     id: "sounds",
@@ -824,6 +838,12 @@ export function SettingsDialog({
                       ))}
                     </ChoiceGroup>
                   </SettingBlock>
+                </SettingsCard>
+              </SettingsSection>
+
+              <SettingsSection {...sectionProps("addons")}>
+                <SettingsCard>
+                  <AddonsSettingsPage />
                 </SettingsCard>
               </SettingsSection>
 

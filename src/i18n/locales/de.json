@@ -342,6 +342,10 @@
       "restoringStatus": "Archiv wird entpackt — bei großen Backups kann das eine Weile dauern…",
       "createdEncrypted": "Das Backup ist mit deinem Passwort verschlüsselt.",
       "restoreSkipped": "{{count}} Profile übersprungen, die dieser Computer bereits hat."
+    },
+    "addons": {
+      "title": "Erscheinungsbild & Erweiterungen",
+      "description": "Passen Sie Designs, CSS-Snippets und Plugins an."
     }
   },
   "header": {

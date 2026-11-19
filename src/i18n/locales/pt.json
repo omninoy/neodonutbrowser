@@ -343,6 +343,10 @@
       "restoringStatus": "Desempacotando o arquivo — com backups grandes pode demorar…",
       "createdEncrypted": "O backup está criptografado com sua senha.",
       "restoreSkipped": "{{count}} perfis ignorados porque já existiam neste computador."
+    },
+    "addons": {
+      "title": "Aparência e extensões",
+      "description": "Personalize temas, snippets de CSS e plug-ins."
     }
   },
   "header": {

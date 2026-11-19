@@ -343,6 +343,10 @@
       "restoringStatus": "Desempaquetando el archivo — con copias grandes puede tardar un rato…",
       "createdEncrypted": "La copia está cifrada con tu contraseña.",
       "restoreSkipped": "Se omitieron {{count}} perfiles que ya existían en este equipo."
+    },
+    "addons": {
+      "title": "Apariencia y extensiones",
+      "description": "Personaliza temas, fragmentos CSS y complementos."
     }
   },
   "header": {

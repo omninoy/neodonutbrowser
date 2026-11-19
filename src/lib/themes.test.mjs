@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import Color from "color";
 import {
+  DERIVED_THEME_VARIABLES,
   getDerivedThemeColors,
   getThemeByColors,
   getThemeMode,
@@ -28,6 +29,7 @@ const CONTEXTUAL_ROLES = ["primary", "destructive", "success", "warning"];
 const LIGHT_THEMES = new Set([
   "ayu-light",
   "catppuccin-latte",
+  "everforest-light",
   "github-light",
   "gruvbox-light",
   "rose-pine-dawn",
@@ -47,7 +49,7 @@ function assertNoContrastFailures(failures) {
 }
 
 test("every theme declares the intended appearance mode", () => {
-  assert.equal(THEMES.length, 20);
+  assert.equal(THEMES.length, 25);
   assert.equal(new Set(THEMES.map((theme) => theme.id)).size, THEMES.length);
   assert.deepEqual(
     THEMES.filter((theme) => theme.mode === "light")
@@ -160,4 +162,52 @@ test("saved copies of the previous presets migrate without claiming edits", () =
   const editedHouston = { ...legacyHouston, "--accent": "#123456" };
   assert.equal(getThemeByColors(editedHouston), undefined);
   assert.equal(normalizeThemeColors(editedHouston), editedHouston);
+});
+
+test("all mandatory design tokens are derived and populated for every theme", () => {
+  const mandatoryTokens = [
+    "--surface",
+    "--surface-elevated",
+    "--divider",
+    "--text-primary",
+    "--text-secondary",
+    "--text-muted",
+    "--text-disabled",
+    "--placeholder",
+    "--primary-hover",
+    "--primary-active",
+    "--secondary-hover",
+    "--info",
+    "--info-foreground",
+    "--info-text",
+    "--danger",
+    "--danger-foreground",
+    "--danger-text",
+    "--error",
+    "--error-foreground",
+    "--error-text",
+    "--overlay",
+    "--scrim",
+    "--shadow-color",
+    "--focus-ring",
+    "--scrollbar-thumb",
+    "--scrollbar-track",
+  ];
+
+  for (const token of mandatoryTokens) {
+    assert.ok(
+      DERIVED_THEME_VARIABLES.includes(token),
+      `DERIVED_THEME_VARIABLES must contain ${token}`,
+    );
+  }
+
+  for (const theme of THEMES) {
+    const derived = getDerivedThemeColors(theme.colors);
+    for (const token of mandatoryTokens) {
+      assert.ok(
+        derived[token],
+        `Theme ${theme.id} must have derived token ${token}`,
+      );
+    }
+  }
 });

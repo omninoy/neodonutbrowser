@@ -175,7 +175,7 @@ function DialogOverlay({ className, ...props }: DialogOverlayProps) {
             : { duration: 0 }
         }
         className={cn(
-          "fixed inset-0 z-9999 bg-background/50",
+          "fixed inset-0 z-9999 bg-overlay",
           exiting && "pointer-events-none",
           className,
         )}

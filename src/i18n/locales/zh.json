@@ -342,6 +342,10 @@
       "restoringStatus": "正在解包归档——备份较大时可能需要一些时间…",
       "createdEncrypted": "备份已用你的密码加密。",
       "restoreSkipped": "已跳过 {{count}} 个这台电脑上已有的配置文件。"
+    },
+    "addons": {
+      "title": "外观与扩展",
+      "description": "自定义主题、CSS 代码段和沙盒插件。"
     }
   },
   "header": {

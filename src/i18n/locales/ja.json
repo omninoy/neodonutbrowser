@@ -342,6 +342,10 @@
       "restoringStatus": "アーカイブを復元中です。大きなバックアップでは時間がかかることがあります…",
       "createdEncrypted": "バックアップはパスワードで暗号化されています。",
       "restoreSkipped": "この PC に既にあった {{count}} 件のプロフィールをスキップしました。"
+    },
+    "addons": {
+      "title": "外観と拡張機能",
+      "description": "テーマ、CSSスニペット、プラグインをカスタマイズします。"
     }
   },
   "header": {

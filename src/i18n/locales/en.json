@@ -342,6 +342,10 @@
       "restoringStatus": "Unpacking the archive — this can take a while for large backups…",
       "createdEncrypted": "The backup is encrypted with your password.",
       "restoreSkipped": "Skipped {{count}} profiles that already exist on this computer."
+    },
+    "addons": {
+      "title": "Appearance & Extensions",
+      "description": "Customize themes, CSS snippets, and sandboxed plugins."
     }
   },
   "header": {

@@ -10,13 +10,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:shadow-sm",
+        default:
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover active:bg-primary-active hover:shadow-sm",
         destructive:
           "bg-destructive text-destructive-foreground shadow-xs hover:shadow-sm focus-visible:ring-destructive",
         outline:
           "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:shadow-sm",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary-hover hover:shadow-sm",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         // Tinted from the theme's own foreground, so the fill stays quiet in
         // themes whose accent or secondary color is loud.
