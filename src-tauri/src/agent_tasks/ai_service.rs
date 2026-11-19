@@ -25,7 +25,15 @@ pub const DEFAULT_DONUT_SYSTEM_PROMPT: &str = r#"Ты — официальный
 Формат мышления и действий:
 При решении сложных задач и инструкций пользователя разбивай процесс на четкие шаги:
 1. Если требуется обдумать план, сформулировать гипотезу или шаги — оборачивай свои внутренние размышления в тег <think>...</think>.
-2. Если ты планируешь или выполняешь конкретное действие (навигация, проверка, настройка) — оборачивай его в тег <act>...</act>.
+2. Если ты планируешь или выполняешь конкретное действие в браузере — оборачивай его в тег <act>...</act>.
+   Поддерживаемые браузерные команды (CDP):
+   - navigate: <url> — перейти по указанному URL (например: <act>navigate: https://example.com</act>)
+   - click: <selector> — нажать на элемент по CSS-селектору (например: <act>click: button.submit</act>)
+   - type: <selector> | <text> — ввести текст в поле (например: <act>type: input[name="q"] | NeoDonut</act>)
+   - scroll: <up|down> <pixels> — прокрутить страницу вверх или вниз (например: <act>scroll: down 500</act>)
+   - extract_text: <selector> — извлечь текстовое содержимое элемента (например: <act>extract_text: h1</act>)
+   - screenshot — сделать снимок экрана страницы (например: <act>screenshot</act>)
+   - eval: <javascript> — выполнить произвольный JS в контексте страницы (например: <act>eval: document.title</act>)
 3. Если ты анализируешь результат страницы или полученные данные — оборачивай наблюдения в тег <observe>...</observe>.
 4. Итоговый ответ формулируй четко, профессионально и структурированно в Markdown вне этих тегов.
 5. Всегда отвечай на том языке, на котором к тебе обратился пользователь (на русском, если запрос на русском)."#;
@@ -423,7 +431,7 @@ fn parse_llm_output(raw: &str) -> ParsedResponse {
 pub async fn run_ai_turn(chat_id: String, turn_id: String) {
   let settings = get_settings();
 
-  let (_profile_id, text, history) = {
+  let (profile_id, text, history) = {
     let store = chat::chats();
     let Ok(chat) = store.get(&chat_id) else {
       return;
@@ -666,57 +674,110 @@ pub async fn run_ai_turn(chat_id: String, turn_id: String) {
   }
   .await;
 
-  let mut store = chat::chats();
-  let Ok(chat) = store.get_mut(&chat_id) else {
-    return;
-  };
-  let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) else {
-    return;
-  };
-
   match outcome {
     Ok(raw_text) => {
       let parsed = parse_llm_output(&raw_text);
-      let now = now_ms();
-      let mut step_index = 1u64;
+      let mut step_index = {
+        let store = chat::chats();
+        if let Ok(chat) = store.get(&chat_id) {
+          if let Some(turn) = chat.turns.iter().find(|t| t.id == turn_id) {
+            turn.task.steps.len() as u64
+          } else {
+            1u64
+          }
+        } else {
+          1u64
+        }
+      };
 
       // Add thoughts
-      for thought in parsed.thoughts {
-        turn.task.steps.push_back(Step {
-          index: step_index,
-          kind: "think".to_string(),
-          text: thought,
-          url: None,
-          tool: None,
-          at: now,
-        });
-        step_index += 1;
+      if !parsed.thoughts.is_empty() {
+        let mut store = chat::chats();
+        if let Ok(chat) = store.get_mut(&chat_id) {
+          if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+            for thought in &parsed.thoughts {
+              turn.task.steps.push_back(Step {
+                index: step_index,
+                kind: "think".to_string(),
+                text: thought.clone(),
+                url: None,
+                tool: None,
+                at: now_ms(),
+              });
+              step_index += 1;
+            }
+            store.changed(&chat_id, false);
+          }
+        }
       }
 
-      // Add actions
-      for (tool, action_text) in parsed.actions {
-        turn.task.steps.push_back(Step {
-          index: step_index,
-          kind: "act".to_string(),
-          text: action_text,
-          url: None,
-          tool: Some(tool),
-          at: now,
-        });
-        step_index += 1;
+      // Execute and record actions via browser CDP executor
+      let target_profile_id = profile_id.as_str();
+      for (tool, action_text) in &parsed.actions {
+        // Record the action step
+        {
+          let mut store = chat::chats();
+          if let Ok(chat) = store.get_mut(&chat_id) {
+            if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+              turn.task.steps.push_back(Step {
+                index: step_index,
+                kind: "act".to_string(),
+                text: action_text.clone(),
+                url: None,
+                tool: Some(tool.clone()),
+                at: now_ms(),
+              });
+              step_index += 1;
+              store.changed(&chat_id, false);
+            }
+          }
+        }
+
+        // Execute CDP browser action
+        let obs_text = match super::cdp_executor::execute_browser_action(target_profile_id, action_text).await {
+          Ok(obs) => obs,
+          Err(err) => format!("CDP Action Error: {err}"),
+        };
+
+        // Record the observation step
+        {
+          let mut store = chat::chats();
+          if let Ok(chat) = store.get_mut(&chat_id) {
+            if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+              turn.task.steps.push_back(Step {
+                index: step_index,
+                kind: "observe".to_string(),
+                text: obs_text,
+                url: None,
+                tool: None,
+                at: now_ms(),
+              });
+              step_index += 1;
+              store.changed(&chat_id, false);
+            }
+          }
+        }
       }
 
-      // Add observations
-      for obs in parsed.observations {
-        turn.task.steps.push_back(Step {
-          index: step_index,
-          kind: "observe".to_string(),
-          text: obs,
-          url: None,
-          tool: None,
-          at: now,
-        });
-        step_index += 1;
+      // Add observations from LLM output
+      if !parsed.observations.is_empty() {
+        let mut store = chat::chats();
+        if let Ok(chat) = store.get_mut(&chat_id) {
+          if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+            for obs in &parsed.observations {
+              turn.task.steps.push_back(Step {
+                index: step_index,
+                kind: "observe".to_string(),
+                text: obs.clone(),
+                url: None,
+                tool: None,
+                at: now_ms(),
+              });
+              step_index += 1;
+            }
+            store.changed(&chat_id, false);
+          }
+        }
       }
 
       let final_result = if !parsed.clean_text.is_empty() {
@@ -725,20 +786,33 @@ pub async fn run_ai_turn(chat_id: String, turn_id: String) {
         raw_text
       };
 
-      turn.task.status = TaskStatus::Done;
-      turn.task.result = Some(final_result);
-      turn.task.credits_used += 1;
-      turn.task.finished_at = Some(now);
-      chat.updated_at = now;
-      store.changed(&chat_id, false);
+      {
+        let mut store = chat::chats();
+        if let Ok(chat) = store.get_mut(&chat_id) {
+          if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+            let now = now_ms();
+            turn.task.status = TaskStatus::Done;
+            turn.task.result = Some(final_result);
+            turn.task.credits_used += 1;
+            turn.task.finished_at = Some(now);
+            chat.updated_at = now;
+            store.changed(&chat_id, false);
+          }
+        }
+      }
     }
     Err(err) => {
-      let now = now_ms();
-      turn.task.status = TaskStatus::Failed;
-      turn.task.error = Some(err);
-      turn.task.finished_at = Some(now);
-      chat.updated_at = now;
-      store.changed(&chat_id, false);
+      let mut store = chat::chats();
+      if let Ok(chat) = store.get_mut(&chat_id) {
+        if let Some(turn) = chat.turns.iter_mut().find(|t| t.id == turn_id) {
+          let now = now_ms();
+          turn.task.status = TaskStatus::Failed;
+          turn.task.error = Some(err);
+          turn.task.finished_at = Some(now);
+          chat.updated_at = now;
+          store.changed(&chat_id, false);
+        }
+      }
     }
   }
 }

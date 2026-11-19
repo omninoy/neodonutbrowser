@@ -10,6 +10,7 @@
 
 pub mod ai_service;
 mod batch;
+pub mod cdp_executor;
 pub mod chat;
 pub mod chat_sync;
 mod cloud;
