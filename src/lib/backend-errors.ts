@@ -38,6 +38,7 @@ export type BackendErrorCode =
   | "PROXY_ROTATION_TIMEOUT"
   | "PROXY_ROTATION_UNREACHABLE"
   | "PROXY_ROTATION_FAILED"
+  | "PROXY_ROTATION_INTERVAL_INVALID"
   | "START_URL_INVALID"
   | "START_URLS_TOO_MANY"
   | "TOTP_KEY_INVALID"
@@ -562,6 +563,8 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       return t("backendErrors.proxyRotationFailed", {
         status: parsed.params?.status ?? "",
       });
+    case "PROXY_ROTATION_INTERVAL_INVALID":
+      return t("backendErrors.proxyRotationIntervalInvalid");
     case "START_URL_INVALID":
       return t("backendErrors.startUrlInvalid", {
         url: parsed.params?.url ?? "",

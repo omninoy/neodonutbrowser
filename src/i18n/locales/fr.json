@@ -825,14 +825,21 @@
       "label": "Lien de changement d'IP",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "Facultatif. Un lien de votre fournisseur qui donne une nouvelle IP à ce proxy. Tous les profils qui utilisent le proxy passent à la nouvelle IP.",
+      "intervalLabel": "Intervalle de rotation automatique (minutes, 0 = désactivé)",
+      "intervalHint": "Nécessite le lien de changement d'IP. L'application demande une nouvelle sortie au fournisseur aussi souvent pendant son fonctionnement.",
+      "rotateOnLaunchLabel": "Rotation au lancement",
+      "rotateOnLaunch": "Changer d'IP avant de lancer un profil",
+      "rotateOnLaunchHint": "Chaque lancement sur ce proxy demande d'abord une nouvelle sortie au fournisseur.",
       "action": "Changer d'IP",
       "actionTooltip": "Demander une nouvelle IP au fournisseur. Tous les profils qui utilisent ce proxy y passent.",
+      "lastRotated": "Dernier changement d'IP : {{datetime}}",
       "requested": "Nouvelle IP demandée pour {{name}}",
       "requestedMany_one": "Nouvelle IP demandée pour {{count}} proxy",
       "requestedMany_many": "Nouvelle IP demandée pour {{count}} proxys",
       "requestedMany_other": "Nouvelle IP demandée pour {{count}} proxys",
       "failedFor": "{{name}} : {{error}}",
-      "noneSelected": "Aucun de ces proxys n'a de lien de changement d'IP. Ajoutez-en un en modifiant un proxy."
+      "noneSelected": "Aucun de ces proxys n'a de lien de changement d'IP. Ajoutez-en un en modifiant un proxy.",
+      "unchanged": "{{name}} : le fournisseur a répondu mais l'IP n'a pas changé"
     }
   },
   "groups": {
@@ -3016,7 +3023,8 @@
     "extensionNotFromStore": "Cette extension ne vient pas du Chrome Web Store.",
     "extensionUpdateNeedsConsent": "La nouvelle version demande plus d'accès : {{permissions}}",
     "bookmarksFileInvalid": "Donut ne peut pas lire de favoris dans ce fichier. Utilisez le fichier Bookmarks de Chrome ou un fichier HTML exporté.",
-    "previewsNotEntitled": "Les aperçus en direct nécessitent le forfait Pro ou supérieur."
+    "previewsNotEntitled": "Les aperçus en direct nécessitent le forfait Pro ou supérieur.",
+    "proxyRotationIntervalInvalid": "L'intervalle de rotation automatique doit être compris entre 0 et 43200 minutes."
   },
   "rail": {
     "profiles": "Profils",

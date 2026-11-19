@@ -821,13 +821,20 @@
       "label": "IP 変更リンク",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "任意。このプロキシに新しい IP を割り当てるプロバイダーのリンクです。このプロキシを使うすべてのプロファイルが新しい IP に移ります。",
+      "intervalLabel": "自動ロテーション間隔（分、0 = オフ）",
+      "intervalHint": "IP 変更リンクが必要です。アプリは実行中、この間隔でプロバイダーに新しい出口 IP を要求します。",
+      "rotateOnLaunchLabel": "起動時ロテーション",
+      "rotateOnLaunch": "プロファイル起動前に IP を変更する",
+      "rotateOnLaunchHint": "このプロキシでの起動ごとに、まずプロバイダーに新しい出口 IP を要求します。",
       "action": "IP を変更",
       "actionTooltip": "プロバイダーから新しい IP を取得します。このプロキシを使うすべてのプロファイルがその IP に移ります。",
+      "lastRotated": "最終 IP 変更: {{datetime}}",
       "requested": "{{name}} の新しい IP をリクエストしました",
       "requestedMany_one": "{{count}} 件のプロキシの新しい IP をリクエストしました",
       "requestedMany_other": "{{count}} 件のプロキシの新しい IP をリクエストしました",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "これらのプロキシには IP 変更リンクがありません。プロキシの編集時に追加してください。"
+      "noneSelected": "これらのプロキシには IP 変更リンクがありません。プロキシの編集時に追加してください。",
+      "unchanged": "{{name}}: プロバイダーは応答しましたが、IP は変わりませんでした"
     }
   },
   "groups": {
@@ -2996,7 +3003,8 @@
     "extensionNotFromStore": "この拡張機能は Chrome ウェブストアから追加されたものではありません。",
     "extensionUpdateNeedsConsent": "新しいバージョンは追加のアクセスを求めています: {{permissions}}",
     "bookmarksFileInvalid": "このファイルからブックマークを読み込めません。Chrome の Bookmarks ファイルか、書き出した HTML ファイルを使ってください。",
-    "previewsNotEntitled": "ライブプレビューには Pro 以上のプランが必要です。"
+    "previewsNotEntitled": "ライブプレビューには Pro 以上のプランが必要です。",
+    "proxyRotationIntervalInvalid": "自動ロテーション間隔は 0〜43200 分の範囲で指定してください。"
   },
   "rail": {
     "profiles": "プロファイル",

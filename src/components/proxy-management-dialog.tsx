@@ -658,7 +658,22 @@ export function ProxyManagementDialog({
                 <RowAction
                   data-slot="proxy-rotate"
                   label={t("proxies.rotation.action")}
-                  tooltip={t("proxies.rotation.actionTooltip")}
+                  tooltip={
+                    proxy.last_rotated_at ? (
+                      <span className="flex flex-col gap-1">
+                        <span>{t("proxies.rotation.actionTooltip")}</span>
+                        <span>
+                          {t("proxies.rotation.lastRotated", {
+                            datetime: new Date(
+                              proxy.last_rotated_at,
+                            ).toLocaleString(),
+                          })}
+                        </span>
+                      </span>
+                    ) : (
+                      t("proxies.rotation.actionTooltip")
+                    )
+                  }
                   icon={<LuRefreshCcwDot />}
                   onClick={() => {
                     void rotateProxyIps([proxy], t);

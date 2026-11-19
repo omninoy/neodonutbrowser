@@ -359,6 +359,15 @@ export interface StoredProxy {
   geo_isp?: string;
   /** The provider's change-IP link; see `rotateProxyIps`. */
   rotation_url?: string | null;
+  /**
+   * Minutes between automatic IP rotations; 0 or undefined turns the timer
+   * off. Only honored while `rotation_url` is set.
+   */
+  rotation_interval_mins?: number;
+  /** Rotate the IP right before a profile on this proxy launches. */
+  rotate_on_launch?: boolean;
+  /** Unix milliseconds of the last IP rotation the provider accepted. */
+  last_rotated_at?: number;
 }
 
 export interface LocationItem {

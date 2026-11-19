@@ -243,6 +243,20 @@ pub struct StoredProxy {
   /// password: never logged, redacted for remote MCP callers.
   #[serde(default)]
   pub rotation_url: Option<String>,
+  /// Minutes between automatic IP rotations; `None` or 0 turns the timer off.
+  /// Only honored while `rotation_url` is set: without a link there is
+  /// nothing to ask.
+  #[serde(default)]
+  pub rotation_interval_mins: Option<u32>,
+  /// Rotate the IP right before a profile on this proxy launches, so the
+  /// browser comes up already on a fresh address.
+  #[serde(default)]
+  pub rotate_on_launch: bool,
+  /// Unix milliseconds of the last IP rotation the provider accepted. Drives
+  /// the auto-rotation timer, so it is stamped by the rotation paths
+  /// themselves and never by a user edit.
+  #[serde(default)]
+  pub last_rotated_at: Option<u64>,
 }
 
 /// Current unix time in whole seconds. Used to stamp `updated_at` on edits.
@@ -251,6 +265,16 @@ pub fn now_secs() -> u64 {
     .duration_since(UNIX_EPOCH)
     .unwrap_or_default()
     .as_secs()
+}
+
+/// Current unix time in milliseconds. `last_rotated_at` is stamped with it so
+/// "rotated seconds ago" and the scheduler's one-minute tick never disagree
+/// about "less than a minute ago".
+pub fn now_ms() -> u64 {
+  SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .unwrap_or_default()
+    .as_millis() as u64
 }
 
 /// Keys in `active_proxies` at or above this value are in-flight launch
@@ -503,6 +527,9 @@ impl StoredProxy {
       dynamic_proxy_url: None,
       dynamic_proxy_format: None,
       rotation_url: None,
+      rotation_interval_mins: None,
+      rotate_on_launch: false,
+      last_rotated_at: None,
     }
   }
 
@@ -895,6 +922,9 @@ impl ProxyManager {
         dynamic_proxy_url: None,
         dynamic_proxy_format: None,
         rotation_url: None,
+        rotation_interval_mins: None,
+        rotate_on_launch: false,
+        last_rotated_at: None,
       };
       stored_proxies.insert(CLOUD_PROXY_ID.to_string(), cloud_proxy.clone());
       drop(stored_proxies);
@@ -1089,6 +1119,9 @@ impl ProxyManager {
       dynamic_proxy_url: None,
       dynamic_proxy_format: None,
       rotation_url: None,
+      rotation_interval_mins: None,
+      rotate_on_launch: false,
+      last_rotated_at: None,
     };
 
     {
@@ -1330,6 +1363,90 @@ impl ProxyManager {
       }
     }
     Ok(updated)
+  }
+
+  /// The widest auto-rotation interval the form offers: 30 days. Anything
+  /// larger is a typo, not a schedule.
+  pub const MAX_ROTATION_INTERVAL_MINS: u32 = 30 * 24 * 60;
+
+  /// Set a proxy's auto-rotation schedule. Cloud proxies are refused: the
+  /// cloud owns their configuration. A no-op when nothing changed, so an
+  /// edit form that saves every open does not bump `updated_at` — the
+  /// timestamp sync conflict resolution reads.
+  pub fn set_rotation_config(
+    &self,
+    proxy_id: &str,
+    rotation_interval_mins: Option<u32>,
+    rotate_on_launch: bool,
+  ) -> Result<StoredProxy, String> {
+    if rotation_interval_mins.is_some_and(|mins| mins > Self::MAX_ROTATION_INTERVAL_MINS) {
+      return Err(crate::backend_error("PROXY_ROTATION_INTERVAL_INVALID"));
+    }
+    let changed = {
+      let mut stored_proxies = self.stored_proxies.lock().unwrap();
+      let proxy = stored_proxies
+        .get_mut(proxy_id)
+        .ok_or_else(|| crate::backend_error("PROXY_NOT_FOUND"))?;
+      if proxy.is_cloud_managed || proxy.is_cloud_derived {
+        return Err(crate::backend_error("CANNOT_MODIFY_CLOUD_MANAGED_PROXY"));
+      }
+      let unchanged =
+        proxy.rotation_interval_mins == rotation_interval_mins && proxy.rotate_on_launch == rotate_on_launch;
+      if unchanged {
+        return Ok(proxy.clone());
+      }
+      proxy.rotation_interval_mins = rotation_interval_mins;
+      proxy.rotate_on_launch = rotate_on_launch;
+      proxy.updated_at = Some(now_secs());
+      proxy.clone()
+    };
+    self
+      .save_proxy(&changed)
+      .map_err(|e| crate::wrap_backend_error(e, "Failed to save the proxy"))?;
+    if let Err(e) = events::emit_empty("proxies-changed") {
+      log::warn!("Event emit failed event=proxies-changed err=\"{e}\"");
+    }
+    if changed.sync_enabled {
+      if let Some(scheduler) = crate::sync::get_global_scheduler() {
+        let id = changed.id.clone();
+        tauri::async_runtime::spawn(async move {
+          scheduler.queue_proxy_sync(id).await;
+        });
+      }
+    }
+    Ok(changed)
+  }
+
+  /// Stamp the moment of a rotation the provider accepted and persist it.
+  /// Bookkeeping, not a user edit, so `updated_at` stays where it was and the
+  /// timer keeps its meaning across sync.
+  pub fn set_last_rotated_at(&self, proxy_id: &str, at_ms: u64) -> Result<StoredProxy, String> {
+    let updated = {
+      let mut stored_proxies = self.stored_proxies.lock().unwrap();
+      let proxy = stored_proxies
+        .get_mut(proxy_id)
+        .ok_or_else(|| crate::backend_error("PROXY_NOT_FOUND"))?;
+      proxy.last_rotated_at = Some(at_ms);
+      proxy.clone()
+    };
+    self
+      .save_proxy(&updated)
+      .map_err(|e| crate::wrap_backend_error(e, "Failed to save the proxy"))?;
+    // The table's "last rotated" tooltip reads this, so the open page learns
+    // about a rotation the scheduler did on its own.
+    if let Err(e) = events::emit_empty("proxies-changed") {
+      log::warn!("Event emit failed event=proxies-changed err=\"{e}\"");
+    }
+    Ok(updated)
+  }
+
+  /// Whether a launch on this proxy should ask the provider for a new exit
+  /// first. Only with a link: the checkbox alone cannot rotate anything.
+  pub fn should_rotate_on_launch(&self, proxy_id: &str) -> bool {
+    let stored_proxies = self.stored_proxies.lock().unwrap();
+    stored_proxies
+      .get(proxy_id)
+      .is_some_and(|p| p.rotate_on_launch && p.rotation_url.is_some())
   }
 
   /// Update the in-memory `sync_enabled` / `last_sync` fields of a stored
@@ -5313,6 +5430,9 @@ mod tests {
       dynamic_proxy_url: None,
       dynamic_proxy_format: None,
       rotation_url: None,
+      rotation_interval_mins: None,
+      rotate_on_launch: false,
+      last_rotated_at: None,
     };
 
     // Before migration

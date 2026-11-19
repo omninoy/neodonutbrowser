@@ -3326,6 +3326,11 @@ pub fn run_with_builder(
         }
       });
 
+      // Auto-rotate mobile proxies whose interval came due. Reads the stored
+      // proxies from memory, so it needs neither the app handle nor the
+      // startup scan to have finished.
+      tauri::async_runtime::spawn(crate::proxy_rotation::run_auto_rotation_scheduler());
+
       // Periodically broadcast browser running status to the frontend.
       // When no profiles have stored PIDs (nothing was ever launched this
       // session), we use a long interval (30s) to avoid burning CPU on
@@ -3702,6 +3707,7 @@ pub fn run_with_builder(
       profile_totp::delete_profile_totp,
       profile_totp::get_profile_totp_codes,
       proxy_rotation::set_proxy_rotation_url,
+      proxy_rotation::set_proxy_rotation_config,
       proxy_rotation::rotate_proxy_ip,
       proxy_rotation::rotate_proxy_ips,
       check_browser_status,

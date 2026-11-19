@@ -823,13 +823,20 @@
       "label": "IP değiştirme bağlantısı",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "İsteğe bağlı. Sağlayıcınızın bu proxy'ye yeni bir IP veren bağlantısı. Proxy'yi kullanan her profil yeni IP'ye geçer.",
+      "intervalLabel": "Otomatik rotasyon aralığı (dakika, 0 = kapalı)",
+      "intervalHint": "IP değiştirme bağlantısı gerekir. Uygulama çalışırken bu aralıkla sağlayıcıdan yeni bir çıkış ister.",
+      "rotateOnLaunchLabel": "Başlangıçta rotasyon",
+      "rotateOnLaunch": "Profil başlatılmadan önce IP'yi değiştir",
+      "rotateOnLaunchHint": "Bu proxy ile her başlatma, önce sağlayıcıdan taze bir çıkış ister.",
       "action": "IP değiştir",
       "actionTooltip": "Sağlayıcıdan yeni bir IP alın. Bu proxy'yi kullanan her profil ona geçer.",
+      "lastRotated": "Son IP değişimi: {{datetime}}",
       "requested": "{{name}} için yeni IP istendi",
       "requestedMany_one": "{{count}} proxy için yeni IP istendi",
       "requestedMany_other": "{{count}} proxy için yeni IP istendi",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "Bu proxy'lerin hiçbirinde IP değiştirme bağlantısı yok. Bir proxy'yi düzenlerken ekleyin."
+      "noneSelected": "Bu proxy'lerin hiçbirinde IP değiştirme bağlantısı yok. Bir proxy'yi düzenlerken ekleyin.",
+      "unchanged": "{{name}}: sağlayıcı yanıt verdi ama IP değişmedi"
     }
   },
   "groups": {
@@ -3002,7 +3009,8 @@
     "extensionNotFromStore": "Bu uzantı Chrome Web Mağazası'ndan gelmedi.",
     "extensionUpdateNeedsConsent": "Yeni sürüm daha fazla erişim istiyor: {{permissions}}",
     "bookmarksFileInvalid": "Donut bu dosyadan yer imlerini okuyamıyor. Chrome'un Bookmarks dosyasını veya dışa aktarılmış bir HTML dosyasını kullanın.",
-    "previewsNotEntitled": "Canlı önizlemeler için Pro veya üstü plan gerekir."
+    "previewsNotEntitled": "Canlı önizlemeler için Pro veya üstü plan gerekir.",
+    "proxyRotationIntervalInvalid": "Otomatik rotasyon aralığı 0 ile 43200 dakika arasında olmalıdır."
   },
   "rail": {
     "profiles": "Profiller",

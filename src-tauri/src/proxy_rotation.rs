@@ -5,8 +5,10 @@
 //! accept it from anywhere, and a rotating proxy may be unreachable through
 //! itself while it rotates. Every profile behind the proxy moves with it.
 
-use crate::proxy_manager::PROXY_MANAGER;
+use crate::ip_utils;
+use crate::proxy_manager::{now_ms, ProxyManager, PROXY_MANAGER, StoredProxy};
 use serde::Serialize;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 const ROTATION_TIMEOUT: Duration = Duration::from_secs(30);
@@ -21,6 +23,26 @@ pub struct RotationResult {
   pub elapsed_ms: u64,
   /// A coded backend error when the IP change was not confirmed.
   pub error: Option<String>,
+}
+
+/// What a confirmed rotation looked like. Unlike [`RotationResult`], the
+/// provider's answer is followed by a re-check of the exit, so this carries
+/// the addresses the proxy moved between — what a toast and the table's
+/// "last rotated" tooltip read.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct RotationReport {
+  pub proxy_id: String,
+  /// The exit as it stood before the change link was called, when it could
+  /// be seen at all.
+  pub old_ip: Option<String>,
+  /// The exit seen after the rotation, when it could be seen.
+  pub new_ip: Option<String>,
+  /// Unix milliseconds the rotation was stamped at; drives the auto-rotation
+  /// timer.
+  pub rotated_at: u64,
+  /// False when the provider answered but the exit was seen again at the old
+  /// address: the request went through, the address did not move.
+  pub success: bool,
 }
 
 /// Blank clears; anything else must be an http(s) URL.
@@ -126,6 +148,162 @@ pub async fn rotate(proxy_id: &str) -> Result<RotationResult, String> {
   }
 }
 
+/// How often the scheduler wakes to look for rotations that came due.
+const SCHEDULER_TICK: Duration = Duration::from_secs(60);
+/// How long a provider is given to actually move the exit after it answered.
+/// Two seconds sits inside the 1-3s window providers document.
+const PROPAGATION_WAIT: Duration = Duration::from_secs(2);
+/// A slow provider is asked again before "the IP did not change" is believed.
+const IP_CONFIRM_ATTEMPTS: usize = 3;
+/// The cap `ip_utils` puts on one public-IP ask; kept the same so a stalled
+/// exit fails the probe rather than the rotation.
+const IP_PROBE_TIMEOUT: Duration = Duration::from_secs(12);
+/// After a failed rotation the proxy sits out this long before the scheduler
+/// asks the same provider again, so a dead link is retried at a human pace.
+const FAILURE_BACKOFF: Duration = Duration::from_secs(10 * 60);
+
+/// The proxy's current exit address, asked through the proxy itself.
+/// `None` when the type cannot be probed with reqwest (an Xray link) or the
+/// ask failed — neither blocks the rotation, which works from anywhere.
+async fn exit_ip(proxy: &StoredProxy) -> Option<String> {
+  let probe_url = ProxyManager::build_probe_proxy_url(&proxy.proxy_settings);
+  if !crate::proxy_storage::reqwest_can_proxy(&probe_url) {
+    return None;
+  }
+  match tokio::time::timeout(IP_PROBE_TIMEOUT, ip_utils::fetch_public_ip(Some(&probe_url))).await {
+    Ok(Ok(ip)) => Some(ip),
+    Ok(Err(e)) => {
+      log::debug!("Exit probe failed proxy={} err=\"{e}\"", proxy.id);
+      None
+    }
+    Err(_) => None,
+  }
+}
+
+/// Ask the provider for a new exit and confirm the move. The addresses are
+/// read through the proxy before and after the change link, `last_rotated_at`
+/// is stamped, and the report says whether the exit actually moved. The stamp
+/// is written whenever the provider accepted the request — a provider that
+/// keeps a sticky session must not be re-asked every tick — while a provider
+/// that refused is an `Err` and leaves the stamp alone.
+pub async fn trigger_ip_rotation(proxy_id: &str) -> Result<RotationReport, String> {
+  let proxy = PROXY_MANAGER
+    .get_stored_proxies()
+    .into_iter()
+    .find(|proxy| proxy.id == proxy_id)
+    .ok_or_else(|| crate::backend_error("PROXY_NOT_FOUND"))?;
+  let url = proxy
+    .rotation_url
+    .as_deref()
+    .map(str::trim)
+    .filter(|url| !url.is_empty())
+    .ok_or_else(|| crate::backend_error("PROXY_ROTATION_URL_MISSING"))?;
+
+  let client = client()?;
+  let old_ip = exit_ip(&proxy).await;
+
+  let result = request(&client, proxy_id, url).await;
+  if let Some(error) = result.error {
+    return Err(error);
+  }
+
+  // Providers move the exit a moment after they answer, so the new address
+  // is read until it differs from the old one or the attempts run out.
+  let mut new_ip = None;
+  let mut success = true;
+  for _ in 0..IP_CONFIRM_ATTEMPTS {
+    tokio::time::sleep(PROPAGATION_WAIT).await;
+    new_ip = exit_ip(&proxy).await;
+    match (&old_ip, &new_ip) {
+      (Some(old), Some(new)) if old == new => success = false,
+      _ => {
+        success = true;
+        break;
+      }
+    }
+  }
+
+  let rotated_at = now_ms();
+  if let Err(e) = PROXY_MANAGER.set_last_rotated_at(proxy_id, rotated_at) {
+    log::warn!("Rotation stamp save failed proxy={proxy_id} err=\"{e}\"");
+  }
+  log::info!(
+    "Proxy IP rotated proxy={proxy_id} moved={success} old_seen={} new_seen={} elapsed_ms={}",
+    old_ip.is_some(),
+    new_ip.is_some(),
+    result.elapsed_ms
+  );
+  Ok(RotationReport {
+    proxy_id: proxy_id.to_string(),
+    old_ip,
+    new_ip,
+    rotated_at,
+    success,
+  })
+}
+
+/// The stored proxies whose auto-rotation came due: a change link, an
+/// interval above zero, and a last rotation old enough — or none at all, so a
+/// schedule set while the app was closed catches up on the first tick.
+fn due_rotations(failed_at: &HashMap<String, Instant>) -> Vec<StoredProxy> {
+  PROXY_MANAGER
+    .get_stored_proxies()
+    .into_iter()
+    .filter(|proxy| proxy.rotation_url.is_some())
+    .filter(|proxy| {
+      proxy
+        .rotation_interval_mins
+        .is_some_and(|mins| mins > 0)
+    })
+    .filter(|proxy| {
+      let interval_ms = u64::from(proxy.rotation_interval_mins.unwrap_or(0)) * 60_000;
+      let last = proxy.last_rotated_at.unwrap_or(0);
+      now_ms().saturating_sub(last) >= interval_ms
+    })
+    .filter(|proxy| {
+      failed_at
+        .get(&proxy.id)
+        .is_none_or(|at| at.elapsed() >= FAILURE_BACKOFF)
+    })
+    .collect()
+}
+
+/// The background timer that rotates every proxy whose interval came due.
+/// Rotations run one after another: each waits out the provider's swap, and
+/// asking every provider at once would give the same machine a burst of
+/// simultaneous exit changes to reconcile.
+pub async fn run_auto_rotation_scheduler() {
+  let mut tick = tokio::time::interval(SCHEDULER_TICK);
+  tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+  let mut failed_at: HashMap<String, Instant> = HashMap::new();
+  loop {
+    tick.tick().await;
+    let due = due_rotations(&failed_at);
+    // Proxies that no longer exist stop holding a backoff slot.
+    failed_at.retain(|id, _| due.iter().any(|proxy| proxy.id == *id));
+    for proxy in due {
+      log::info!("Auto-rotation due proxy={}", proxy.id);
+      match trigger_ip_rotation(&proxy.id).await {
+        Ok(report) => {
+          log::info!(
+            "Auto-rotation done proxy={} moved={}",
+            report.proxy_id,
+            report.success
+          );
+        }
+        Err(e) => {
+          failed_at.insert(proxy.id.clone(), Instant::now());
+          log::warn!(
+            "Auto-rotation failed proxy={} err=\"{}\"",
+            proxy.id,
+            crate::log_redaction::text(&e)
+          );
+        }
+      }
+    }
+  }
+}
+
 /// Several proxies at once, a few in flight at a time. Each gets its own
 /// result, so one failing provider does not hide the others.
 pub async fn rotate_many(proxy_ids: Vec<String>) -> Result<Vec<RotationResult>, String> {
@@ -157,9 +335,27 @@ pub fn set_proxy_rotation_url(
   PROXY_MANAGER.set_rotation_url(&proxy_id, rotation_url)
 }
 
+/// Set a proxy's auto-rotation schedule: the minutes between automatic
+/// rotations (`None` or 0 turns the timer off) and whether a launch on this
+/// proxy rotates first.
 #[tauri::command]
-pub async fn rotate_proxy_ip(proxy_id: String) -> Result<RotationResult, String> {
-  rotate(&proxy_id).await
+pub fn set_proxy_rotation_config(
+  proxy_id: String,
+  interval_mins: Option<u32>,
+  rotate_on_launch: bool,
+) -> Result<(), String> {
+  let interval_mins = interval_mins.filter(|mins| *mins > 0);
+  PROXY_MANAGER
+    .set_rotation_config(&proxy_id, interval_mins, rotate_on_launch)
+    .map(|_| ())
+}
+
+/// A confirmed rotation: the provider answered, the exit was re-read, and
+/// `last_rotated_at` moved. The report is what the toast and the table's
+/// tooltip show.
+#[tauri::command]
+pub async fn rotate_proxy_ip(proxy_id: String) -> Result<RotationReport, String> {
+  trigger_ip_rotation(&proxy_id).await
 }
 
 #[tauri::command]

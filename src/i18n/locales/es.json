@@ -825,14 +825,21 @@
       "label": "Enlace para cambiar IP",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "Opcional. Un enlace de tu proveedor que da a este proxy una IP nueva. Todos los perfiles que usan el proxy pasan a la IP nueva.",
+      "intervalLabel": "Intervalo de rotación automática (minutos, 0 = apagado)",
+      "intervalHint": "Necesita el enlace para cambiar IP. La app pide al proveedor una salida nueva con esta frecuencia mientras funciona.",
+      "rotateOnLaunchLabel": "Rotación al iniciar",
+      "rotateOnLaunch": "Cambiar IP antes de iniciar un perfil",
+      "rotateOnLaunchHint": "Cada inicio en este proxy pide primero una salida nueva al proveedor.",
       "action": "Cambiar IP",
       "actionTooltip": "Pedir una IP nueva al proveedor. Todos los perfiles que usan este proxy pasan a ella.",
+      "lastRotated": "Último cambio de IP: {{datetime}}",
       "requested": "IP nueva solicitada para {{name}}",
       "requestedMany_one": "IP nueva solicitada para {{count}} proxy",
       "requestedMany_many": "IP nueva solicitada para {{count}} proxies",
       "requestedMany_other": "IP nueva solicitada para {{count}} proxies",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "Ninguno de estos proxies tiene un enlace para cambiar IP. Añade uno al editar un proxy."
+      "noneSelected": "Ninguno de estos proxies tiene un enlace para cambiar IP. Añade uno al editar un proxy.",
+      "unchanged": "{{name}}: el proveedor respondió pero la IP no cambió"
     }
   },
   "groups": {
@@ -3016,7 +3023,8 @@
     "extensionNotFromStore": "Esta extensión no proviene de Chrome Web Store.",
     "extensionUpdateNeedsConsent": "La nueva versión pide más acceso: {{permissions}}",
     "bookmarksFileInvalid": "Donut no puede leer marcadores de este archivo. Use el archivo Bookmarks de Chrome o un archivo HTML exportado.",
-    "previewsNotEntitled": "Las vistas previas en vivo necesitan el plan Pro o superior."
+    "previewsNotEntitled": "Las vistas previas en vivo necesitan el plan Pro o superior.",
+    "proxyRotationIntervalInvalid": "El intervalo de rotación automática debe estar entre 0 y 43200 minutos."
   },
   "rail": {
     "profiles": "Perfiles",

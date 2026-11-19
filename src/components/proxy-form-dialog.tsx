@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,10 @@ interface ProxyFormData {
   password: string;
   vless_uri: string;
   rotation_url: string;
+  /** Minutes between automatic IP rotations; 0 turns the timer off. */
+  rotation_interval_mins: number;
+  /** Rotate the IP right before a profile on this proxy launches. */
+  rotate_on_launch: boolean;
 }
 
 interface ProxyFormDialogProps {
@@ -61,6 +66,8 @@ const DEFAULT_FORM: ProxyFormData = {
   password: "",
   vless_uri: "",
   rotation_url: "",
+  rotation_interval_mins: 0,
+  rotate_on_launch: false,
 };
 
 /**
@@ -179,6 +186,8 @@ export function ProxyFormDialog({
       password: editingProxy.proxy_settings.password ?? "",
       vless_uri: editingProxy.proxy_settings.vless_uri ?? "",
       rotation_url: editingProxy.rotation_url ?? "",
+      rotation_interval_mins: editingProxy.rotation_interval_mins ?? 0,
+      rotate_on_launch: editingProxy.rotate_on_launch ?? false,
     });
   }, [editingProxy, isOpen, resetForm]);
 
@@ -225,6 +234,9 @@ export function ProxyFormDialog({
       return;
     }
 
+    // 0 means "off" on the backend, sent as null.
+    const rotationInterval = form.rotation_interval_mins;
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -250,6 +262,11 @@ export function ProxyFormDialog({
             rotationUrl: rotationUrl || null,
           });
         }
+        await invoke("set_proxy_rotation_config", {
+          proxyId: editingProxy.id,
+          intervalMins: rotationInterval > 0 ? rotationInterval : null,
+          rotateOnLaunch: form.rotate_on_launch,
+        });
         toast.success(t("toasts.success.proxyUpdated"));
       } else {
         const created = await invoke<StoredProxy>(
@@ -262,6 +279,11 @@ export function ProxyFormDialog({
             rotationUrl,
           });
         }
+        await invoke("set_proxy_rotation_config", {
+          proxyId: created.id,
+          intervalMins: rotationInterval > 0 ? rotationInterval : null,
+          rotateOnLaunch: form.rotate_on_launch,
+        });
         toast.success(t("toasts.success.proxyCreated"));
       }
 
@@ -645,6 +667,53 @@ export function ProxyFormDialog({
             <p className="text-xs text-muted-foreground">
               {t("proxies.rotation.hint")}
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="proxy-rotation-interval">
+                {t("proxies.rotation.intervalLabel")}
+              </Label>
+              <Input
+                id="proxy-rotation-interval"
+                type="number"
+                value={form.rotation_interval_mins}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    rotation_interval_mins:
+                      Number.parseInt(e.target.value, 10) || 0,
+                  });
+                }}
+                min="0"
+                max={43200}
+                disabled={isSubmitting || !form.rotation_url.trim()}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("proxies.rotation.intervalHint")}
+              </p>
+            </div>
+
+            <div className="grid content-start gap-2">
+              <Label>{t("proxies.rotation.rotateOnLaunchLabel")}</Label>
+              <label
+                htmlFor="proxy-rotate-on-launch"
+                className="flex w-fit cursor-pointer items-center gap-2 text-sm"
+              >
+                <Checkbox
+                  id="proxy-rotate-on-launch"
+                  checked={form.rotate_on_launch}
+                  onCheckedChange={(value) => {
+                    setForm({ ...form, rotate_on_launch: value === true });
+                  }}
+                  disabled={isSubmitting || !form.rotation_url.trim()}
+                />
+                {t("proxies.rotation.rotateOnLaunch")}
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {t("proxies.rotation.rotateOnLaunchHint")}
+              </p>
+            </div>
           </div>
         </div>
 

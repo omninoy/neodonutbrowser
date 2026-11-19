@@ -277,6 +277,24 @@ impl BrowserRunner {
       log::debug!("Refreshing cloud proxy credentials proxy={proxy_id}");
       CLOUD_AUTH.sync_cloud_proxy().await;
     }
+    // A proxy asked to rotate before every launch gets its new exit first, so
+    // the browser comes up on a fresh address instead of moving mid-session.
+    // Best effort: a provider that does not answer must not block the launch.
+    if PROXY_MANAGER.should_rotate_on_launch(proxy_id) {
+      match crate::proxy_rotation::trigger_ip_rotation(proxy_id).await {
+        Ok(report) => {
+          log::info!(
+            "Pre-launch rotation done proxy={proxy_id} profile={profile} moved={}",
+            report.success,
+            profile = profile_id.unwrap_or("none"),
+          );
+        }
+        Err(e) => log::warn!(
+          "Pre-launch rotation failed, launching anyway proxy={proxy_id} err=\"{}\"",
+          crate::log_redaction::text(&e)
+        ),
+      }
+    }
     // For cloud-derived proxies, inject profile-specific sid for sticky sessions
     if let Some(pid) = profile_id {
       if PROXY_MANAGER.is_cloud_or_derived(proxy_id) {

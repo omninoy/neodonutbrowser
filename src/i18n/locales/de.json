@@ -823,13 +823,20 @@
       "label": "Link zum IP-Wechsel",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "Optional. Ein Link Ihres Anbieters, der diesem Proxy eine neue IP gibt. Jedes Profil, das den Proxy nutzt, wechselt zur neuen IP.",
+      "intervalLabel": "Auto-Rotationsintervall (Minuten, 0 = aus)",
+      "intervalHint": "Benötigt den Link zum IP-Wechsel. Die App fordert in diesem Abstand einen neuen Exit beim Anbieter an, solange sie läuft.",
+      "rotateOnLaunchLabel": "Rotation beim Start",
+      "rotateOnLaunch": "IP vor dem Start eines Profils wechseln",
+      "rotateOnLaunchHint": "Jeder Start über diesen Proxy fordert zuerst einen frischen Exit beim Anbieter an.",
       "action": "IP wechseln",
       "actionTooltip": "Eine neue IP beim Anbieter anfordern. Jedes Profil, das diesen Proxy nutzt, wechselt zu ihr.",
+      "lastRotated": "Letzter IP-Wechsel: {{datetime}}",
       "requested": "Neue IP für {{name}} angefordert",
       "requestedMany_one": "Neue IP für {{count}} Proxy angefordert",
       "requestedMany_other": "Neue IP für {{count}} Proxys angefordert",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "Keiner dieser Proxys hat einen Link zum IP-Wechsel. Fügen Sie einen beim Bearbeiten eines Proxys hinzu."
+      "noneSelected": "Keiner dieser Proxys hat einen Link zum IP-Wechsel. Fügen Sie einen beim Bearbeiten eines Proxys hinzu.",
+      "unchanged": "{{name}}: Der Anbieter hat geantwortet, aber die IP hat sich nicht geändert"
     }
   },
   "groups": {
@@ -3002,7 +3009,8 @@
     "extensionNotFromStore": "Diese Erweiterung stammt nicht aus dem Chrome Web Store.",
     "extensionUpdateNeedsConsent": "Die neue Version verlangt mehr Zugriff: {{permissions}}",
     "bookmarksFileInvalid": "Donut kann aus dieser Datei keine Lesezeichen lesen. Verwenden Sie die Bookmarks-Datei von Chrome oder eine exportierte HTML-Datei.",
-    "previewsNotEntitled": "Die Live-Vorschau braucht den Pro-Tarif oder höher."
+    "previewsNotEntitled": "Die Live-Vorschau braucht den Pro-Tarif oder höher.",
+    "proxyRotationIntervalInvalid": "Das Auto-Rotationsintervall muss zwischen 0 und 43200 Minuten liegen."
   },
   "rail": {
     "profiles": "Profile",

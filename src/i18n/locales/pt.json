@@ -825,14 +825,21 @@
       "label": "Link de troca de IP",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "Opcional. Um link do seu provedor que dá um IP novo a este proxy. Todos os perfis que usam o proxy passam para o IP novo.",
+      "intervalLabel": "Intervalo de rotação automática (minutos, 0 = desligado)",
+      "intervalHint": "Requer o link de troca de IP. O app pede ao provedor uma saída nova nesse intervalo enquanto estiver em execução.",
+      "rotateOnLaunchLabel": "Rotação ao iniciar",
+      "rotateOnLaunch": "Trocar o IP antes de iniciar um perfil",
+      "rotateOnLaunchHint": "Cada início neste proxy primeiro pede ao provedor uma saída nova.",
       "action": "Trocar IP",
       "actionTooltip": "Pedir um IP novo ao provedor. Todos os perfis que usam este proxy passam para ele.",
+      "lastRotated": "Última troca de IP: {{datetime}}",
       "requested": "IP novo solicitado para {{name}}",
       "requestedMany_one": "IP novo solicitado para {{count}} proxy",
       "requestedMany_many": "IP novo solicitado para {{count}} proxies",
       "requestedMany_other": "IP novo solicitado para {{count}} proxies",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "Nenhum destes proxies tem link de troca de IP. Adicione um ao editar um proxy."
+      "noneSelected": "Nenhum destes proxies tem link de troca de IP. Adicione um ao editar um proxy.",
+      "unchanged": "{{name}}: o provedor respondeu, mas o IP não mudou"
     }
   },
   "groups": {
@@ -3016,7 +3023,8 @@
     "extensionNotFromStore": "Esta extensão não veio da Chrome Web Store.",
     "extensionUpdateNeedsConsent": "A nova versão pede mais acesso: {{permissions}}",
     "bookmarksFileInvalid": "O Donut não consegue ler favoritos deste arquivo. Use o arquivo Bookmarks do Chrome ou um arquivo HTML exportado.",
-    "previewsNotEntitled": "As pré-visualizações ao vivo precisam do plano Pro ou superior."
+    "previewsNotEntitled": "As pré-visualizações ao vivo precisam do plano Pro ou superior.",
+    "proxyRotationIntervalInvalid": "O intervalo de rotação automática deve estar entre 0 e 43200 minutos."
   },
   "rail": {
     "profiles": "Perfis",

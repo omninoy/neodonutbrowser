@@ -821,13 +821,20 @@
       "label": "更换 IP 链接",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "可选。服务商提供的链接，可为此代理更换新 IP。使用此代理的所有配置文件都会换到新 IP。",
+      "intervalLabel": "自动轮换间隔（分钟，0 = 关闭）",
+      "intervalHint": "需要更换 IP 链接。应用运行时会按此间隔向服务商请求新的出口 IP。",
+      "rotateOnLaunchLabel": "启动时轮换",
+      "rotateOnLaunch": "启动配置文件前更换 IP",
+      "rotateOnLaunchHint": "在此代理上的每次启动都会先向服务商请求新的出口 IP。",
       "action": "更换 IP",
       "actionTooltip": "向服务商获取新 IP。使用此代理的所有配置文件都会换到该 IP。",
+      "lastRotated": "上次更换 IP：{{datetime}}",
       "requested": "已为 {{name}} 请求新 IP",
       "requestedMany_one": "已为 {{count}} 个代理请求新 IP",
       "requestedMany_other": "已为 {{count}} 个代理请求新 IP",
       "failedFor": "{{name}}：{{error}}",
-      "noneSelected": "这些代理都没有更换 IP 链接。在编辑代理时添加。"
+      "noneSelected": "这些代理都没有更换 IP 链接。在编辑代理时添加。",
+      "unchanged": "{{name}}：服务商已响应，但 IP 未变化"
     }
   },
   "groups": {
@@ -2997,7 +3004,8 @@
     "extensionNotFromStore": "此扩展并非来自 Chrome 应用商店。",
     "extensionUpdateNeedsConsent": "新版本请求更多权限：{{permissions}}",
     "bookmarksFileInvalid": "Donut 无法从此文件读取书签。使用 Chrome 的 Bookmarks 文件或导出的 HTML 文件。",
-    "previewsNotEntitled": "实时预览需要 Pro 或更高套餐。"
+    "previewsNotEntitled": "实时预览需要 Pro 或更高套餐。",
+    "proxyRotationIntervalInvalid": "自动轮换间隔必须在 0 到 43200 分钟之间。"
   },
   "rail": {
     "profiles": "配置文件",

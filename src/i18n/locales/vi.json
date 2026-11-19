@@ -821,13 +821,20 @@
       "label": "Liên kết đổi IP",
       "placeholder": "https://provider.example/change-ip?key=…",
       "hint": "Không bắt buộc. Liên kết từ nhà cung cấp để cấp IP mới cho proxy này. Mọi profile dùng proxy sẽ chuyển sang IP mới.",
+      "intervalLabel": "Chu kỳ xoay IP tự động (phút, 0 = tắt)",
+      "intervalHint": "Cần liên kết đổi IP. Ứng dụng sẽ hỏi nhà cung cấp địa chỉ thoát mới theo chu kỳ này khi đang chạy.",
+      "rotateOnLaunchLabel": "Xoay IP khi khởi chạy",
+      "rotateOnLaunch": "Đổi IP trước khi khởi chạy hồ sơ",
+      "rotateOnLaunchHint": "Mỗi lần khởi chạy trên proxy này đều xin nhà cung cấp một địa chỉ thoát mới trước.",
       "action": "Đổi IP",
       "actionTooltip": "Lấy IP mới từ nhà cung cấp. Mọi profile dùng proxy này sẽ chuyển sang IP đó.",
+      "lastRotated": "Đổi IP lần cuối: {{datetime}}",
       "requested": "Đã yêu cầu IP mới cho {{name}}",
       "requestedMany_one": "Đã yêu cầu IP mới cho {{count}} proxy",
       "requestedMany_other": "Đã yêu cầu IP mới cho {{count}} proxy",
       "failedFor": "{{name}}: {{error}}",
-      "noneSelected": "Không proxy nào trong số này có liên kết đổi IP. Hãy thêm khi chỉnh sửa proxy."
+      "noneSelected": "Không proxy nào trong số này có liên kết đổi IP. Hãy thêm khi chỉnh sửa proxy.",
+      "unchanged": "{{name}}: nhà cung cấp đã trả lời nhưng IP không đổi"
     }
   },
   "groups": {
@@ -2996,7 +3003,8 @@
     "extensionNotFromStore": "Tiện ích này không đến từ Chrome Web Store.",
     "extensionUpdateNeedsConsent": "Phiên bản mới yêu cầu thêm quyền: {{permissions}}",
     "bookmarksFileInvalid": "Donut không đọc được dấu trang từ tệp này. Hãy dùng tệp Bookmarks của Chrome hoặc tệp HTML đã xuất.",
-    "previewsNotEntitled": "Xem trước trực tiếp cần gói Pro trở lên."
+    "previewsNotEntitled": "Xem trước trực tiếp cần gói Pro trở lên.",
+    "proxyRotationIntervalInvalid": "Chu kỳ xoay IP tự động phải nằm trong khoảng từ 0 đến 43200 phút."
   },
   "rail": {
     "profiles": "Profile",
