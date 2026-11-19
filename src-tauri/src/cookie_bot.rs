@@ -1625,6 +1625,7 @@ mod tests {
   use super::*;
   use crate::profile::types::SyncMode;
   use crate::remote_exit::ExitReachability;
+  use crate::sync::encryption::RemoteSeal;
 
   fn eligible_profile() -> BrowserProfile {
     BrowserProfile {

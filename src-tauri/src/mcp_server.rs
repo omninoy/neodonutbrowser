@@ -17407,7 +17407,7 @@ mod tests {
         .split(&format!("\"{tool}\" => {{"))
         .nth(1)
         .unwrap_or_else(|| panic!("{tool} is not dispatched"));
-      let arm = &arm[..arm.find("\n      }").unwrap_or(arm.len())];
+      let _arm = &arm[..arm.find("\n      }").unwrap_or(arm.len())];
       // Every one of them takes a profile id and nothing from this disk, so
       // the bridge is allowed to call them.
       assert!(!LOCAL_PATH_TOOLS.contains(&tool));
