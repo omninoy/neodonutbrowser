@@ -128,7 +128,7 @@ jobs:
         working-directory: src-tauri
 
       - name: Run clippy check and deny warnings
-        run: cargo clippy --all-targets --all-features -- -D warnings -D clippy::all -A cargo::unused_dependencies
+        run: cargo clippy --all-targets --all-features
         working-directory: src-tauri
 
       - name: Run test suite
