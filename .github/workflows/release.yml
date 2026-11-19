@@ -131,11 +131,15 @@ jobs:
           PORTABLE_DIR="NeoDonut-Browser-Portable"
           mkdir -p "$PORTABLE_DIR"
           if [[ -f "src-tauri/target/${{ matrix.target }}/release/donutbrowser.exe" ]]; then
+            cp "src-tauri/target/${{ matrix.target }}/release/donutbrowser.exe" "$PORTABLE_DIR/donutbrowser.exe"
             cp "src-tauri/target/${{ matrix.target }}/release/donutbrowser.exe" "$PORTABLE_DIR/NeoDonutBrowser.exe"
           elif [[ -f "src-tauri/target/${{ matrix.target }}/release/neodonutbrowser.exe" ]]; then
+            cp "src-tauri/target/${{ matrix.target }}/release/neodonutbrowser.exe" "$PORTABLE_DIR/donutbrowser.exe"
             cp "src-tauri/target/${{ matrix.target }}/release/neodonutbrowser.exe" "$PORTABLE_DIR/NeoDonutBrowser.exe"
           fi
-          cp "src-tauri/target/${{ matrix.target }}/release/donut-proxy.exe" "$PORTABLE_DIR/"
+          if [[ -f "src-tauri/target/${{ matrix.target }}/release/donut-proxy.exe" ]]; then
+            cp "src-tauri/target/${{ matrix.target }}/release/donut-proxy.exe" "$PORTABLE_DIR/"
+          fi
           if [[ -f "src-tauri/binaries/xray-${{ matrix.target }}.exe" ]]; then
             cp "src-tauri/binaries/xray-${{ matrix.target }}.exe" "$PORTABLE_DIR/xray.exe"
           fi
@@ -158,6 +162,7 @@ jobs:
   checksums:
     name: Publish SHA-256 Checksums
     needs: [release]
+    if: always() && needs.release.result != 'cancelled'
     runs-on: ubuntu-latest
     permissions:
       contents: write
