@@ -47,6 +47,18 @@ export interface BrowserProfile {
   password_protected?: boolean;
 }
 
+export interface BulkProfileRecord {
+  name: string;
+  proxy?: string;
+  os?: "windows" | "macos" | "linux" | string;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface BulkCreateOptions {
+  auto_assign_proxies: boolean;
+}
+
 export interface Extension {
   id: string;
   name: string;

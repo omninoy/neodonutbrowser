@@ -325,7 +325,9 @@
     "donutLogo": "Donut Browser logosu",
     "scrollGroupsLeft": "Grupları sola kaydır",
     "scrollGroupsRight": "Grupları sağa kaydır",
-    "allGroups": "Tüm gruplar"
+    "allGroups": "Tüm gruplar",
+    "bulkCreate": "Toplu oluşturma",
+    "bulkCreateHint": "Bir tablodan çok sayıda profil oluştur"
   },
   "search": {
     "helpLabel": "Arama söz dizimi",
@@ -519,7 +521,8 @@
       "runCount": "{{count}} çalıştır",
       "stopCount": "{{count}} durdur",
       "enableSync": "Eşitlemeyi aç",
-      "runTask": "Ajan görevi çalıştır"
+      "runTask": "Ajan görevi çalıştır",
+      "staggeredLaunch": "Gecikmeli başlatma"
     },
     "passwordProtectedBadge": "Parola Korumalı",
     "launchHook": {
@@ -562,7 +565,18 @@
       "none": "Çalışan profil yok."
     },
     "duplicated": "Kopya oluşturuldu: {{name}}",
-    "lockedToast": "\"{{name}}\" kilitlendi"
+    "lockedToast": "\"{{name}}\" kilitlendi",
+    "staggered": {
+      "delayLabel": "Başlatmalar arası bekleme (saniye)",
+      "delayHint": "Profiller tek tek, bu kadar saniye arayla başlatılır.",
+      "start": "{{count}} profili başlat",
+      "progress": "{{total}} profilin {{done}} tanesi başlatılıyor…",
+      "counts": "{{launched}} başlatıldı, {{failed}} başarısız",
+      "cancel": "Sırayı iptal et",
+      "finishedTitle": "Gecikmeli başlatma tamamlandı",
+      "finishedBody": "{{count}} başlatma tek tek yapıldı.",
+      "launchFailed": "Gecikmeli başlatma başarısız oldu: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Yeni profil oluştur",
@@ -3010,7 +3024,9 @@
     "extensionUpdateNeedsConsent": "Yeni sürüm daha fazla erişim istiyor: {{permissions}}",
     "bookmarksFileInvalid": "Donut bu dosyadan yer imlerini okuyamıyor. Chrome'un Bookmarks dosyasını veya dışa aktarılmış bir HTML dosyasını kullanın.",
     "previewsNotEntitled": "Canlı önizlemeler için Pro veya üstü plan gerekir.",
-    "proxyRotationIntervalInvalid": "Otomatik rotasyon aralığı 0 ile 43200 dakika arasında olmalıdır."
+    "proxyRotationIntervalInvalid": "Otomatik rotasyon aralığı 0 ile 43200 dakika arasında olmalıdır.",
+    "bulkTableEmpty": "Tabloda oluşturulacak profil yok.",
+    "staggeredLaunchBusy": "Gecikmeli bir başlatma zaten çalışıyor. Bitmesini bekleyin veya iptal edin."
   },
   "rail": {
     "profiles": "Profiller",
@@ -5273,5 +5289,40 @@
     "description": "Donut'un bu bölümü bir hata nedeniyle durdu. Devam etmek için yeniden yükleyin. Hata günlükte.",
     "reload": "Yeniden yükle",
     "copyDetails": "Ayrıntıları kopyala"
+  },
+  "bulkCreate": {
+    "title": "Profilleri toplu oluştur",
+    "description": "Bir tablo yapıştırın veya dosya yükleyin — bir satır, bir profil.",
+    "pasteTab": "Metin yapıştır",
+    "fileTab": "Dosya yükle",
+    "formatHint": "Sütunlar: name (zorunlu), proxy (ad veya sunucu:bağlantı noktası), os, tags, notes. Ayırıcılar: virgül, noktalı virgül veya sekme. JSON dizileri de çalışır.",
+    "dropHere": "Bir dosyayı buraya bırakın veya seçmek için tıklayın",
+    "fileFormats": ".csv, .tsv, .txt veya .json",
+    "filePickerTitle": "Tablo dosyası seç",
+    "filePickerFilter": "Tablo dosyaları",
+    "fileReadFailed": "Dosya okunamadı.",
+    "autoAssignProxies": "Etkin proxy'leri otomatik dağıt",
+    "previewTitle": "Önizleme",
+    "previewFromFile": "{{file}} önizlemesi",
+    "parsing": "Ayrıştırılıyor…",
+    "recordCount": "{{count}} kayıt",
+    "noRecords": "Henüz tanınan kayıt yok.",
+    "moreRecords": "ve {{count}} kayıt daha",
+    "tooManyRecords": "Her çalıştırmada en fazla {{max}} profil.",
+    "column": {
+      "name": "Ad",
+      "proxy": "Proxy",
+      "os": "OS",
+      "tags": "Etiketler",
+      "notes": "Notlar"
+    },
+    "create": "{{count}} profil oluştur",
+    "creating": "{{total}} profilin {{done}} tanesi oluşturuluyor…",
+    "cancel": "Durdur",
+    "cancelledSummary": "{{count}} profilden sonra durduruldu.",
+    "stoppedEarly": "{{count}} profil oluşturuldu, sonra çalıştırma durdu: {{error}}",
+    "created": "{{count}} profil oluşturuldu",
+    "createFailed": "Toplu oluşturma başarısız oldu: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nMağaza,pool-1,windows,iş|vip,Alıcı hesabı\nPosta,192.168.1.1:8000,macos,,Spam kontrolü\n\nJSON da olur: [{\"name\":\"Mağaza\"}]"
   }
 }

@@ -324,7 +324,9 @@
     "donutLogo": "NeoDonut Browser 标识",
     "scrollGroupsLeft": "向左滚动分组",
     "scrollGroupsRight": "向右滚动分组",
-    "allGroups": "所有分组"
+    "allGroups": "所有分组",
+    "bulkCreate": "批量创建",
+    "bulkCreateHint": "从表格创建大量配置文件"
   },
   "search": {
     "helpLabel": "搜索语法",
@@ -517,7 +519,8 @@
       "runCount": "运行 {{count}} 个",
       "stopCount": "停止 {{count}} 个",
       "enableSync": "启用同步",
-      "runTask": "运行智能体任务"
+      "runTask": "运行智能体任务",
+      "staggeredLaunch": "延迟启动"
     },
     "passwordProtectedBadge": "密码保护",
     "launchHook": {
@@ -560,7 +563,18 @@
       "none": "没有正在运行的配置文件。"
     },
     "duplicated": "已创建副本: {{name}}",
-    "lockedToast": "“{{name}}”已锁定"
+    "lockedToast": "“{{name}}”已锁定",
+    "staggered": {
+      "delayLabel": "启动间隔（秒）",
+      "delayHint": "配置文件将按此间隔逐个启动。",
+      "start": "启动 {{count}} 个配置文件",
+      "progress": "正在启动 {{done}}/{{total}}…",
+      "counts": "已启动 {{launched}} 个，失败 {{failed}} 个",
+      "cancel": "取消队列",
+      "finishedTitle": "延迟启动完成",
+      "finishedBody": "{{count}} 个启动已逐个执行。",
+      "launchFailed": "延迟启动失败：{{error}}"
+    }
   },
   "createProfile": {
     "title": "创建新配置文件",
@@ -3005,7 +3019,9 @@
     "extensionUpdateNeedsConsent": "新版本请求更多权限：{{permissions}}",
     "bookmarksFileInvalid": "Donut 无法从此文件读取书签。使用 Chrome 的 Bookmarks 文件或导出的 HTML 文件。",
     "previewsNotEntitled": "实时预览需要 Pro 或更高套餐。",
-    "proxyRotationIntervalInvalid": "自动轮换间隔必须在 0 到 43200 分钟之间。"
+    "proxyRotationIntervalInvalid": "自动轮换间隔必须在 0 到 43200 分钟之间。",
+    "bulkTableEmpty": "表格中没有可创建的配置文件。",
+    "staggeredLaunchBusy": "延迟启动已在进行中。请等待其完成或取消。"
   },
   "rail": {
     "profiles": "配置文件",
@@ -5268,5 +5284,40 @@
     "description": "Donut 的这一部分因错误而停止。重新加载以继续。错误已记录在日志中。",
     "reload": "重新加载",
     "copyDetails": "复制详细信息"
+  },
+  "bulkCreate": {
+    "title": "批量创建配置文件",
+    "description": "粘贴表格或上传文件——一行一个配置文件。",
+    "pasteTab": "粘贴文本",
+    "fileTab": "上传文件",
+    "formatHint": "列：name（必填）、proxy（名称或 主机:端口）、os、tags、notes。分隔符：逗号、分号或制表符。也支持 JSON 数组。",
+    "dropHere": "将文件拖到此处，或点击选择",
+    "fileFormats": ".csv、.tsv、.txt 或 .json",
+    "filePickerTitle": "选择表格文件",
+    "filePickerFilter": "表格文件",
+    "fileReadFailed": "读取文件失败。",
+    "autoAssignProxies": "自动分配可用代理",
+    "previewTitle": "预览",
+    "previewFromFile": "{{file}} 预览",
+    "parsing": "解析中…",
+    "recordCount": "{{count}} 条记录",
+    "noRecords": "尚未识别到任何记录。",
+    "moreRecords": "还有 {{count}} 条",
+    "tooManyRecords": "每次最多创建 {{max}} 个配置文件。",
+    "column": {
+      "name": "名称",
+      "proxy": "代理",
+      "os": "操作系统",
+      "tags": "标签",
+      "notes": "备注"
+    },
+    "create": "创建 {{count}} 个配置文件",
+    "creating": "正在创建 {{done}}/{{total}}…",
+    "cancel": "停止",
+    "cancelledSummary": "创建 {{count}} 个后已停止。",
+    "stoppedEarly": "已创建 {{count}} 个配置文件，随后停止：{{error}}",
+    "created": "已创建 {{count}} 个配置文件",
+    "createFailed": "批量创建失败：{{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\n商店,pool-1,windows,工作|vip,买家账号\n邮箱,192.168.1.1:8000,macos,,垃圾邮件检查\n\n也支持 JSON：[{\"name\":\"商店\"}]"
   }
 }

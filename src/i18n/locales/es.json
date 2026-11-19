@@ -325,7 +325,9 @@
     "donutLogo": "Logotipo de NeoDonut Browser",
     "scrollGroupsLeft": "Desplazar grupos a la izquierda",
     "scrollGroupsRight": "Desplazar grupos a la derecha",
-    "allGroups": "Todos los grupos"
+    "allGroups": "Todos los grupos",
+    "bulkCreate": "Creación masiva",
+    "bulkCreateHint": "Crear muchos perfiles desde una tabla"
   },
   "search": {
     "helpLabel": "Sintaxis de búsqueda",
@@ -518,7 +520,8 @@
       "runCount": "Ejecutar {{count}}",
       "stopCount": "Detener {{count}}",
       "enableSync": "Activar sincronización",
-      "runTask": "Ejecutar una tarea del agente"
+      "runTask": "Ejecutar una tarea del agente",
+      "staggeredLaunch": "Lanzamiento con retardo"
     },
     "passwordProtectedBadge": "Protegido por Contraseña",
     "launchHook": {
@@ -561,7 +564,18 @@
       "none": "No hay perfiles en ejecución."
     },
     "duplicated": "Copia creada: {{name}}",
-    "lockedToast": "«{{name}}» está bloqueado"
+    "lockedToast": "«{{name}}» está bloqueado",
+    "staggered": {
+      "delayLabel": "Pausa entre lanzamientos (segundos)",
+      "delayHint": "Los perfiles se lanzan de uno en uno con este intervalo.",
+      "start": "Lanzar {{count}} perfiles",
+      "progress": "Lanzando {{done}} de {{total}}…",
+      "counts": "{{launched}} lanzados, {{failed}} fallidos",
+      "cancel": "Cancelar cola",
+      "finishedTitle": "Lanzamiento con retardo terminado",
+      "finishedBody": "{{count}} lanzamientos se hicieron de uno en uno.",
+      "launchFailed": "El lanzamiento con retardo falló: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Crear nuevo perfil",
@@ -3024,7 +3038,9 @@
     "extensionUpdateNeedsConsent": "La nueva versión pide más acceso: {{permissions}}",
     "bookmarksFileInvalid": "Donut no puede leer marcadores de este archivo. Use el archivo Bookmarks de Chrome o un archivo HTML exportado.",
     "previewsNotEntitled": "Las vistas previas en vivo necesitan el plan Pro o superior.",
-    "proxyRotationIntervalInvalid": "El intervalo de rotación automática debe estar entre 0 y 43200 minutos."
+    "proxyRotationIntervalInvalid": "El intervalo de rotación automática debe estar entre 0 y 43200 minutos.",
+    "bulkTableEmpty": "La tabla no contiene perfiles para crear.",
+    "staggeredLaunchBusy": "Ya hay un lanzamiento con retardo en marcha. Espera a que termine o cancélalo."
   },
   "rail": {
     "profiles": "Perfiles",
@@ -5323,5 +5339,40 @@
     "description": "Esta parte de Donut se detuvo por un error. Recarga para continuar. El error está en el registro.",
     "reload": "Recargar",
     "copyDetails": "Copiar detalles"
+  },
+  "bulkCreate": {
+    "title": "Crear perfiles en masa",
+    "description": "Pega una tabla o sube un archivo: una fila, un perfil.",
+    "pasteTab": "Pegar texto",
+    "fileTab": "Subir archivo",
+    "formatHint": "Columnas: name (obligatorio), proxy (nombre o host:puerto), os, tags, notes. Separadores: coma, punto y coma o tabulación. También se admiten arrays JSON.",
+    "dropHere": "Suelta un archivo aquí o haz clic para elegir",
+    "fileFormats": ".csv, .tsv, .txt o .json",
+    "filePickerTitle": "Elegir un archivo de tabla",
+    "filePickerFilter": "Archivos de tabla",
+    "fileReadFailed": "No se pudo leer el archivo.",
+    "autoAssignProxies": "Repartir automáticamente los proxys activos",
+    "previewTitle": "Vista previa",
+    "previewFromFile": "Vista previa de {{file}}",
+    "parsing": "Analizando…",
+    "recordCount": "{{count}} registros",
+    "noRecords": "Aún no se ha reconocido ningún registro.",
+    "moreRecords": "y {{count}} más",
+    "tooManyRecords": "Como máximo {{max}} perfiles por ejecución.",
+    "column": {
+      "name": "Nombre",
+      "proxy": "Proxy",
+      "os": "SO",
+      "tags": "Etiquetas",
+      "notes": "Notas"
+    },
+    "create": "Crear {{count}} perfiles",
+    "creating": "Creando {{done}} de {{total}}…",
+    "cancel": "Detener",
+    "cancelledSummary": "Detenido tras {{count}} perfiles.",
+    "stoppedEarly": "Se crearon {{count}} perfiles antes de detenerse: {{error}}",
+    "created": "{{count}} perfiles creados",
+    "createFailed": "La creación masiva falló: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nTienda,pool-1,windows,trabajo|vip,Cuenta de comprador\nCorreo,192.168.1.1:8000,macos,,Prueba de spam\n\nJSON también sirve: [{\"name\":\"Tienda\"}]"
   }
 }

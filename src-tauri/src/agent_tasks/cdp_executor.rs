@@ -40,7 +40,10 @@ pub async fn resolve_profile_target(profile_id: &str) -> Result<CdpTarget, Strin
       format!("Profile '{}' cannot be driven: {msg}", profile.name)
     }
     cdp_target::ResolveError::Endpoint(msg) => {
-      format!("Failed to reach endpoint for profile '{}': {msg}", profile.name)
+      format!(
+        "Failed to reach endpoint for profile '{}': {msg}",
+        profile.name
+      )
     }
   })?;
 
@@ -120,7 +123,11 @@ async fn dispatch_single_action(target: &CdpTarget, action: &str) -> Result<Stri
       [d, p] => (*d, p.parse::<i64>().unwrap_or(500)),
       [p] if p.parse::<i64>().is_ok() => {
         let v = p.parse::<i64>().unwrap();
-        if v >= 0 { ("down", v) } else { ("up", -v) }
+        if v >= 0 {
+          ("down", v)
+        } else {
+          ("up", -v)
+        }
       }
       [d] if d.eq_ignore_ascii_case("up") || d.eq_ignore_ascii_case("down") => (*d, 500),
       _ => ("down", 500),
@@ -234,7 +241,11 @@ async fn click_element(target: &CdpTarget, selector: &str) -> Result<String, Str
 }
 
 /// Types text into an element matching `selector`.
-async fn type_into_element(target: &CdpTarget, selector: &str, text: &str) -> Result<String, String> {
+async fn type_into_element(
+  target: &CdpTarget,
+  selector: &str,
+  text: &str,
+) -> Result<String, String> {
   let sel = selector.trim().trim_matches(|c| c == '\'' || c == '"');
   if sel.is_empty() {
     return Err("Missing CSS selector for type action".to_string());
@@ -355,7 +366,10 @@ async fn extract_element_text(target: &CdpTarget, selector: &str) -> Result<Stri
 
   let truncated = if text.chars().count() > 3000 {
     let part: String = text.chars().take(3000).collect();
-    format!("{part}...\n[Truncated {} total characters]", text.chars().count())
+    format!(
+      "{part}...\n[Truncated {} total characters]",
+      text.chars().count()
+    )
   } else {
     text.to_string()
   };
@@ -365,13 +379,9 @@ async fn extract_element_text(target: &CdpTarget, selector: &str) -> Result<Stri
 
 /// Captures a screenshot of the active page and saves it to the cache directory.
 async fn capture_page_screenshot(target: &CdpTarget) -> Result<String, String> {
-  let shot = cdp_target::run_command(
-    target,
-    "Page.captureScreenshot",
-    json!({ "format": "png" }),
-  )
-  .await
-  .map_err(|e| format!("Failed to capture screenshot: {e}"))?;
+  let shot = cdp_target::run_command(target, "Page.captureScreenshot", json!({ "format": "png" }))
+    .await
+    .map_err(|e| format!("Failed to capture screenshot: {e}"))?;
 
   let data = shot
     .get("data")
@@ -390,8 +400,7 @@ async fn capture_page_screenshot(target: &CdpTarget) -> Result<String, String> {
     &uuid::Uuid::new_v4().to_string()[..8]
   );
   let path = cache_dir.join(&filename);
-  std::fs::write(&path, &bytes)
-    .map_err(|e| format!("Failed to save screenshot: {e}"))?;
+  std::fs::write(&path, &bytes).map_err(|e| format!("Failed to save screenshot: {e}"))?;
 
   Ok(format!(
     "Screenshot captured and saved to file://{} ({} KB PNG)",
@@ -470,10 +479,7 @@ mod tests {
       strip_command_prefix("click button.submit", "click"),
       Some("button.submit")
     );
-    assert_eq!(
-      strip_command_prefix("click: #id", "click"),
-      Some("#id")
-    );
+    assert_eq!(strip_command_prefix("click: #id", "click"), Some("#id"));
     assert_eq!(
       strip_command_prefix("type: input | hello", "type"),
       Some("input | hello")
@@ -482,10 +488,7 @@ mod tests {
       strip_command_prefix("scroll: down 500", "scroll"),
       Some("down 500")
     );
-    assert_eq!(
-      strip_command_prefix("eval: 1 + 1", "eval"),
-      Some("1 + 1")
-    );
+    assert_eq!(strip_command_prefix("eval: 1 + 1", "eval"), Some("1 + 1"));
     assert_eq!(strip_command_prefix("something else", "click"), None);
   }
 }

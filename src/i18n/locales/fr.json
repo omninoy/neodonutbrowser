@@ -325,7 +325,9 @@
     "donutLogo": "Logo de NeoDonut Browser",
     "scrollGroupsLeft": "Faire défiler les groupes vers la gauche",
     "scrollGroupsRight": "Faire défiler les groupes vers la droite",
-    "allGroups": "Tous les groupes"
+    "allGroups": "Tous les groupes",
+    "bulkCreate": "Création en masse",
+    "bulkCreateHint": "Créer beaucoup de profils depuis un tableau"
   },
   "search": {
     "helpLabel": "Syntaxe de recherche",
@@ -518,7 +520,8 @@
       "runCount": "Lancer {{count}}",
       "stopCount": "Arrêter {{count}}",
       "enableSync": "Activer la synchronisation",
-      "runTask": "Lancer une tâche de l’agent"
+      "runTask": "Lancer une tâche de l’agent",
+      "staggeredLaunch": "Lancement échelonné"
     },
     "passwordProtectedBadge": "Protégé par mot de passe",
     "launchHook": {
@@ -561,7 +564,18 @@
       "none": "Aucun profil n'est en cours d'exécution."
     },
     "duplicated": "Copie créée : {{name}}",
-    "lockedToast": "« {{name}} » est verrouillé"
+    "lockedToast": "« {{name}} » est verrouillé",
+    "staggered": {
+      "delayLabel": "Pause entre les lancements (secondes)",
+      "delayHint": "Les profils se lancent un par un, avec ce nombre de secondes d'écart.",
+      "start": "Lancer {{count}} profils",
+      "progress": "Lancement {{done}} sur {{total}}…",
+      "counts": "{{launched}} lancés, {{failed}} en échec",
+      "cancel": "Annuler la file",
+      "finishedTitle": "Lancement échelonné terminé",
+      "finishedBody": "{{count}} lancements effectués un par un.",
+      "launchFailed": "Échec du lancement échelonné : {{error}}"
+    }
   },
   "createProfile": {
     "title": "Créer un nouveau profil",
@@ -3024,7 +3038,9 @@
     "extensionUpdateNeedsConsent": "La nouvelle version demande plus d'accès : {{permissions}}",
     "bookmarksFileInvalid": "Donut ne peut pas lire de favoris dans ce fichier. Utilisez le fichier Bookmarks de Chrome ou un fichier HTML exporté.",
     "previewsNotEntitled": "Les aperçus en direct nécessitent le forfait Pro ou supérieur.",
-    "proxyRotationIntervalInvalid": "L'intervalle de rotation automatique doit être compris entre 0 et 43200 minutes."
+    "proxyRotationIntervalInvalid": "L'intervalle de rotation automatique doit être compris entre 0 et 43200 minutes.",
+    "bulkTableEmpty": "Le tableau ne contient aucun profil à créer.",
+    "staggeredLaunchBusy": "Un lancement échelonné est déjà en cours. Attendez la fin ou annulez-le."
   },
   "rail": {
     "profiles": "Profils",
@@ -5323,5 +5339,40 @@
     "description": "Cette partie de Donut s'est arrêtée à cause d'une erreur. Rechargez pour continuer. L'erreur figure dans le journal.",
     "reload": "Recharger",
     "copyDetails": "Copier les détails"
+  },
+  "bulkCreate": {
+    "title": "Créer des profils en masse",
+    "description": "Collez un tableau ou importez un fichier — une ligne, un profil.",
+    "pasteTab": "Coller du texte",
+    "fileTab": "Importer un fichier",
+    "formatHint": "Colonnes : name (obligatoire), proxy (nom ou hôte:port), os, tags, notes. Séparateurs : virgule, point-virgule ou tabulation. Les tableaux JSON fonctionnent aussi.",
+    "dropHere": "Déposez un fichier ici ou cliquez pour choisir",
+    "fileFormats": ".csv, .tsv, .txt ou .json",
+    "filePickerTitle": "Choisir un fichier tableau",
+    "filePickerFilter": "Fichiers tableau",
+    "fileReadFailed": "Impossible de lire le fichier.",
+    "autoAssignProxies": "Répartir automatiquement les proxys actifs",
+    "previewTitle": "Aperçu",
+    "previewFromFile": "Aperçu de {{file}}",
+    "parsing": "Analyse…",
+    "recordCount": "{{count}} enregistrements",
+    "noRecords": "Aucun enregistrement reconnu pour l'instant.",
+    "moreRecords": "et {{count}} de plus",
+    "tooManyRecords": "{{max}} profils maximum par exécution.",
+    "column": {
+      "name": "Nom",
+      "proxy": "Proxy",
+      "os": "OS",
+      "tags": "Étiquettes",
+      "notes": "Notes"
+    },
+    "create": "Créer {{count}} profils",
+    "creating": "Création de {{done}} sur {{total}}…",
+    "cancel": "Arrêter",
+    "cancelledSummary": "Arrêté après {{count}} profils.",
+    "stoppedEarly": "{{count}} profils créés avant l'arrêt : {{error}}",
+    "created": "{{count}} profils créés",
+    "createFailed": "Échec de la création en masse : {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nBoutique,pool-1,windows,travail|vip,Compte acheteur\nMail,192.168.1.1:8000,macos,,Test anti-spam\n\nJSON accepté aussi : [{\"name\":\"Boutique\"}]"
   }
 }

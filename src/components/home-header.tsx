@@ -4,7 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuCheck, LuChevronDown, LuPlus } from "react-icons/lu";
+import { LuCheck, LuChevronDown, LuListPlus, LuPlus } from "react-icons/lu";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
 import { useWindowDecorations } from "@/hooks/use-window-decorations";
 import { getCurrentOS } from "@/lib/browser-utils";
@@ -84,6 +84,8 @@ function GroupUnderline({ animate }: { animate: boolean }) {
 
 interface Props {
   onCreateProfileDialogOpen: (open: boolean) => void;
+  /** Opens bulk creation from a pasted or uploaded table. */
+  onBulkCreateClick?: () => void;
   /** False for a team seat that may not add profiles. */
   canCreateProfiles?: boolean;
   searchQuery: string;
@@ -104,6 +106,7 @@ interface Props {
 
 const HomeHeader = ({
   onCreateProfileDialogOpen,
+  onBulkCreateClick,
   canCreateProfiles = true,
   searchQuery,
   onSearchQueryChange,
@@ -477,24 +480,43 @@ const HomeHeader = ({
       )}
 
       {showProfileToolbar && canCreateProfiles && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="shrink-0">
-              <Button
-                size="sm"
-                {...tipAnchor("new-profile")}
-                onClick={() => {
-                  onCreateProfileDialogOpen(true);
-                }}
-                className="flex h-7 items-center gap-1.5 px-2.5 text-xs"
-              >
-                <LuPlus className="size-3.5" />
-                {t("header.newProfile")}
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{t("header.createProfile")}</TooltipContent>
-        </Tooltip>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onBulkCreateClick?.();
+                  }}
+                  className="flex h-7 items-center gap-1.5 px-2.5 text-xs"
+                >
+                  <LuListPlus className="size-3.5" />
+                  {t("header.bulkCreate")}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t("header.bulkCreateHint")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0">
+                <Button
+                  size="sm"
+                  {...tipAnchor("new-profile")}
+                  onClick={() => {
+                    onCreateProfileDialogOpen(true);
+                  }}
+                  className="flex h-7 items-center gap-1.5 px-2.5 text-xs"
+                >
+                  <LuPlus className="size-3.5" />
+                  {t("header.newProfile")}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t("header.createProfile")}</TooltipContent>
+          </Tooltip>
+        </>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { AboutDialog } from "@/components/about-dialog";
 import { AccountPage } from "@/components/account-page";
 import type { ChatSeed } from "@/components/agent-chat/workspace";
 import { AgentPage, type AgentView } from "@/components/agent-page";
+import { BulkCreateDialog } from "@/components/bulk-create-dialog";
 import { CloneProfileDialog } from "@/components/clone-profile-dialog";
 import { CloseConfirmDialog } from "@/components/close-confirm-dialog";
 import { CommandPalette } from "@/components/command-palette";
@@ -453,6 +454,7 @@ export default function Home() {
   const agent = useAgentAvailability(cloudUser);
   const [chatSeed, setChatSeed] = useState<ChatSeed | null>(null);
   const [createProfileDialogOpen, setCreateProfileDialogOpen] = useState(false);
+  const [bulkCreateDialogOpen, setBulkCreateDialogOpen] = useState(false);
   const teamReadOnly = isTeamLauncher(cloudUser);
   const teamReadOnlyRef = useRef(teamReadOnly);
   teamReadOnlyRef.current = teamReadOnly;
@@ -464,6 +466,14 @@ export default function Home() {
       return;
     }
     setCreateProfileDialogOpen(true);
+  }, [t]);
+  // Bulk creation adds profiles, so a launcher may not start it either.
+  const openBulkCreate = useCallback(() => {
+    if (teamReadOnlyRef.current) {
+      showErrorToast(t("backendErrors.teamRoleReadOnly"));
+      return;
+    }
+    setBulkCreateDialogOpen(true);
   }, [t]);
 
   // The welcome is done, finished or skipped. With no profile yet, the
@@ -3093,6 +3103,7 @@ export default function Home() {
           onCreateProfileDialogOpen={(open) =>
             open ? openCreateProfile() : setCreateProfileDialogOpen(false)
           }
+          onBulkCreateClick={openBulkCreate}
           canCreateProfiles={!teamReadOnly}
           searchQuery={searchQuery}
           onSearchQueryChange={changeProfileSearch}
@@ -3417,6 +3428,13 @@ export default function Home() {
           selectedGroupId={selectedGroupId}
           crossOsUnlocked={crossOsUnlocked}
           profileNames={profiles.map((profile) => profile.name)}
+        />
+
+        <BulkCreateDialog
+          isOpen={bulkCreateDialogOpen}
+          onClose={() => {
+            setBulkCreateDialogOpen(false);
+          }}
         />
 
         <WhatsNewDialog whatsNew={whatsNew} onClose={() => setWhatsNew(null)} />

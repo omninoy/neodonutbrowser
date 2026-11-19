@@ -103,6 +103,7 @@ import {
 import { TrafficSnapshotStore } from "@/components/profile-table/traffic-snapshots";
 import { WindowEye } from "@/components/profile-table/window-eye";
 import { SaveTemplateDialog } from "@/components/save-template-dialog";
+import { StaggeredLaunchButton } from "@/components/staggered-launch-button";
 import {
   DATA_TABLE_CLASSES,
   TableColumnResizer,
@@ -4509,6 +4510,19 @@ export function ProfilesDataTable({
     return { run, stop };
   }, [selectedDragProfiles, tableMeta]);
 
+  // Staggered launch starts the selected profiles one at a time; only the
+  // stopped, idle ones can take part.
+  const staggeredProfileIds = React.useMemo(() => {
+    const ids: string[] = [];
+    for (const profile of selectedDragProfiles) {
+      const runtime = getRowRuntime(profile, tableMeta);
+      if (runtime.isLaunching || runtime.isStopping || runtime.isRunning)
+        continue;
+      ids.push(profile.id);
+    }
+    return ids;
+  }, [selectedDragProfiles, tableMeta]);
+
   // Row motion. Rows slide to their new place when the order changes (sort,
   // filter, group, a row added or removed), never on scroll; rows that come
   // into view with the change rise in. The first rows after the skeletons
@@ -5041,6 +5055,12 @@ export function ProfilesDataTable({
               <LuSquare className="fill-current" />
             </DataTableActionBarAction>
           </span>
+        )}
+        {selectedProfiles.length >= 2 && (
+          <StaggeredLaunchButton
+            profileIds={staggeredProfileIds}
+            disabled={staggeredProfileIds.length === 0}
+          />
         )}
         {onRunAgentTask && (
           <DataTableActionBarAction

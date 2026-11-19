@@ -275,9 +275,8 @@ pub async fn fetch_models(
       Ok(models)
     }
     "gemini" => {
-      let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models?key={trimmed_key}"
-      );
+      let url =
+        format!("https://generativelanguage.googleapis.com/v1beta/models?key={trimmed_key}");
       let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
       if !resp.status().is_success() {
         return Err(format!("Gemini API returned status {}", resp.status()));
@@ -450,11 +449,7 @@ pub async fn run_ai_turn(chat_id: String, turn_id: String) {
         hist.push(("assistant".to_string(), result.clone()));
       }
     }
-    (
-      chat.profile_id.clone(),
-      current_turn.text.clone(),
-      hist,
-    )
+    (chat.profile_id.clone(), current_turn.text.clone(), hist)
   };
 
   // If no API key configured and provider is not ollama
@@ -734,10 +729,11 @@ pub async fn run_ai_turn(chat_id: String, turn_id: String) {
         }
 
         // Execute CDP browser action
-        let obs_text = match super::cdp_executor::execute_browser_action(target_profile_id, action_text).await {
-          Ok(obs) => obs,
-          Err(err) => format!("CDP Action Error: {err}"),
-        };
+        let obs_text =
+          match super::cdp_executor::execute_browser_action(target_profile_id, action_text).await {
+            Ok(obs) => obs,
+            Err(err) => format!("CDP Action Error: {err}"),
+          };
 
         // Record the observation step
         {
@@ -835,4 +831,3 @@ pub async fn fetch_ai_models(
 ) -> Result<Vec<String>, String> {
   fetch_models(&provider, &api_key, base_url.as_deref()).await
 }
-

@@ -6,7 +6,7 @@
 //! itself while it rotates. Every profile behind the proxy moves with it.
 
 use crate::ip_utils;
-use crate::proxy_manager::{now_ms, ProxyManager, PROXY_MANAGER, StoredProxy};
+use crate::proxy_manager::{now_ms, ProxyManager, StoredProxy, PROXY_MANAGER};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -170,7 +170,12 @@ async fn exit_ip(proxy: &StoredProxy) -> Option<String> {
   if !crate::proxy_storage::reqwest_can_proxy(&probe_url) {
     return None;
   }
-  match tokio::time::timeout(IP_PROBE_TIMEOUT, ip_utils::fetch_public_ip(Some(&probe_url))).await {
+  match tokio::time::timeout(
+    IP_PROBE_TIMEOUT,
+    ip_utils::fetch_public_ip(Some(&probe_url)),
+  )
+  .await
+  {
     Ok(Ok(ip)) => Some(ip),
     Ok(Err(e)) => {
       log::debug!("Exit probe failed proxy={} err=\"{e}\"", proxy.id);
@@ -250,11 +255,7 @@ fn due_rotations(failed_at: &HashMap<String, Instant>) -> Vec<StoredProxy> {
     .get_stored_proxies()
     .into_iter()
     .filter(|proxy| proxy.rotation_url.is_some())
-    .filter(|proxy| {
-      proxy
-        .rotation_interval_mins
-        .is_some_and(|mins| mins > 0)
-    })
+    .filter(|proxy| proxy.rotation_interval_mins.is_some_and(|mins| mins > 0))
     .filter(|proxy| {
       let interval_ms = u64::from(proxy.rotation_interval_mins.unwrap_or(0)) * 60_000;
       let last = proxy.last_rotated_at.unwrap_or(0);

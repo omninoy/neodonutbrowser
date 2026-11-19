@@ -324,7 +324,9 @@
     "donutLogo": "NeoDonut Browser logo",
     "scrollGroupsLeft": "Scroll groups left",
     "scrollGroupsRight": "Scroll groups right",
-    "allGroups": "All groups"
+    "allGroups": "All groups",
+    "bulkCreate": "Bulk create",
+    "bulkCreateHint": "Create many profiles from a table"
   },
   "search": {
     "helpLabel": "Search syntax",
@@ -517,7 +519,8 @@
       "runCount": "Run {{count}}",
       "stopCount": "Stop {{count}}",
       "enableSync": "Enable sync",
-      "runTask": "Run an agent task"
+      "runTask": "Run an agent task",
+      "staggeredLaunch": "Staggered launch"
     },
     "passwordProtectedBadge": "Password Protected",
     "launchHook": {
@@ -560,7 +563,18 @@
       "none": "No profiles are running."
     },
     "duplicated": "Copy created: {{name}}",
-    "lockedToast": "\"{{name}}\" is locked"
+    "lockedToast": "\"{{name}}\" is locked",
+    "staggered": {
+      "delayLabel": "Pause between launches (seconds)",
+      "delayHint": "Profiles launch one at a time, this many seconds apart.",
+      "start": "Launch {{count}} profiles",
+      "progress": "Launching {{done}} of {{total}}…",
+      "counts": "{{launched}} launched, {{failed}} failed",
+      "cancel": "Cancel queue",
+      "finishedTitle": "Staggered launch finished",
+      "finishedBody": "{{count}} launches went one at a time.",
+      "launchFailed": "Staggered launch failed: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Create new profile",
@@ -3005,7 +3019,9 @@
     "extensionNotFromStore": "This extension did not come from the Chrome Web Store.",
     "extensionUpdateNeedsConsent": "The new version asks for more access: {{permissions}}",
     "bookmarksFileInvalid": "Donut cannot read bookmarks from this file. Use Chrome's Bookmarks file or an exported HTML file.",
-    "previewsNotEntitled": "Live previews need the Pro plan or higher."
+    "previewsNotEntitled": "Live previews need the Pro plan or higher.",
+    "bulkTableEmpty": "The table holds no profiles to create.",
+    "staggeredLaunchBusy": "A staggered launch is already running. Wait for it to finish or cancel it."
   },
   "rail": {
     "profiles": "Profiles",
@@ -5268,5 +5284,40 @@
     "description": "This part of Donut stopped because of an error. Reload to continue. The error is in the log.",
     "reload": "Reload",
     "copyDetails": "Copy details"
+  },
+  "bulkCreate": {
+    "title": "Bulk create profiles",
+    "description": "Paste a table or upload a file — one row, one profile.",
+    "pasteTab": "Paste text",
+    "fileTab": "Upload file",
+    "formatHint": "Columns: name (required), proxy (name or host:port), os, tags, notes. Separators: comma, semicolon or tab. JSON arrays work too.",
+    "dropHere": "Drop a file here or click to choose",
+    "fileFormats": ".csv, .tsv, .txt or .json",
+    "filePickerTitle": "Choose a table file",
+    "filePickerFilter": "Table files",
+    "fileReadFailed": "Failed to read the file.",
+    "autoAssignProxies": "Automatically distribute the active proxies",
+    "previewTitle": "Preview",
+    "previewFromFile": "Preview of {{file}}",
+    "parsing": "Parsing…",
+    "recordCount": "{{count}} records",
+    "noRecords": "No records recognized yet.",
+    "moreRecords": "and {{count}} more",
+    "tooManyRecords": "At most {{max}} profiles per run.",
+    "column": {
+      "name": "Name",
+      "proxy": "Proxy",
+      "os": "OS",
+      "tags": "Tags",
+      "notes": "Notes"
+    },
+    "create": "Create {{count}} profiles",
+    "creating": "Creating {{done}} of {{total}}…",
+    "cancel": "Stop",
+    "cancelledSummary": "Stopped after {{count}} profiles.",
+    "stoppedEarly": "Created {{count}} profiles before the run stopped: {{error}}",
+    "created": "Created {{count}} profiles",
+    "createFailed": "Bulk creation failed: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nShop,pool-1,windows,work|vip,Buyer account\nMail,192.168.1.1:8000,macos,,Spam check\n\nJSON works too: [{\"name\":\"Shop\"}]"
   }
 }

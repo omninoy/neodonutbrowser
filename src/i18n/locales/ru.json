@@ -326,7 +326,9 @@
     "donutLogo": "Логотип NeoDonut Browser",
     "scrollGroupsLeft": "Прокрутить группы влево",
     "scrollGroupsRight": "Прокрутить группы вправо",
-    "allGroups": "Все группы"
+    "allGroups": "Все группы",
+    "bulkCreate": "Массовое создание",
+    "bulkCreateHint": "Создать много профилей из таблицы"
   },
   "search": {
     "helpLabel": "Синтаксис поиска",
@@ -520,7 +522,8 @@
       "runCount": "Запустить {{count}}",
       "stopCount": "Остановить {{count}}",
       "enableSync": "Включить синхронизацию",
-      "runTask": "Запустить задачу агента"
+      "runTask": "Запустить задачу агента",
+      "staggeredLaunch": "Запуск с задержкой"
     },
     "passwordProtectedBadge": "Защищено паролем",
     "launchHook": {
@@ -563,7 +566,18 @@
       "none": "Нет запущенных профилей."
     },
     "duplicated": "Копия создана: {{name}}",
-    "lockedToast": "«{{name}}» заблокирован"
+    "lockedToast": "«{{name}}» заблокирован",
+    "staggered": {
+      "delayLabel": "Пауза между запусками (в секундах)",
+      "delayHint": "Профили запускаются по одному с этим интервалом.",
+      "start": "Запустить профили: {{count}}",
+      "progress": "Запуск {{done}} из {{total}}…",
+      "counts": "Запущено: {{launched}}, не удалось: {{failed}}",
+      "cancel": "Отменить очередь",
+      "finishedTitle": "Запуск с задержкой завершён",
+      "finishedBody": "{{count}} профилей запускались по одному.",
+      "launchFailed": "Запуск с задержкой не удался: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Создать новый профиль",
@@ -3047,7 +3061,9 @@
     "extensionNotFromStore": "Это расширение добавлено не из Chrome Web Store.",
     "extensionUpdateNeedsConsent": "Новая версия запрашивает больше доступа: {{permissions}}",
     "bookmarksFileInvalid": "Donut не может прочитать закладки из этого файла. Используйте файл Bookmarks из Chrome или экспортированный HTML-файл.",
-    "previewsNotEntitled": "Для живого просмотра нужен тариф Pro или выше."
+    "previewsNotEntitled": "Для живого просмотра нужен тариф Pro или выше.",
+    "bulkTableEmpty": "В таблице нет ни одной записи для создания профилей.",
+    "staggeredLaunchBusy": "Запуск с задержкой уже выполняется. Дождитесь завершения или отмените его."
   },
   "rail": {
     "profiles": "Профили",
@@ -5386,5 +5402,40 @@
     "description": "Эта часть Donut остановилась из-за ошибки. Перезагрузите, чтобы продолжить. Ошибка записана в журнал.",
     "reload": "Перезагрузить",
     "copyDetails": "Копировать подробности"
+  },
+  "bulkCreate": {
+    "title": "Массовое создание профилей",
+    "description": "Вставьте таблицу или загрузите файл — одна строка, один профиль.",
+    "pasteTab": "Вставка текста",
+    "fileTab": "Загрузка файла",
+    "formatHint": "Колонки: name (обязательно), proxy (название или host:port), os, tags, notes. Разделители: запятая, точка с запятой или табуляция. Поддерживается JSON.",
+    "dropHere": "Перетащите файл сюда или нажмите для выбора",
+    "fileFormats": ".csv, .tsv, .txt или .json",
+    "filePickerTitle": "Выберите файл таблицы",
+    "filePickerFilter": "Файлы таблиц",
+    "fileReadFailed": "Не удалось прочитать файл.",
+    "autoAssignProxies": "Автоматически распределить активные прокси",
+    "previewTitle": "Предпросмотр",
+    "previewFromFile": "Предпросмотр {{file}}",
+    "parsing": "Разбор…",
+    "recordCount": "Записей: {{count}}",
+    "noRecords": "Пока не распознано ни одной записи.",
+    "moreRecords": "и ещё {{count}}",
+    "tooManyRecords": "Не более {{max}} профилей за один запуск.",
+    "column": {
+      "name": "Имя",
+      "proxy": "Прокси",
+      "os": "ОС",
+      "tags": "Теги",
+      "notes": "Заметки"
+    },
+    "create": "Создать профили: {{count}}",
+    "creating": "Создание {{done}} из {{total}}…",
+    "cancel": "Остановить",
+    "cancelledSummary": "Остановлено после создания {{count}} профилей.",
+    "stoppedEarly": "Создано {{count}} профилей, после чего запуск остановлен: {{error}}",
+    "created": "Создано профилей: {{count}}",
+    "createFailed": "Массовое создание не удалось: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nМагазин,pool-1,windows,работа|vip,Аккаунт покупателя\nПочта,192.168.1.1:8000,macos,,Проверка почты\n\nПодойдёт и JSON: [{\"name\":\"Магазин\"}]"
   }
 }

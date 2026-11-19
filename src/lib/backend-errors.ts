@@ -53,6 +53,8 @@ export type BackendErrorCode =
   | "TEMPLATE_LIMIT_REACHED"
   | "BULK_CREATE_COUNT_INVALID"
   | "BULK_CREATE_BUSY"
+  | "BULK_TABLE_EMPTY"
+  | "STAGGERED_LAUNCH_BUSY"
   | "COOKIE_DB_LOCKED"
   | "COOKIE_DB_UNAVAILABLE"
   | "COOKIE_IMPORT_BROWSER_RUNNING"
@@ -597,6 +599,10 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       });
     case "BULK_CREATE_BUSY":
       return t("backendErrors.bulkCreateBusy");
+    case "BULK_TABLE_EMPTY":
+      return t("backendErrors.bulkTableEmpty");
+    case "STAGGERED_LAUNCH_BUSY":
+      return t("backendErrors.staggeredLaunchBusy");
     case "COOKIE_DB_LOCKED":
       return t("backendErrors.cookieDbLocked");
     case "COOKIE_DB_UNAVAILABLE":

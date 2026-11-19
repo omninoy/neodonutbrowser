@@ -402,7 +402,7 @@ fn names_for(base: &str, count: u32, existing: &[String]) -> Vec<String> {
     .collect()
 }
 
-fn latest_wayfern_version() -> Option<String> {
+pub fn latest_wayfern_version() -> Option<String> {
   let mut versions = crate::downloaded_browsers_registry::DownloadedBrowsersRegistry::instance()
     .get_downloaded_versions("wayfern");
   versions.sort_by(|a, b| crate::api_client::compare_versions(b, a));

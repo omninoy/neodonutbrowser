@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod bulk_ops;
 pub mod clear_on_close;
 pub mod encryption;
 pub mod manager;

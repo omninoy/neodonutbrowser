@@ -324,7 +324,9 @@
     "donutLogo": "NeoDonut Browser ロゴ",
     "scrollGroupsLeft": "グループを左へスクロール",
     "scrollGroupsRight": "グループを右へスクロール",
-    "allGroups": "すべてのグループ"
+    "allGroups": "すべてのグループ",
+    "bulkCreate": "一括作成",
+    "bulkCreateHint": "表から多数のプロファイルを作成"
   },
   "search": {
     "helpLabel": "検索構文",
@@ -517,7 +519,8 @@
       "runCount": "{{count}} 件を実行",
       "stopCount": "{{count}} 件を停止",
       "enableSync": "同期を有効にする",
-      "runTask": "エージェントタスクを実行"
+      "runTask": "エージェントタスクを実行",
+      "staggeredLaunch": "遅延起動"
     },
     "passwordProtectedBadge": "パスワード保護",
     "launchHook": {
@@ -560,7 +563,18 @@
       "none": "実行中のプロファイルはありません。"
     },
     "duplicated": "コピーを作成しました: {{name}}",
-    "lockedToast": "「{{name}}」をロックしました"
+    "lockedToast": "「{{name}}」をロックしました",
+    "staggered": {
+      "delayLabel": "起動間隔（秒）",
+      "delayHint": "プロファイルはこの秒数間隔で1つずつ起動します。",
+      "start": "{{count}} 個のプロファイルを起動",
+      "progress": "{{total}} 件中 {{done}} 件を起動中…",
+      "counts": "起動 {{launched}}、失敗 {{failed}}",
+      "cancel": "キューを取り消す",
+      "finishedTitle": "遅延起動が完了しました",
+      "finishedBody": "{{count}} 件の起動を1つずつ実行しました。",
+      "launchFailed": "遅延起動に失敗しました：{{error}}"
+    }
   },
   "createProfile": {
     "title": "新しいプロファイルを作成",
@@ -3004,7 +3018,9 @@
     "extensionUpdateNeedsConsent": "新しいバージョンは追加のアクセスを求めています: {{permissions}}",
     "bookmarksFileInvalid": "このファイルからブックマークを読み込めません。Chrome の Bookmarks ファイルか、書き出した HTML ファイルを使ってください。",
     "previewsNotEntitled": "ライブプレビューには Pro 以上のプランが必要です。",
-    "proxyRotationIntervalInvalid": "自動ロテーション間隔は 0〜43200 分の範囲で指定してください。"
+    "proxyRotationIntervalInvalid": "自動ロテーション間隔は 0〜43200 分の範囲で指定してください。",
+    "bulkTableEmpty": "作成するプロファイルが表にありません。",
+    "staggeredLaunchBusy": "遅延起動はすでに実行中です。終了を待つか取り消してください。"
   },
   "rail": {
     "profiles": "プロファイル",
@@ -5267,5 +5283,40 @@
     "description": "エラーのため Donut のこの部分が停止しました。続けるには再読み込みしてください。エラーはログに記録されています。",
     "reload": "再読み込み",
     "copyDetails": "詳細をコピー"
+  },
+  "bulkCreate": {
+    "title": "プロファイルの一括作成",
+    "description": "表を貼り付けるかファイルをアップロード — 1行が1プロファイル。",
+    "pasteTab": "テキストを貼り付け",
+    "fileTab": "ファイルをアップロード",
+    "formatHint": "列: name（必須）、proxy（名前またはホスト:ポート）、os、tags、notes。区切り文字：カンマ、セミコロン、タブ。JSON 配列も使えます。",
+    "dropHere": "ここにファイルをドロップ、またはクリックして選択",
+    "fileFormats": ".csv、.tsv、.txt、.json",
+    "filePickerTitle": "表ファイルを選択",
+    "filePickerFilter": "表ファイル",
+    "fileReadFailed": "ファイルを読み込めませんでした。",
+    "autoAssignProxies": "アクティブなプロキシを自動割り当て",
+    "previewTitle": "プレビュー",
+    "previewFromFile": "{{file}} のプレビュー",
+    "parsing": "解析中…",
+    "recordCount": "{{count}} 件",
+    "noRecords": "まだレコードが認識されていません。",
+    "moreRecords": "他 {{count}} 件",
+    "tooManyRecords": "1回の実行で作成できるのは最大 {{max}} プロファイルです。",
+    "column": {
+      "name": "名前",
+      "proxy": "プロキシ",
+      "os": "OS",
+      "tags": "タグ",
+      "notes": "メモ"
+    },
+    "create": "{{count}} 個のプロファイルを作成",
+    "creating": "{{total}} 件中 {{done}} 件を作成中…",
+    "cancel": "停止",
+    "cancelledSummary": "{{count}} プロファイルで停止しました。",
+    "stoppedEarly": "{{count}} プロファイルを作成後に停止しました：{{error}}",
+    "created": "{{count}} 個のプロファイルを作成しました",
+    "createFailed": "一括作成に失敗しました：{{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nショップ,pool-1,windows,仕事|vip,購入者アカウント\nメール,192.168.1.1:8000,macos,,スパム確認\n\nJSON も使えます: [{\"name\":\"ショップ\"}]"
   }
 }

@@ -1390,8 +1390,8 @@ impl ProxyManager {
       if proxy.is_cloud_managed || proxy.is_cloud_derived {
         return Err(crate::backend_error("CANNOT_MODIFY_CLOUD_MANAGED_PROXY"));
       }
-      let unchanged =
-        proxy.rotation_interval_mins == rotation_interval_mins && proxy.rotate_on_launch == rotate_on_launch;
+      let unchanged = proxy.rotation_interval_mins == rotation_interval_mins
+        && proxy.rotate_on_launch == rotate_on_launch;
       if unchanged {
         return Ok(proxy.clone());
       }

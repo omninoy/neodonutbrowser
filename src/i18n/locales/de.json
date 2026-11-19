@@ -325,7 +325,9 @@
     "donutLogo": "Logo von Donut Browser",
     "scrollGroupsLeft": "Gruppen nach links scrollen",
     "scrollGroupsRight": "Gruppen nach rechts scrollen",
-    "allGroups": "Alle Gruppen"
+    "allGroups": "Alle Gruppen",
+    "bulkCreate": "Massenerstellung",
+    "bulkCreateHint": "Viele Profile aus einer Tabelle erstellen"
   },
   "search": {
     "helpLabel": "Suchsyntax",
@@ -519,7 +521,8 @@
       "runCount": "{{count}} starten",
       "stopCount": "{{count}} stoppen",
       "enableSync": "Synchronisierung aktivieren",
-      "runTask": "Agenten-Aufgabe ausführen"
+      "runTask": "Agenten-Aufgabe ausführen",
+      "staggeredLaunch": "Start mit Verzögerung"
     },
     "passwordProtectedBadge": "Passwortgeschützt",
     "launchHook": {
@@ -562,7 +565,18 @@
       "none": "Es laufen keine Profile."
     },
     "duplicated": "Kopie erstellt: {{name}}",
-    "lockedToast": "„{{name}}“ ist gesperrt"
+    "lockedToast": "„{{name}}“ ist gesperrt",
+    "staggered": {
+      "delayLabel": "Pause zwischen Starts (Sekunden)",
+      "delayHint": "Profile starten einzeln, um so viele Sekunden versetzt.",
+      "start": "{{count}} Profile starten",
+      "progress": "Starte {{done}} von {{total}}…",
+      "counts": "{{launched}} gestartet, {{failed}} fehlgeschlagen",
+      "cancel": "Warteschlange abbrechen",
+      "finishedTitle": "Start mit Verzögerung abgeschlossen",
+      "finishedBody": "{{count}} Starts nacheinander ausgeführt.",
+      "launchFailed": "Start mit Verzögerung fehlgeschlagen: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Neues Profil erstellen",
@@ -3010,7 +3024,9 @@
     "extensionUpdateNeedsConsent": "Die neue Version verlangt mehr Zugriff: {{permissions}}",
     "bookmarksFileInvalid": "Donut kann aus dieser Datei keine Lesezeichen lesen. Verwenden Sie die Bookmarks-Datei von Chrome oder eine exportierte HTML-Datei.",
     "previewsNotEntitled": "Die Live-Vorschau braucht den Pro-Tarif oder höher.",
-    "proxyRotationIntervalInvalid": "Das Auto-Rotationsintervall muss zwischen 0 und 43200 Minuten liegen."
+    "proxyRotationIntervalInvalid": "Das Auto-Rotationsintervall muss zwischen 0 und 43200 Minuten liegen.",
+    "bulkTableEmpty": "Die Tabelle enthält keine zu erstellenden Profile.",
+    "staggeredLaunchBusy": "Ein Start mit Verzögerung läuft bereits. Warte auf das Ende oder brich ihn ab."
   },
   "rail": {
     "profiles": "Profile",
@@ -5273,5 +5289,40 @@
     "description": "Dieser Teil von Donut wurde wegen eines Fehlers angehalten. Laden Sie neu, um fortzufahren. Der Fehler steht im Protokoll.",
     "reload": "Neu laden",
     "copyDetails": "Details kopieren"
+  },
+  "bulkCreate": {
+    "title": "Profile in Masse erstellen",
+    "description": "Tabelle einfügen oder Datei hochladen — eine Zeile, ein Profil.",
+    "pasteTab": "Text einfügen",
+    "fileTab": "Datei hochladen",
+    "formatHint": "Spalten: name (erforderlich), proxy (Name oder Host:Port), os, tags, notes. Trennzeichen: Komma, Semikolon oder Tabulator. JSON-Arrays funktionieren auch.",
+    "dropHere": "Datei hierher ziehen oder klicken zum Auswählen",
+    "fileFormats": ".csv, .tsv, .txt oder .json",
+    "filePickerTitle": "Tabellendatei wählen",
+    "filePickerFilter": "Tabellendateien",
+    "fileReadFailed": "Die Datei konnte nicht gelesen werden.",
+    "autoAssignProxies": "Aktive Proxys automatisch verteilen",
+    "previewTitle": "Vorschau",
+    "previewFromFile": "Vorschau von {{file}}",
+    "parsing": "Wird analysiert…",
+    "recordCount": "{{count}} Datensätze",
+    "noRecords": "Noch keine Datensätze erkannt.",
+    "moreRecords": "und {{count}} weitere",
+    "tooManyRecords": "Höchstens {{max}} Profile pro Durchlauf.",
+    "column": {
+      "name": "Name",
+      "proxy": "Proxy",
+      "os": "OS",
+      "tags": "Tags",
+      "notes": "Notizen"
+    },
+    "create": "{{count}} Profile erstellen",
+    "creating": "Erstelle {{done}} von {{total}}…",
+    "cancel": "Stoppen",
+    "cancelledSummary": "Nach {{count}} Profilen gestoppt.",
+    "stoppedEarly": "{{count}} Profile erstellt, dann wurde der Durchlauf gestoppt: {{error}}",
+    "created": "{{count}} Profile erstellt",
+    "createFailed": "Massenerstellung fehlgeschlagen: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nShop,pool-1,windows,arbeit|vip,Käuferkonto\nPost,192.168.1.1:8000,macos,,Spamprüfung\n\nJSON geht auch: [{\"name\":\"Shop\"}]"
   }
 }

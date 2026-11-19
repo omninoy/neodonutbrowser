@@ -619,12 +619,11 @@ fn get_cached_proxy_check(proxy_id: String) -> Option<crate::proxy_manager::Prox
 }
 
 #[tauri::command]
-async fn get_all_cached_proxy_checks() -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
-  tokio::task::spawn_blocking(|| {
-    crate::proxy_manager::PROXY_MANAGER.get_all_cached_proxy_checks()
-  })
-  .await
-  .unwrap_or_default()
+async fn get_all_cached_proxy_checks(
+) -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
+  tokio::task::spawn_blocking(|| crate::proxy_manager::PROXY_MANAGER.get_all_cached_proxy_checks())
+    .await
+    .unwrap_or_default()
 }
 
 /// Every check a proxy remembers, newest first, capped at
@@ -1908,7 +1907,8 @@ fn get_cached_vpn_check(vpn_id: String) -> Option<crate::proxy_manager::ProxyChe
 }
 
 #[tauri::command]
-async fn get_all_cached_vpn_checks() -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
+async fn get_all_cached_vpn_checks(
+) -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
   tokio::task::spawn_blocking(|| {
     let mut map = std::collections::HashMap::new();
     let dir = get_vpn_check_cache_dir();
@@ -3701,6 +3701,11 @@ pub fn run_with_builder(
       profile_templates::save_profile_template_from_profile,
       profile_templates::bulk_create_profiles,
       profile_templates::cancel_bulk_create_profiles,
+      profile::bulk_ops::bulk_create_profiles_from_table,
+      profile::bulk_ops::cancel_bulk_table_create,
+      profile::bulk_ops::bulk_parse_table,
+      profile::bulk_ops::staggered_launch_profiles,
+      profile::bulk_ops::cancel_staggered_launch,
       totp::generate_totp_code,
       profile_totp::list_profile_totp,
       profile_totp::add_profile_totp,

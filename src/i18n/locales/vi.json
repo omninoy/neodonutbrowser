@@ -324,7 +324,9 @@
     "donutLogo": "Logo NeoDonut Browser",
     "scrollGroupsLeft": "Cuộn nhóm sang trái",
     "scrollGroupsRight": "Cuộn nhóm sang phải",
-    "allGroups": "Tất cả nhóm"
+    "allGroups": "Tất cả nhóm",
+    "bulkCreate": "Tạo hàng loạt",
+    "bulkCreateHint": "Tạo nhiều hồ sơ từ một bảng"
   },
   "search": {
     "helpLabel": "Cú pháp tìm kiếm",
@@ -517,7 +519,8 @@
       "runCount": "Chạy {{count}}",
       "stopCount": "Dừng {{count}}",
       "enableSync": "Bật đồng bộ",
-      "runTask": "Chạy tác vụ của tác tử"
+      "runTask": "Chạy tác vụ của tác tử",
+      "staggeredLaunch": "Khởi động cách quãng"
     },
     "passwordProtectedBadge": "Được bảo vệ bằng mật khẩu",
     "launchHook": {
@@ -560,7 +563,18 @@
       "none": "Không có profile nào đang chạy."
     },
     "duplicated": "Đã tạo bản sao: {{name}}",
-    "lockedToast": "\"{{name}}\" đã khóa"
+    "lockedToast": "\"{{name}}\" đã khóa",
+    "staggered": {
+      "delayLabel": "Nghỉ giữa các lần khởi động (giây)",
+      "delayHint": "Hồ sơ khởi động lần lượt, cách nhau số giây này.",
+      "start": "Khởi động {{count}} hồ sơ",
+      "progress": "Đang khởi động {{done}}/{{total}}…",
+      "counts": "{{launched}} đã chạy, {{failed}} thất bại",
+      "cancel": "Hủy hàng đợi",
+      "finishedTitle": "Khởi động cách quãng hoàn tất",
+      "finishedBody": "{{count}} lần khởi động chạy lần lượt.",
+      "launchFailed": "Khởi động cách quãng thất bại: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Tạo hồ sơ mới",
@@ -3004,7 +3018,9 @@
     "extensionUpdateNeedsConsent": "Phiên bản mới yêu cầu thêm quyền: {{permissions}}",
     "bookmarksFileInvalid": "Donut không đọc được dấu trang từ tệp này. Hãy dùng tệp Bookmarks của Chrome hoặc tệp HTML đã xuất.",
     "previewsNotEntitled": "Xem trước trực tiếp cần gói Pro trở lên.",
-    "proxyRotationIntervalInvalid": "Chu kỳ xoay IP tự động phải nằm trong khoảng từ 0 đến 43200 phút."
+    "proxyRotationIntervalInvalid": "Chu kỳ xoay IP tự động phải nằm trong khoảng từ 0 đến 43200 phút.",
+    "bulkTableEmpty": "Bảng không có hồ sơ nào để tạo.",
+    "staggeredLaunchBusy": "Một lần khởi động cách quãng đang chạy. Hãy đợi nó xong hoặc hủy nó."
   },
   "rail": {
     "profiles": "Profile",
@@ -5267,5 +5283,40 @@
     "description": "Phần này của Donut đã dừng do lỗi. Tải lại để tiếp tục. Lỗi đã được ghi vào nhật ký.",
     "reload": "Tải lại",
     "copyDetails": "Sao chép chi tiết"
+  },
+  "bulkCreate": {
+    "title": "Tạo hồ sơ hàng loạt",
+    "description": "Dán bảng hoặc tải tệp lên — một dòng, một hồ sơ.",
+    "pasteTab": "Dán văn bản",
+    "fileTab": "Tải tệp lên",
+    "formatHint": "Cột: name (bắt buộc), proxy (tên hoặc host:port), os, tags, notes. Dấu phân cách: dấu phẩy, dấu chấm phẩy hoặc tab. Mảng JSON cũng được hỗ trợ.",
+    "dropHere": "Thả tệp vào đây hoặc nhấp để chọn",
+    "fileFormats": ".csv, .tsv, .txt hoặc .json",
+    "filePickerTitle": "Chọn tệp bảng",
+    "filePickerFilter": "Tệp bảng",
+    "fileReadFailed": "Không thể đọc tệp.",
+    "autoAssignProxies": "Tự động phân phối proxy đang hoạt động",
+    "previewTitle": "Xem trước",
+    "previewFromFile": "Xem trước {{file}}",
+    "parsing": "Đang phân tích…",
+    "recordCount": "{{count}} bản ghi",
+    "noRecords": "Chưa nhận được bản ghi nào.",
+    "moreRecords": "và {{count}} bản ghi nữa",
+    "tooManyRecords": "Tối đa {{max}} hồ sơ mỗi lần chạy.",
+    "column": {
+      "name": "Tên",
+      "proxy": "Proxy",
+      "os": "Hệ điều hành",
+      "tags": "Thẻ",
+      "notes": "Ghi chú"
+    },
+    "create": "Tạo {{count}} hồ sơ",
+    "creating": "Đang tạo {{done}}/{{total}}…",
+    "cancel": "Dừng",
+    "cancelledSummary": "Đã dừng sau {{count}} hồ sơ.",
+    "stoppedEarly": "Đã tạo {{count}} hồ sơ trước khi dừng: {{error}}",
+    "created": "Đã tạo {{count}} hồ sơ",
+    "createFailed": "Tạo hàng loạt thất bại: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nCửa hàng,pool-1,windows,công việc|vip,Tài khoản người mua\nThư,192.168.1.1:8000,macos,,Kiểm tra spam\n\nJSON cũng được: [{\"name\":\"Cửa hàng\"}]"
   }
 }

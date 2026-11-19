@@ -325,7 +325,9 @@
     "donutLogo": "Logotipo do NeoDonut Browser",
     "scrollGroupsLeft": "Rolar grupos para a esquerda",
     "scrollGroupsRight": "Rolar grupos para a direita",
-    "allGroups": "Todos os grupos"
+    "allGroups": "Todos os grupos",
+    "bulkCreate": "Criação em massa",
+    "bulkCreateHint": "Criar muitos perfis a partir de uma tabela"
   },
   "search": {
     "helpLabel": "Sintaxe de pesquisa",
@@ -518,7 +520,8 @@
       "runCount": "Executar {{count}}",
       "stopCount": "Parar {{count}}",
       "enableSync": "Ativar sincronização",
-      "runTask": "Executar uma tarefa do agente"
+      "runTask": "Executar uma tarefa do agente",
+      "staggeredLaunch": "Inicialização escalonada"
     },
     "passwordProtectedBadge": "Protegido por Senha",
     "launchHook": {
@@ -561,7 +564,18 @@
       "none": "Nenhum perfil está em execução."
     },
     "duplicated": "Cópia criada: {{name}}",
-    "lockedToast": "\"{{name}}\" está bloqueado"
+    "lockedToast": "\"{{name}}\" está bloqueado",
+    "staggered": {
+      "delayLabel": "Pausa entre inicializações (segundos)",
+      "delayHint": "Os perfis iniciam um por um, com esse intervalo de segundos.",
+      "start": "Iniciar {{count}} perfis",
+      "progress": "Iniciando {{done}} de {{total}}…",
+      "counts": "{{launched}} iniciados, {{failed}} falharam",
+      "cancel": "Cancelar fila",
+      "finishedTitle": "Inicialização escalonada concluída",
+      "finishedBody": "{{count}} inicializações feitas uma por vez.",
+      "launchFailed": "A inicialização escalonada falhou: {{error}}"
+    }
   },
   "createProfile": {
     "title": "Criar novo perfil",
@@ -3024,7 +3038,9 @@
     "extensionUpdateNeedsConsent": "A nova versão pede mais acesso: {{permissions}}",
     "bookmarksFileInvalid": "O Donut não consegue ler favoritos deste arquivo. Use o arquivo Bookmarks do Chrome ou um arquivo HTML exportado.",
     "previewsNotEntitled": "As pré-visualizações ao vivo precisam do plano Pro ou superior.",
-    "proxyRotationIntervalInvalid": "O intervalo de rotação automática deve estar entre 0 e 43200 minutos."
+    "proxyRotationIntervalInvalid": "O intervalo de rotação automática deve estar entre 0 e 43200 minutos.",
+    "bulkTableEmpty": "A tabela não contém perfis para criar.",
+    "staggeredLaunchBusy": "Uma inicialização escalonada já está em andamento. Aguarde o fim ou cancele-a."
   },
   "rail": {
     "profiles": "Perfis",
@@ -5323,5 +5339,40 @@
     "description": "Esta parte do Donut parou por causa de um erro. Recarregue para continuar. O erro está no log.",
     "reload": "Recarregar",
     "copyDetails": "Copiar detalhes"
+  },
+  "bulkCreate": {
+    "title": "Criar perfis em massa",
+    "description": "Cole uma tabela ou envie um arquivo — uma linha, um perfil.",
+    "pasteTab": "Colar texto",
+    "fileTab": "Enviar arquivo",
+    "formatHint": "Colunas: name (obrigatório), proxy (nome ou host:porta), os, tags, notes. Separadores: vírgula, ponto e vírgula ou tabulação. Arrays JSON também funcionam.",
+    "dropHere": "Solte um arquivo aqui ou clique para escolher",
+    "fileFormats": ".csv, .tsv, .txt ou .json",
+    "filePickerTitle": "Escolher um arquivo de tabela",
+    "filePickerFilter": "Arquivos de tabela",
+    "fileReadFailed": "Não foi possível ler o arquivo.",
+    "autoAssignProxies": "Distribuir automaticamente os proxies ativos",
+    "previewTitle": "Pré-visualização",
+    "previewFromFile": "Pré-visualização de {{file}}",
+    "parsing": "Analisando…",
+    "recordCount": "{{count}} registros",
+    "noRecords": "Nenhum registro reconhecido ainda.",
+    "moreRecords": "e mais {{count}}",
+    "tooManyRecords": "No máximo {{max}} perfis por execução.",
+    "column": {
+      "name": "Nome",
+      "proxy": "Proxy",
+      "os": "SO",
+      "tags": "Tags",
+      "notes": "Notas"
+    },
+    "create": "Criar {{count}} perfis",
+    "creating": "Criando {{done}} de {{total}}…",
+    "cancel": "Parar",
+    "cancelledSummary": "Parado após {{count}} perfis.",
+    "stoppedEarly": "{{count}} perfis criados antes da parada: {{error}}",
+    "created": "{{count}} perfis criados",
+    "createFailed": "A criação em massa falhou: {{error}}",
+    "pastePlaceholder": "name,proxy,os,tags,notes\nLoja,pool-1,windows,trabalho|vip,Conta de comprador\nCorreio,192.168.1.1:8000,macos,,Teste de spam\n\nJSON também serve: [{\"name\":\"Loja\"}]"
   }
 }
