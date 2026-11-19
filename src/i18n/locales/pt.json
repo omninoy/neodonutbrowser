@@ -185,7 +185,9 @@
         "mismatchToast": "A senha não corresponde"
       },
       "ruleLength": "Pelo menos {{min}} caracteres",
-      "ruleMatch": "As senhas coincidem"
+      "ruleMatch": "As senhas coincidem",
+      "requiresTeamOwner": "A sincronização criptografada exige uma conta de proprietário de equipe",
+      "requiresProOrOwner": "Disponível com um plano Pro ou como proprietário de equipe"
     },
     "commercial": {
       "title": "Licença comercial",
@@ -1679,7 +1681,8 @@
     "launchArgs": "Argumentos de inicialização",
     "launchArgsDescription": "Insira um argumento por linha, como --name ou --name=value. Apenas argumentos compatíveis são aceitos, por exemplo --disable-gpu, --mute-audio ou --disable-features=Name. O Donut controla os argumentos de perfil, proxy, janela e depuração.",
     "launchArgsSkipped": "Os argumentos de inicialização personalizados não foram usados em {{profile}}. {{reason}}",
-    "readingDevice": "Lendo a impressão digital deste perfil…"
+    "readingDevice": "Lendo a impressão digital deste perfil…",
+    "proFeature": "Este é um recurso Pro"
   },
   "warnings": {
     "windowResizeTitle": "Dimensões de janela personalizadas",

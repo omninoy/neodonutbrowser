@@ -376,7 +376,8 @@ export function GroupManagementDialog({
       },
       {
         id: "sync",
-        size: 80,
+        // Wide enough for the longest localized header ("Синхронизация").
+        size: 112,
         enableSorting: false,
         header: () => <SyncColumnHeader />,
         cell: ({ row }) => {

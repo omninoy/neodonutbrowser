@@ -185,7 +185,9 @@
         "mismatchToast": "密码不匹配"
       },
       "ruleLength": "至少 {{min}} 个字符",
-      "ruleMatch": "密码一致"
+      "ruleMatch": "密码一致",
+      "requiresTeamOwner": "加密同步需要团队所有者账户",
+      "requiresProOrOwner": "Pro 计划或团队所有者可用"
     },
     "commercial": {
       "title": "商业许可",
@@ -1668,7 +1670,8 @@
     "launchArgs": "启动参数",
     "launchArgsDescription": "每行输入一个参数，格式为 --name 或 --name=value。只接受受支持的参数，例如 --disable-gpu、--mute-audio 或 --disable-features=Name。配置文件、代理、窗口和调试参数由 Donut 管理。",
     "launchArgsSkipped": "{{profile}} 未使用自定义启动参数。{{reason}}",
-    "readingDevice": "正在读取此配置文件的指纹…"
+    "readingDevice": "正在读取此配置文件的指纹…",
+    "proFeature": "这是 Pro 功能"
   },
   "warnings": {
     "windowResizeTitle": "自定义窗口尺寸",
@@ -2730,7 +2733,6 @@
     "cookieImportNoCookies": "在你粘贴的内容中没有找到 Cookie。",
     "cookieImportBadFormat": "内容与所选的 Cookie 格式不符。请检查 JSON 是否以 JSON 格式粘贴，Netscape 是否为 cookies.txt。",
     "selfHostedRequiresLogout": "在配置自托管服务器之前先退出 Donut 账户。",
-    "fingerprintRequiresPro": "查看或编辑指纹需要有效的付费方案。所有方案均包含指纹保护。",
     "proxyNotWorking": "所选代理无法使用，因此未创建配置文件。",
     "proxyPaymentRequired": "所选代理需要付费（402），其订阅可能已过期，因此未创建配置文件。",
     "vpnNotWorking": "所选 VPN 无法使用，因此未创建配置文件。",

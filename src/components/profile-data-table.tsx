@@ -4576,8 +4576,7 @@ export function ProfilesDataTable({
   }, [selectedDragProfiles, tableMeta]);
   // Same order as the ids: the queue names the profile it is about to start.
   const staggeredProfileNames = React.useMemo(
-    () =>
-      staggeredProfileIds.map((id) => profilesById.get(id)?.name ?? ""),
+    () => staggeredProfileIds.map((id) => profilesById.get(id)?.name ?? ""),
     [staggeredProfileIds, profilesById],
   );
 
@@ -4732,8 +4731,11 @@ export function ProfilesDataTable({
             aria-colcount={table.getVisibleLeafColumns().length}
             onKeyDown={handleTableKeyDown}
             onKeyDownCapture={keyboard.onKeyDownCapture}
-            className={DATA_TABLE_CLASSES.table}
-            style={{ minWidth: minimumWidth, width: minimumWidth }}
+            className={cn(DATA_TABLE_CLASSES.table, "w-full")}
+            // w-full keeps the table stretched to its scroll parent; the
+            // saved-column minimum only matters (and scrolls) when it is
+            // wider than that parent, avoiding dead space on wide windows.
+            style={{ minWidth: minimumWidth }}
             containerClassName="overflow-visible"
           >
             <TableHeader

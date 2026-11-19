@@ -185,7 +185,9 @@
         "mismatchToast": "La contraseña no coincide"
       },
       "ruleLength": "Al menos {{min}} caracteres",
-      "ruleMatch": "Las contraseñas coinciden"
+      "ruleMatch": "Las contraseñas coinciden",
+      "requiresTeamOwner": "La sincronización cifrada requiere una cuenta de propietario de equipo",
+      "requiresProOrOwner": "Disponible con un plan Pro o como propietario de equipo"
     },
     "commercial": {
       "title": "Licencia comercial",
@@ -1679,7 +1681,8 @@
     "launchArgs": "Argumentos de inicio",
     "launchArgsDescription": "Introduce un argumento por línea, como --name o --name=value. Solo se aceptan argumentos compatibles, por ejemplo --disable-gpu, --mute-audio o --disable-features=Name. Donut controla los argumentos de perfil, proxy, ventana y depuración.",
     "launchArgsSkipped": "No se usaron los argumentos de inicio personalizados de {{profile}}. {{reason}}",
-    "readingDevice": "Leyendo la huella digital de este perfil…"
+    "readingDevice": "Leyendo la huella digital de este perfil…",
+    "proFeature": "Esta función es de Pro"
   },
   "warnings": {
     "windowResizeTitle": "Dimensiones de ventana personalizadas",

@@ -85,7 +85,7 @@ import {
 import { rotateProxyIps } from "@/lib/proxy-rotation";
 import { isFirstHopEncrypted, proxyProtocolToken } from "@/lib/proxy-string";
 import { canonicalProxyType, proxyTypeLabelKey } from "@/lib/proxy-type";
-import { contentColumnWidth } from "@/lib/text-width";
+import { contentColumnWidth, textWidth } from "@/lib/text-width";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import type { StoredProxy, VpnConfig } from "@/types";
 import { ProxyCheckButton, ProxyUdpBadge } from "./proxy-check-button";
@@ -161,8 +161,8 @@ export function ProxyManagementDialog({
   // initialTab; subsequent changes drive the animated tabs via onValueChange.
   const [activeTab, setActiveTab] = useState<"proxies" | "vpns">(initialTab);
   const [hasOpenedVpns, setHasOpenedVpns] = useState(initialTab === "vpns");
-  const proxyCheckVersion = useProxyCheckVersion();
-  const vpnCheckVersion = useVpnCheckVersion();
+  const _proxyCheckVersion = useProxyCheckVersion();
+  const _vpnCheckVersion = useVpnCheckVersion();
   // Reset selections when the dialog closes so the floating action bar
   // (portaled to body) doesn't linger on the page across navigations.
   useEffect(() => {
@@ -427,6 +427,14 @@ export function ProxyManagementDialog({
   );
 
   const hasRotation = storedProxies.some((proxy) => proxy.rotation_url);
+  // The Auto-IP badge sits in the same cell as the protocol label, so the
+  // column reserves room for it: text at the badge's 11px size plus the
+  // dot icon, gaps and pill padding.
+  const rotationBadgeWidth = useMemo(
+    () =>
+      hasRotation ? textWidth(t("proxies.rotation.autoBadge"), 11) + 34 : 0,
+    [hasRotation, t],
+  );
   const protocolWidth = useMemo(
     () =>
       contentColumnWidth(
@@ -434,9 +442,13 @@ export function ProxyManagementDialog({
           const key = proxyTypeLabelKey(proxy.proxy_settings.proxy_type);
           return key ? t(key) : proxy.proxy_settings.proxy_type;
         }),
-        { chrome: 38, min: 72, max: 160 },
+        {
+          chrome: 38 + rotationBadgeWidth,
+          min: 72,
+          max: hasRotation ? 240 : 160,
+        },
       ),
-    [storedProxies, t],
+    [storedProxies, t, rotationBadgeWidth, hasRotation],
   );
   // The status pill: icon, gaps and padding around its longest word.
   const checkWidth = useMemo(
@@ -607,7 +619,8 @@ export function ProxyManagementDialog({
       },
       {
         id: "usage",
-        size: 64,
+        // Wide enough for the longest localized header ("Использование").
+        size: 112,
         enableSorting: false,
         header: () => t("proxies.management.usage"),
         cell: ({ row }) => (
@@ -626,7 +639,8 @@ export function ProxyManagementDialog({
       },
       {
         id: "sync",
-        size: 80,
+        // Wide enough for the longest localized header ("Синхронизация").
+        size: 112,
         enableSorting: false,
         header: () => <SyncColumnHeader />,
         cell: ({ row }) => {
@@ -728,7 +742,6 @@ export function ProxyManagementDialog({
       handleToggleSync,
       handleEditProxy,
       handleDeleteProxy,
-      proxyCheckVersion,
     ],
   );
 
@@ -826,7 +839,8 @@ export function ProxyManagementDialog({
       },
       {
         id: "usage",
-        size: 64,
+        // Wide enough for the longest localized header ("Использование").
+        size: 112,
         enableSorting: false,
         header: () => t("proxies.management.usage"),
         cell: ({ row }) => (
@@ -845,7 +859,8 @@ export function ProxyManagementDialog({
       },
       {
         id: "sync",
-        size: 80,
+        // Wide enough for the longest localized header ("Синхронизация").
+        size: 112,
         enableSorting: false,
         header: () => <SyncColumnHeader />,
         cell: ({ row }) => {
@@ -917,7 +932,6 @@ export function ProxyManagementDialog({
       handleToggleVpnSync,
       handleEditVpn,
       handleDeleteVpn,
-      vpnCheckVersion,
     ],
   );
 
@@ -1106,7 +1120,10 @@ export function ProxyManagementDialog({
       };
       try {
         await Promise.all(Array.from({ length: 8 }, worker));
-        const summary = t("proxies.management.checkSummary", { passed, failed });
+        const summary = t("proxies.management.checkSummary", {
+          passed,
+          failed,
+        });
         if (failed === 0) showSuccessToast(summary);
         else if (passed === 0) showErrorToast(summary);
         else toast.warning(summary);
@@ -1139,7 +1156,10 @@ export function ProxyManagementDialog({
       };
       try {
         await Promise.all(Array.from({ length: 6 }, worker));
-        const summary = t("proxies.management.checkSummary", { passed, failed });
+        const summary = t("proxies.management.checkSummary", {
+          passed,
+          failed,
+        });
         if (failed === 0) showSuccessToast(summary);
         else if (passed === 0) showErrorToast(summary);
         else toast.warning(summary);
@@ -1266,9 +1286,7 @@ export function ProxyManagementDialog({
                       <PageAction
                         icon={<LuActivity className="size-4" />}
                         label={t("proxies.management.checkAll")}
-                        disabled={
-                          vpnConfigs.length === 0 || isBulkCheckingVpns
-                        }
+                        disabled={vpnConfigs.length === 0 || isBulkCheckingVpns}
                         onClick={() => void handleBulkCheckVpns(vpnConfigs)}
                       />
                       <PageAction

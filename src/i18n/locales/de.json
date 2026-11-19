@@ -186,7 +186,8 @@
         "mismatchToast": "Das Passwort stimmt nicht überein"
       },
       "ruleLength": "Mindestens {{min}} Zeichen",
-      "ruleMatch": "Passwörter stimmen überein"
+      "ruleMatch": "Passwörter stimmen überein",
+      "requiresTeamOwner": "Verschlüsselte Synchronisierung erfordert ein Team-Inhaberkonto"
     },
     "commercial": {
       "title": "Kommerzielle Lizenz",
@@ -496,7 +497,6 @@
       "stopLeader": "Dieses Profil und alle Folgeprofile stoppen",
       "stopFollower": "Folgt den Aktionen von {{leaderName}}",
       "desyncedTooltip": "Synchronisierung fehlgeschlagen bei {{url}}",
-      "paidFeature": "Der Synchronizer ist eine kostenpflichtige Funktion",
       "wayfernOnly": "Nur Wayfern-Profile können synchronisiert werden",
       "selectFollowers": "Folgeprofile auswählen",
       "selectFollowersDesc": "Wählen Sie die Profile, die die Aktionen des Leitprofils spiegeln. Nur gestoppte Wayfern-Profile können ausgewählt werden.",
@@ -1342,8 +1342,7 @@
       "selectFile": "Datei auswählen",
       "preview": "{{count}} Cookies gefunden",
       "success": "{{imported}} Cookies erfolgreich importiert ({{replaced}} ersetzt)",
-      "error": "Die Cookies konnten nicht importiert werden",
-      "proFeature": "Der Cookie-Import ist eine Pro-Funktion"
+      "error": "Die Cookies konnten nicht importiert werden"
     },
     "export": {
       "title": "Cookies exportieren",
@@ -1899,7 +1898,6 @@
     "extensionsTab": "Erweiterungen",
     "groupsTab": "Gruppen",
     "managedNotice": "Hier verwaltete Erweiterungen ersetzen beim Start alle manuell in Profilen installierten Erweiterungen.",
-    "proRequired": "Die Erweiterungsverwaltung ist eine Pro-Funktion",
     "empty": "Noch keine Erweiterungen hochgeladen.",
     "createGroup": "Gruppe erstellen",
     "newGroup": "Neue Gruppe",
@@ -2735,7 +2733,6 @@
     "cookieImportNoCookies": "In Ihrer Eingabe wurden keine Cookies gefunden.",
     "cookieImportBadFormat": "Der Inhalt passt nicht zum gewählten Cookie-Format. Prüfen Sie, ob JSON als JSON und Netscape als cookies.txt eingefügt wurde.",
     "selfHostedRequiresLogout": "Melden Sie sich von Ihrem Donut-Konto ab, bevor Sie einen selbst gehosteten Server konfigurieren.",
-    "fingerprintRequiresPro": "Zum Anzeigen oder Bearbeiten des Fingerprints ist ein aktiver kostenpflichtiger Tarif erforderlich. Der Schutz ist in allen Tarifen enthalten.",
     "proxyNotWorking": "Der ausgewählte Proxy funktioniert nicht, daher wurde das Profil nicht erstellt.",
     "proxyPaymentRequired": "Der ausgewählte Proxy erfordert eine Zahlung (402), möglicherweise ist sein Abonnement abgelaufen. Daher wurde das Profil nicht erstellt.",
     "vpnNotWorking": "Das ausgewählte VPN funktioniert nicht, daher wurde das Profil nicht erstellt.",

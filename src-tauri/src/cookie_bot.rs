@@ -836,13 +836,63 @@ pub fn start_scheduler(_app_handle: tauri::AppHandle) {
                 "Scheduler triggering scheduled run for profile={}",
                 schedule.profile_id
               );
-              let _ = run_now(&schedule.profile_id, Some(schedule.max_minutes)).await;
+              let started = run_now(&schedule.profile_id, Some(schedule.max_minutes)).await;
+              if started.is_ok() {
+                // Keep the schedule's own timestamps in step with the run the
+                // ticker just fired: the UI reads these to show "next run".
+                let mut updated = schedule.clone();
+                updated.last_run_at = Some(now_utc.to_rfc3339());
+                updated.next_run_at =
+                  next_run_at_for(&schedule, now_utc + chrono::Duration::minutes(1));
+                crate::cookie_bot_storage::upsert_schedule(updated);
+              }
             }
           }
         }
       }
     }
   });
+}
+
+/// The schedule's next fire instant: the earliest slot occurrence whose
+/// weekday bit is set and anchor minute is still ahead, searching up to a
+/// week ahead in the schedule's timezone. `None` when the zone does not
+/// parse or no slot ever fires. The desktop enrolls without a `next_run_at`
+/// (the cloud server used to recompute it), so the local build derives it.
+pub fn next_run_at_for(
+  schedule: &CookieBotSchedule,
+  now: chrono::DateTime<chrono::Utc>,
+) -> Option<String> {
+  use chrono::Datelike;
+  use chrono::Timelike;
+  let tz: chrono_tz::Tz = schedule.timezone.parse().ok()?;
+  let local_now = now.with_timezone(&tz);
+  for day_offset in 0..=7i64 {
+    let day = local_now.date_naive() + chrono::Duration::days(day_offset);
+    let day_bit = 1u8 << day.weekday().num_days_from_monday();
+    let midnight = day
+      .and_hms_opt(0, 0, 0)?
+      .and_local_timezone(tz)
+      .earliest()?;
+    let mut best: Option<chrono::DateTime<chrono_tz::Tz>> = None;
+    for slot in &schedule.slots {
+      if slot.days_mask & day_bit == 0 {
+        continue;
+      }
+      let candidate = midnight + chrono::Duration::minutes(i64::from(slot.run_at_minute));
+      if candidate <= local_now {
+        continue;
+      }
+      if best.is_none_or(|current| candidate < current) {
+        best = Some(candidate);
+      }
+    }
+    // Slots on later days always fire later than any candidate found today.
+    if best.is_some() {
+      return best.map(|at| at.with_timezone(&chrono::Utc).to_rfc3339());
+    }
+  }
+  None
 }
 
 /// Every enrolment the caller can see.
@@ -914,6 +964,8 @@ pub async fn save_schedule(
     owner_email: None,
     updated_at: Some(chrono::Utc::now().to_rfc3339()),
   };
+  let mut schedule = schedule;
+  schedule.next_run_at = next_run_at_for(&schedule, chrono::Utc::now());
   crate::cookie_bot_storage::upsert_schedule(schedule.clone());
   record_enrolment(&mut enrolled_profiles(), profile_id, true);
   crate::cookie_bot_exit::check_after_enrolment(profile_id);
@@ -1746,6 +1798,43 @@ mod tests {
       team_id: None,
       scope: scope.map(str::to_string),
     }
+  }
+
+  #[test]
+  fn next_run_at_resolves_the_earliest_slot_ahead_of_now() {
+    let mut schedule: CookieBotSchedule = serde_json::from_value(serde_json::json!({
+      "profile_id": "p", "profile_name": "p", "platform": "macos", "enabled": true,
+      "run_at_minute": 600, "days_mask": 127, "timezone": "UTC", "preset": "light",
+      "max_minutes": 20,
+      "slots": [{"days_mask": 127, "run_at_minute": 600}]
+    }))
+    .expect("a schedule");
+    let now = chrono::DateTime::parse_from_rfc3339("2026-11-20T10:00:00Z")
+      .expect("a fixed now")
+      .with_timezone(&chrono::Utc);
+
+    // The daily 10:00 anchor is exactly now, so the next fire is tomorrow.
+    let next = next_run_at_for(&schedule, now).expect("a daily anchor");
+    assert_eq!(
+      chrono::DateTime::parse_from_rfc3339(&next),
+      chrono::DateTime::parse_from_rfc3339("2026-11-21T10:00:00Z")
+    );
+
+    // 2026-11-20 is a Friday (bit 4); a 01:00 Friday slot that already fired
+    // this morning rolls a whole week ahead.
+    schedule.slots = vec![CookieBotSlot {
+      days_mask: 1 << 4,
+      run_at_minute: 60,
+    }];
+    let next = next_run_at_for(&schedule, now).expect("a weekly anchor");
+    assert_eq!(
+      chrono::DateTime::parse_from_rfc3339(&next),
+      chrono::DateTime::parse_from_rfc3339("2026-11-27T01:00:00Z")
+    );
+
+    // An unparseable zone gives up instead of panicking.
+    schedule.timezone = "Not/AZone".to_string();
+    assert_eq!(next_run_at_for(&schedule, now), None);
   }
 
   #[test]

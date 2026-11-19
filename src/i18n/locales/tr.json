@@ -186,7 +186,8 @@
         "mismatchToast": "Parola eşleşmiyor"
       },
       "ruleLength": "En az {{min}} karakter",
-      "ruleMatch": "Parolalar eşleşiyor"
+      "ruleMatch": "Parolalar eşleşiyor",
+      "requiresTeamOwner": "Şifreli senkronizasyon bir ekip sahibi hesabı gerektirir"
     },
     "commercial": {
       "title": "Ticari lisans",
@@ -496,7 +497,6 @@
       "stopLeader": "Bu profili ve tüm takipçilerini durdur",
       "stopFollower": "{{leaderName}} profilinin işlemlerini takip ediyor",
       "desyncedTooltip": "Eşitleme {{url}} adresinde başarısız oldu",
-      "paidFeature": "Eşitleyici ücretli bir özelliktir",
       "wayfernOnly": "Yalnızca Wayfern profilleri eşitlenebilir",
       "selectFollowers": "Takipçi Profilleri Seçin",
       "selectFollowersDesc": "Lider profilin işlemlerini yansıtacak profilleri seçin. Yalnızca durdurulmuş Wayfern profilleri seçilebilir.",
@@ -1342,8 +1342,7 @@
       "selectFile": "Dosya Seç",
       "preview": "{{count}} çerez bulundu",
       "success": "{{imported}} çerez başarıyla içe aktarıldı ({{replaced}} değiştirildi)",
-      "error": "Çerezler içe aktarılamadı",
-      "proFeature": "Çerez içe aktarma bir Pro özelliğidir"
+      "error": "Çerezler içe aktarılamadı"
     },
     "export": {
       "title": "Çerezleri Dışa Aktar",
@@ -1899,7 +1898,6 @@
     "extensionsTab": "Uzantılar",
     "groupsTab": "Gruplar",
     "managedNotice": "Burada yönetilen uzantılar, profiller başlatıldığında elle yüklenmiş uzantıların yerini alır.",
-    "proRequired": "Uzantı yönetimi bir Pro özelliğidir",
     "empty": "Henüz uzantı yüklenmedi.",
     "createGroup": "Grup Oluştur",
     "newGroup": "Yeni grup",
@@ -2735,7 +2733,6 @@
     "cookieImportNoCookies": "Yapıştırdığınız içerikte çerez bulunamadı.",
     "cookieImportBadFormat": "İçerik seçilen çerez biçimiyle eşleşmiyor. JSON'un JSON olarak, Netscape'in ise cookies.txt olarak yapıştırıldığını kontrol edin.",
     "selfHostedRequiresLogout": "Kendi sunucunuzu yapılandırmadan önce Donut hesabınızdan çıkış yapın.",
-    "fingerprintRequiresPro": "Parmak izini görüntülemek veya düzenlemek etkin bir ücretli plan gerektirir. Koruma tüm planlara dahildir.",
     "proxyNotWorking": "Seçilen proxy çalışmıyor, bu nedenle profil oluşturulmadı.",
     "proxyPaymentRequired": "Seçilen proxy ödeme gerektiriyor (402). Aboneliği sona ermiş olabilir. Profil oluşturulmadı.",
     "vpnNotWorking": "Seçilen VPN çalışmıyor, bu nedenle profil oluşturulmadı.",

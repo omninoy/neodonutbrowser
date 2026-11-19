@@ -41,10 +41,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  getCachedVpnResult,
+  getCachedVpnStatus,
+  useVpnCheckVersion,
+} from "@/components/vpn-check-button";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
 import { useTablePreferences } from "@/hooks/use-table-preferences";
 import { useTableFilters, useTableKeyboard } from "@/hooks/use-table-tools";
 import { MOTION_DURATION, MOTION_EASE_OUT, MOTION_SPRING } from "@/lib/motion";
+import {
+  getCachedProxyResult,
+  getCachedProxyStatus,
+  useProxyCheckVersion,
+} from "@/lib/proxy-check-store";
 import { proxyProtocolToken } from "@/lib/proxy-string";
 import { canonicalProxyType } from "@/lib/proxy-type";
 import {
@@ -52,16 +62,6 @@ import {
   type TableFilter,
   type TableId,
 } from "@/lib/table-tools";
-import {
-  getCachedProxyResult,
-  getCachedProxyStatus,
-  useProxyCheckVersion,
-} from "@/lib/proxy-check-store";
-import {
-  getCachedVpnResult,
-  getCachedVpnStatus,
-  useVpnCheckVersion,
-} from "@/components/vpn-check-button";
 import { cn } from "@/lib/utils";
 import type {
   Extension,
@@ -270,8 +270,8 @@ export function useEntityTableTools<T extends Entity>(
   const { t } = useTranslation();
   const view = useTablePreferences(id);
   const [width, setWidth] = useState(1024);
-  const proxyVersion = useProxyCheckVersion();
-  const vpnVersion = useVpnCheckVersion();
+  const _proxyVersion = useProxyCheckVersion();
+  const _vpnVersion = useVpnCheckVersion();
   const labels = useMemo(
     () =>
       Object.entries(LABELS[id]).map(([columnId, key]) => ({
@@ -342,7 +342,7 @@ export function useEntityTableTools<T extends Entity>(
       });
     }
     return result;
-  }, [id, data, t, proxyVersion, vpnVersion]);
+  }, [id, data, t]);
   const filters = useTableFilters(data, entitySearch, definitions, id);
   // Rows a filter hides stay selected; rows that no longer exist do not.
   useLayoutEffect(() => {
@@ -450,7 +450,10 @@ export function ManagedDataTable<T extends Entity>({
           onKeyDown={keyboard.onKeyDown}
           onKeyDownCapture={keyboard.onKeyDownCapture}
           className={cn(DATA_TABLE_CLASSES.table, "w-full")}
-          style={{ minWidth, width: minWidth }}
+          // w-full stretches the table over its container; minWidth only
+          // kicks in (and scrolls) when the saved column sizes sum wider
+          // than that container, so a few columns never leave dead space.
+          style={{ minWidth }}
           containerClassName="overflow-visible"
         >
           <TableHeader className={DATA_TABLE_CLASSES.header}>

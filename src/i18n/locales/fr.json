@@ -185,7 +185,9 @@
         "mismatchToast": "Le mot de passe ne correspond pas"
       },
       "ruleLength": "Au moins {{min}} caractères",
-      "ruleMatch": "Les mots de passe correspondent"
+      "ruleMatch": "Les mots de passe correspondent",
+      "requiresTeamOwner": "La synchronisation chiffrée exige un compte propriétaire d'équipe",
+      "requiresProOrOwner": "Disponible avec un plan Pro ou en tant que propriétaire d'équipe"
     },
     "commercial": {
       "title": "Licence commerciale",
@@ -1679,7 +1681,8 @@
     "launchArgs": "Arguments de lancement",
     "launchArgsDescription": "Saisissez un argument par ligne, sous la forme --name ou --name=value. Seuls les arguments pris en charge sont acceptés, par exemple --disable-gpu, --mute-audio ou --disable-features=Name. Donut gère les arguments de profil, de proxy, de fenêtre et de débogage.",
     "launchArgsSkipped": "Les arguments de lancement personnalisés n'ont pas été utilisés pour {{profile}}. {{reason}}",
-    "readingDevice": "Lecture de l’empreinte de ce profil…"
+    "readingDevice": "Lecture de l’empreinte de ce profil…",
+    "proFeature": "Cette fonctionnalité est réservée à Pro"
   },
   "warnings": {
     "windowResizeTitle": "Dimensions de fenêtre personnalisées",

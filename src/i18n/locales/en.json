@@ -185,7 +185,9 @@
         "mismatchToast": "Password does not match"
       },
       "ruleLength": "At least {{min}} characters",
-      "ruleMatch": "Passwords match"
+      "ruleMatch": "Passwords match",
+      "requiresTeamOwner": "Encrypted sync requires a Team owner account",
+      "requiresProOrOwner": "Available with a Pro plan or as a Team owner"
     },
     "commercial": {
       "title": "Commercial license",
@@ -1340,8 +1342,7 @@
       "selectFile": "Choose File",
       "preview": "{{count}} cookies found",
       "success": "Successfully imported {{imported}} cookies ({{replaced}} replaced)",
-      "error": "Could not import cookies",
-      "proFeature": "Cookie import is a Pro feature"
+      "error": "Could not import cookies"
     },
     "export": {
       "title": "Export Cookies",
@@ -1669,7 +1670,8 @@
     "launchArgs": "Launch arguments",
     "launchArgsDescription": "Enter one argument per line, as --name or --name=value. Only supported arguments are accepted, for example --disable-gpu, --mute-audio or --disable-features=Name. Donut controls the profile, proxy, window and debugging arguments.",
     "launchArgsSkipped": "Custom launch arguments were not used for {{profile}}. {{reason}}",
-    "readingDevice": "Reading this profile's fingerprint…"
+    "readingDevice": "Reading this profile's fingerprint…",
+    "proFeature": "This is a Pro feature"
   },
   "warnings": {
     "windowResizeTitle": "Custom Window Dimensions",

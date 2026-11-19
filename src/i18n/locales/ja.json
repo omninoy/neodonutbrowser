@@ -185,7 +185,9 @@
         "mismatchToast": "パスワードが一致しません"
       },
       "ruleLength": "{{min}} 文字以上",
-      "ruleMatch": "パスワードが一致"
+      "ruleMatch": "パスワードが一致",
+      "requiresTeamOwner": "暗号化された同期にはチームオーナーのアカウントが必要です",
+      "requiresProOrOwner": "Proプランまたはチームオーナーのみ利用できます"
     },
     "commercial": {
       "title": "商用ライセンス",
@@ -1668,7 +1670,8 @@
     "launchArgs": "起動引数",
     "launchArgsDescription": "1 行に 1 つの引数を --name または --name=value の形式で入力します。使用できるのは対応している引数だけです（例: --disable-gpu、--mute-audio、--disable-features=Name）。プロファイル、プロキシ、ウィンドウ、デバッグの引数は Donut が管理します。",
     "launchArgsSkipped": "{{profile}} ではカスタム起動引数が使われませんでした。{{reason}}",
-    "readingDevice": "このプロファイルのフィンガープリントを読み込んでいます…"
+    "readingDevice": "このプロファイルのフィンガープリントを読み込んでいます…",
+    "proFeature": "これはPro機能です"
   },
   "warnings": {
     "windowResizeTitle": "カスタムウィンドウサイズ",
