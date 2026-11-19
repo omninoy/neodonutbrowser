@@ -304,6 +304,37 @@
       "checkNote": "Donut checks that its servers answer through the proxy before it saves it. Schemes: http, https, socks5, socks5h.",
       "saved": "Donut now connects through {{proxy}}.",
       "removed": "Donut no longer uses its own proxy."
+    },
+    "backup": {
+      "title": "Backup & restore",
+      "create": "Create a backup",
+      "createDescription": "Archive your profiles' data and optionally the proxy list into one portable .neobackup file.",
+      "createButton": "Create backup",
+      "restore": "Restore from a backup",
+      "restoreDescription": "Bring profiles back from a .neobackup archive made here or on another computer.",
+      "restoreButton": "Restore",
+      "createDialogTitle": "Create a backup",
+      "createDialogDescription": "Choose the profiles to archive. The backup keeps every login; the caches stay out.",
+      "loadingProfiles": "Loading profiles…",
+      "noProfiles": "No profiles to back up.",
+      "selectAll": "Select all",
+      "includeProxies": "Include the proxy list",
+      "password": "Encryption password (optional)",
+      "passwordPlaceholder": "Leave empty to not encrypt",
+      "passwordHint": "An encrypted backup can only be opened with this password. There is no recovery.",
+      "saveTitle": "Save backup",
+      "archiveFilter": "NeoDonut backup",
+      "createConfirm": "Create backup",
+      "restoreDialogTitle": "Restore from a backup",
+      "restoreDialogDescription": "Choose a .neobackup file. Profiles this computer already has are skipped unless you ask to overwrite.",
+      "chooseFile": "Choose file",
+      "noFileChosen": "No file chosen",
+      "overwrite": "Overwrite existing profiles",
+      "overwriteHint": "Replaces a profile with the same id, its data included. This cannot be undone.",
+      "openTitle": "Open backup",
+      "restoreConfirm": "Restore",
+      "createdEncrypted": "The backup is encrypted with your password.",
+      "restoreSkipped": "Skipped {{count}} profiles that already exist on this computer."
     }
   },
   "header": {
@@ -1421,7 +1452,9 @@
       "exportSuccess": "Successfully exported {{count}} items",
       "syncSuccess": "Sync completed successfully",
       "profileSynced": "Profile '{{name}}' synced successfully",
-      "cacheCleared": "Cache cleared successfully"
+      "cacheCleared": "Cache cleared successfully",
+      "backupCreated": "Backup created: {{count}} profiles, {{size}}",
+      "backupRestored": "Restored {{count}} profiles from the backup"
     },
     "error": {
       "profileCreateFailed": "Could not create profile",
@@ -2501,7 +2534,10 @@
       "askAgent": "Ask the agent",
       "showWindow": "Show window",
       "pin": "Pin",
-      "unpin": "Unpin"
+      "unpin": "Unpin",
+      "cleanCache": "Clear cache (free up space)",
+      "cacheCleaned": "Cache cleared",
+      "cacheFreed": "Freed {{size}}"
     },
     "emptyGroupTitle": "This group is empty",
     "emptyGroupHint": "Create a profile in this group, or move existing profiles into it.",
@@ -3024,7 +3060,13 @@
     "bookmarksFileInvalid": "Donut cannot read bookmarks from this file. Use Chrome's Bookmarks file or an exported HTML file.",
     "previewsNotEntitled": "Live previews need the Pro plan or higher.",
     "bulkTableEmpty": "The table holds no profiles to create.",
-    "staggeredLaunchBusy": "A staggered launch is already running. Wait for it to finish or cancel it."
+    "staggeredLaunchBusy": "A staggered launch is already running. Wait for it to finish or cancel it.",
+    "backupWriteFailed": "Could not write the backup: {{detail}}",
+    "backupRestoreFailed": "Could not restore the backup: {{detail}}",
+    "backupArchiveInvalid": "That file is not a readable backup archive.",
+    "backupTooNew": "This backup was made by a newer version of Donut (format {{version}}). Update this app and try again.",
+    "backupUnsafeArchive": "The backup archive contains unsafe paths and was not restored.",
+    "backupEmpty": "There are no profiles to back up."
   },
   "rail": {
     "profiles": "Profiles",

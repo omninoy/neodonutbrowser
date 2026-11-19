@@ -304,6 +304,37 @@
       "checkNote": "保存前，Donut 会检查其服务器能否通过该代理响应。协议：http、https、socks5、socks5h。",
       "saved": "Donut 现在通过 {{proxy}} 连接。",
       "removed": "Donut 不再使用专用代理。"
+    },
+    "backup": {
+      "title": "备份与恢复",
+      "create": "创建备份",
+      "createDescription": "把配置文件数据和（可选的）代理列表打包成一个可携带的 .neobackup 文件。",
+      "createButton": "创建备份",
+      "restore": "从备份恢复",
+      "restoreDescription": "从本机或另一台电脑生成的 .neobackup 归档中恢复配置文件。",
+      "restoreButton": "恢复",
+      "createDialogTitle": "创建备份",
+      "createDialogDescription": "选择要归档的配置文件。备份会保留所有登录状态；缓存不包含在内。",
+      "loadingProfiles": "正在加载配置文件…",
+      "noProfiles": "没有可备份的配置文件。",
+      "selectAll": "全选",
+      "includeProxies": "包含代理列表",
+      "password": "加密密码（可选）",
+      "passwordPlaceholder": "留空则不加密",
+      "passwordHint": "加密的备份只能用这个密码打开，且无法找回密码。",
+      "saveTitle": "保存备份",
+      "archiveFilter": "NeoDonut 备份",
+      "createConfirm": "创建备份",
+      "restoreDialogTitle": "从备份恢复",
+      "restoreDialogDescription": "选择一个 .neobackup 文件。这台电脑上已有的配置文件会被跳过，除非选择覆盖。",
+      "chooseFile": "选择文件",
+      "noFileChosen": "未选择文件",
+      "overwrite": "覆盖已存在的配置文件",
+      "overwriteHint": "同 ID 的配置文件会被连同数据一起替换，此操作无法撤销。",
+      "openTitle": "打开备份",
+      "restoreConfirm": "恢复",
+      "createdEncrypted": "备份已用你的密码加密。",
+      "restoreSkipped": "已跳过 {{count}} 个这台电脑上已有的配置文件。"
     }
   },
   "header": {
@@ -1420,7 +1451,9 @@
       "exportSuccess": "成功导出 {{count}} 个项目",
       "syncSuccess": "同步成功完成",
       "profileSynced": "配置文件 '{{name}}' 同步成功",
-      "cacheCleared": "缓存清除成功"
+      "cacheCleared": "缓存清除成功",
+      "backupCreated": "备份已创建：{{count}} 个配置文件，{{size}}",
+      "backupRestored": "已从备份恢复 {{count}} 个配置文件"
     },
     "error": {
       "profileCreateFailed": "创建配置文件失败",
@@ -2500,7 +2533,10 @@
       "askAgent": "询问智能体",
       "showWindow": "显示窗口",
       "pin": "置顶",
-      "unpin": "取消置顶"
+      "unpin": "取消置顶",
+      "cleanCache": "清除缓存（释放空间）",
+      "cacheCleaned": "缓存已清除",
+      "cacheFreed": "已释放 {{size}}"
     },
     "emptyGroupTitle": "此分组为空",
     "emptyGroupHint": "在此分组中创建配置文件，或将现有配置文件移到这里。",
@@ -3024,7 +3060,13 @@
     "previewsNotEntitled": "实时预览需要 Pro 或更高套餐。",
     "proxyRotationIntervalInvalid": "自动轮换间隔必须在 0 到 43200 分钟之间。",
     "bulkTableEmpty": "表格中没有可创建的配置文件。",
-    "staggeredLaunchBusy": "延迟启动已在进行中。请等待其完成或取消。"
+    "staggeredLaunchBusy": "延迟启动已在进行中。请等待其完成或取消。",
+    "backupWriteFailed": "无法写入备份：{{detail}}",
+    "backupRestoreFailed": "无法从备份恢复：{{detail}}",
+    "backupArchiveInvalid": "该文件不是可读取的备份归档。",
+    "backupTooNew": "此备份由更新版本的 Donut 生成（格式 {{version}}）。请更新应用后再试。",
+    "backupUnsafeArchive": "备份归档包含不安全的路径，未执行恢复。",
+    "backupEmpty": "没有可备份的配置文件。"
   },
   "rail": {
     "profiles": "配置文件",

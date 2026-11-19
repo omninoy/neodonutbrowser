@@ -18,6 +18,7 @@ import {
   LuBriefcaseBusiness,
   LuCamera,
   LuCopy,
+  LuDatabaseBackup,
   LuEyeOff,
   LuGlobe,
   LuLogIn,
@@ -38,6 +39,7 @@ import { DnsBlocklistDialog } from "@/components/dns-blocklist-dialog";
 import { LoadingButton } from "@/components/loading-button";
 import { LogViewer } from "@/components/log-viewer";
 import { AppProxySettings } from "@/components/settings/app-proxy-settings";
+import { BackupSettings } from "@/components/settings/backup-settings";
 import { EncryptionSettings } from "@/components/settings/encryption-settings";
 import {
   ChoiceCard,
@@ -179,6 +181,16 @@ const SECTIONS: Array<{
       "dnsBlocklist.title",
       "dnsBlocklist.settingsDescription",
       "settings.integrations",
+    ],
+  },
+  {
+    id: "backup",
+    title: "settings.backup.title",
+    icon: <LuDatabaseBackup />,
+    search: [
+      "settings.backup",
+      "settings.backup.createDescription",
+      "settings.backup.restoreDescription",
     ],
   },
   {
@@ -1088,6 +1100,10 @@ export function SettingsDialog({
                     </Button>
                   </SettingRow>
                 </SettingsCard>
+              </SettingsSection>
+
+              <SettingsSection {...sectionProps("backup")}>
+                <BackupSettings />
               </SettingsSection>
 
               <SettingsSection {...sectionProps("privacy")}>

@@ -188,6 +188,7 @@ import {
 } from "@/lib/dns-blocklist-levels";
 import { canUseCookieBot } from "@/lib/entitlements";
 import { formatRelativeTime } from "@/lib/flag-utils";
+import { formatBytes } from "@/lib/format-bytes";
 import {
   MOTION_EASE_IN,
   MOTION_EASE_OUT,
@@ -4457,6 +4458,26 @@ export function ProfilesDataTable({
           void onCloneProfile(profile);
         }
       : undefined);
+  // A disk clean wipes only what Chromium rebuilds, but it must not race a
+  // live browser's writes, and the menu item goes away while one runs.
+  const cleanProfileCache = React.useCallback(
+    async (profile: BrowserProfile) => {
+      try {
+        const freed = await invoke<number>("clean_profile_cache", {
+          profileId: profile.id,
+          purgeCookies: false,
+        });
+        showSuccessToast(t("profileTable.menu.cacheCleaned"), {
+          description: t("profileTable.menu.cacheFreed", {
+            size: formatBytes(freed),
+          }),
+        });
+      } catch (error) {
+        showErrorToast(translateBackendError(t, error));
+      }
+    },
+    [t],
+  );
   const menuActions = (() => {
     if (!menuProfile) return null;
     const runtime = getRowRuntime(menuProfile, tableMeta);
@@ -4499,6 +4520,12 @@ export function ProfilesDataTable({
         menuProfile.browser === "wayfern" &&
         menuProfile.ephemeral !== true
           ? () => onImportCookies(menuProfile)
+          : undefined,
+      // Ephemeral profiles are discarded on close, so there is no disk to
+      // free; the menu handles a running browser by disabling the item.
+      onCleanCache:
+        menuProfile.ephemeral !== true
+          ? () => void cleanProfileCache(menuProfile)
           : undefined,
       isPinned: pinned.has(menuProfile.id),
       onTogglePin: () => togglePinned([menuProfile.id]),

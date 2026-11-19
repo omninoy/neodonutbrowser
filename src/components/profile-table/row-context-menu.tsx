@@ -8,6 +8,7 @@ import {
   LuCloud,
   LuCopy,
   LuDownload,
+  LuEraser,
   LuFolderInput,
   LuInfo,
   LuLock,
@@ -49,6 +50,8 @@ export interface RowMenuActions {
   onExportCookies?: () => void;
   /** Opens the cookie dialog on its import tab; only for local-browser profiles. */
   onImportCookies?: () => void;
+  /** Frees the profile's disk by wiping the caches Chromium rebuilds; only while the browser is stopped. */
+  onCleanCache?: () => void;
   isPinned: boolean;
   onTogglePin: () => void;
   onRunRemote?: () => void;
@@ -197,6 +200,16 @@ export function RowContextMenuContent({
             </ContextMenuItem>
           )}
         </>
+      )}
+      {actions.onCleanCache && (
+        <ContextMenuItem
+          data-slot="profile-row-clean-cache"
+          disabled={actions.isRunning}
+          onSelect={actions.onCleanCache}
+        >
+          <LuEraser />
+          {t("profileTable.menu.cleanCache")}
+        </ContextMenuItem>
       )}
       {actions.onAskAgent && (
         <ContextMenuItem

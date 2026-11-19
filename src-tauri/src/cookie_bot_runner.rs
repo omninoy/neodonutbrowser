@@ -281,9 +281,7 @@ pub async fn execute_cookie_warming(
           .collect()
       };
       for (depth, reverse, pause_ms) in scroll_plan {
-        if cancel_flag.load(Ordering::SeqCst)
-          || run_start_instant.elapsed() > max_duration
-        {
+        if cancel_flag.load(Ordering::SeqCst) || run_start_instant.elapsed() > max_duration {
           break;
         }
 

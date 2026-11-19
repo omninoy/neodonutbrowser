@@ -305,6 +305,37 @@
       "checkNote": "Donut vérifie que ses serveurs répondent via le proxy avant de l'enregistrer. Schémas : http, https, socks5, socks5h.",
       "saved": "Donut se connecte maintenant via {{proxy}}.",
       "removed": "Donut n'utilise plus de proxy propre."
+    },
+    "backup": {
+      "title": "Sauvegarde et restauration",
+      "create": "Créer une sauvegarde",
+      "createDescription": "Empaqueter les données des profils et, si vous voulez, la liste des proxys dans un fichier .neobackup portable.",
+      "createButton": "Créer une sauvegarde",
+      "restore": "Restaurer une sauvegarde",
+      "restoreDescription": "Récupérer des profils depuis une archive .neobackup créée ici ou sur un autre ordinateur.",
+      "restoreButton": "Restaurer",
+      "createDialogTitle": "Créer une sauvegarde",
+      "createDialogDescription": "Choisissez les profils à archiver. La sauvegarde garde toutes les sessions ; les caches restent dehors.",
+      "loadingProfiles": "Chargement des profils…",
+      "noProfiles": "Aucun profil à sauvegarder.",
+      "selectAll": "Tout sélectionner",
+      "includeProxies": "Inclure la liste des proxys",
+      "password": "Mot de passe de chiffrement (facultatif)",
+      "passwordPlaceholder": "Laissez vide pour ne pas chiffrer",
+      "passwordHint": "Une sauvegarde chiffrée ne s'ouvre qu'avec ce mot de passe. Aucune récupération n'est possible.",
+      "saveTitle": "Enregistrer la sauvegarde",
+      "archiveFilter": "Sauvegarde NeoDonut",
+      "createConfirm": "Créer la sauvegarde",
+      "restoreDialogTitle": "Restaurer une sauvegarde",
+      "restoreDialogDescription": "Choisissez un fichier .neobackup. Les profils déjà présents sur cet ordinateur sont ignorés, sauf si vous demandez l'écrasement.",
+      "chooseFile": "Choisir un fichier",
+      "noFileChosen": "Aucun fichier choisi",
+      "overwrite": "Écraser les profils existants",
+      "overwriteHint": "Remplace un profil du même identifiant, données comprises. Action irréversible.",
+      "openTitle": "Ouvrir une sauvegarde",
+      "restoreConfirm": "Restaurer",
+      "createdEncrypted": "La sauvegarde est chiffrée avec votre mot de passe.",
+      "restoreSkipped": "{{count}} profils ignorés car déjà présents sur cet ordinateur."
     }
   },
   "header": {
@@ -1431,7 +1462,9 @@
       "exportSuccess": "{{count}} éléments exportés avec succès",
       "syncSuccess": "Synchronisation terminée avec succès",
       "profileSynced": "Profil '{{name}}' synchronisé avec succès",
-      "cacheCleared": "Cache effacé avec succès"
+      "cacheCleared": "Cache effacé avec succès",
+      "backupCreated": "Sauvegarde créée : {{count}} profils, {{size}}",
+      "backupRestored": "{{count}} profils restaurés depuis la sauvegarde"
     },
     "error": {
       "profileCreateFailed": "Échec de la création du profil",
@@ -2519,7 +2552,10 @@
       "askAgent": "Demander à l’agent",
       "showWindow": "Afficher la fenêtre",
       "pin": "Épingler",
-      "unpin": "Désépingler"
+      "unpin": "Désépingler",
+      "cleanCache": "Vider le cache (libérer de l'espace)",
+      "cacheCleaned": "Cache vidé",
+      "cacheFreed": "{{size}} libérés"
     },
     "emptyGroupTitle": "Ce groupe est vide",
     "emptyGroupHint": "Créez un profil dans ce groupe ou déplacez-y des profils existants.",
@@ -3043,7 +3079,13 @@
     "previewsNotEntitled": "Les aperçus en direct nécessitent le forfait Pro ou supérieur.",
     "proxyRotationIntervalInvalid": "L'intervalle de rotation automatique doit être compris entre 0 et 43200 minutes.",
     "bulkTableEmpty": "Le tableau ne contient aucun profil à créer.",
-    "staggeredLaunchBusy": "Un lancement échelonné est déjà en cours. Attendez la fin ou annulez-le."
+    "staggeredLaunchBusy": "Un lancement échelonné est déjà en cours. Attendez la fin ou annulez-le.",
+    "backupWriteFailed": "Impossible d'écrire la sauvegarde : {{detail}}",
+    "backupRestoreFailed": "Impossible de restaurer la sauvegarde : {{detail}}",
+    "backupArchiveInvalid": "Ce fichier n'est pas une archive de sauvegarde lisible.",
+    "backupTooNew": "Cette sauvegarde a été créée par une version plus récente de Donut (format {{version}}). Mettez l'application à jour et réessayez.",
+    "backupUnsafeArchive": "L'archive de sauvegarde contient des chemins dangereux et n'a pas été restaurée.",
+    "backupEmpty": "Aucun profil à sauvegarder."
   },
   "rail": {
     "profiles": "Profils",

@@ -305,6 +305,37 @@
       "checkNote": "Donut comprueba que sus servidores responden a través del proxy antes de guardarlo. Esquemas: http, https, socks5, socks5h.",
       "saved": "Donut ahora se conecta a través de {{proxy}}.",
       "removed": "Donut ya no usa un proxy propio."
+    },
+    "backup": {
+      "title": "Copia de seguridad y restauración",
+      "create": "Crear copia de seguridad",
+      "createDescription": "Empaqueta los datos de tus perfiles y, si quieres, la lista de proxies en un archivo .neobackup portátil.",
+      "createButton": "Crear copia",
+      "restore": "Restaurar desde una copia",
+      "restoreDescription": "Recupera perfiles de un archivo .neobackup creado aquí o en otro equipo.",
+      "restoreButton": "Restaurar",
+      "createDialogTitle": "Crear copia de seguridad",
+      "createDialogDescription": "Elige los perfiles a archivar. La copia conserva todos los inicios de sesión; el caché queda fuera.",
+      "loadingProfiles": "Cargando perfiles…",
+      "noProfiles": "No hay perfiles para copiar.",
+      "selectAll": "Seleccionar todos",
+      "includeProxies": "Incluir la lista de proxies",
+      "password": "Contraseña de cifrado (opcional)",
+      "passwordPlaceholder": "Déjala vacía para no cifrar",
+      "passwordHint": "Una copia cifrada solo se abre con esta contraseña. No hay forma de recuperarla.",
+      "saveTitle": "Guardar copia de seguridad",
+      "archiveFilter": "Copia de NeoDonut",
+      "createConfirm": "Crear copia",
+      "restoreDialogTitle": "Restaurar desde una copia",
+      "restoreDialogDescription": "Elige un archivo .neobackup. Los perfiles que ya existen en este equipo se omiten salvo que actives la sobrescritura.",
+      "chooseFile": "Elegir archivo",
+      "noFileChosen": "Ningún archivo elegido",
+      "overwrite": "Sobrescribir perfiles existentes",
+      "overwriteHint": "Reemplaza un perfil con el mismo id, incluidos sus datos. No se puede deshacer.",
+      "openTitle": "Abrir copia de seguridad",
+      "restoreConfirm": "Restaurar",
+      "createdEncrypted": "La copia está cifrada con tu contraseña.",
+      "restoreSkipped": "Se omitieron {{count}} perfiles que ya existían en este equipo."
     }
   },
   "header": {
@@ -1431,7 +1462,9 @@
       "exportSuccess": "{{count}} elementos exportados exitosamente",
       "syncSuccess": "Sincronización completada exitosamente",
       "profileSynced": "Perfil '{{name}}' sincronizado exitosamente",
-      "cacheCleared": "Caché limpiada exitosamente"
+      "cacheCleared": "Caché limpiada exitosamente",
+      "backupCreated": "Copia creada: {{count}} perfiles, {{size}}",
+      "backupRestored": "{{count}} perfiles restaurados desde la copia"
     },
     "error": {
       "profileCreateFailed": "Error al crear perfil",
@@ -2519,7 +2552,10 @@
       "askAgent": "Preguntar al agente",
       "showWindow": "Mostrar ventana",
       "pin": "Fijar",
-      "unpin": "Dejar de fijar"
+      "unpin": "Dejar de fijar",
+      "cleanCache": "Borrar caché (liberar espacio)",
+      "cacheCleaned": "Caché borrado",
+      "cacheFreed": "Se liberaron {{size}}"
     },
     "emptyGroupTitle": "Este grupo está vacío",
     "emptyGroupHint": "Crea un perfil en este grupo o mueve aquí perfiles existentes.",
@@ -3043,7 +3079,13 @@
     "previewsNotEntitled": "Las vistas previas en vivo necesitan el plan Pro o superior.",
     "proxyRotationIntervalInvalid": "El intervalo de rotación automática debe estar entre 0 y 43200 minutos.",
     "bulkTableEmpty": "La tabla no contiene perfiles para crear.",
-    "staggeredLaunchBusy": "Ya hay un lanzamiento con retardo en marcha. Espera a que termine o cancélalo."
+    "staggeredLaunchBusy": "Ya hay un lanzamiento con retardo en marcha. Espera a que termine o cancélalo.",
+    "backupWriteFailed": "No se pudo escribir la copia: {{detail}}",
+    "backupRestoreFailed": "No se pudo restaurar la copia: {{detail}}",
+    "backupArchiveInvalid": "Ese archivo no es un archivo de copia legible.",
+    "backupTooNew": "Esta copia fue creada por una versión más reciente de Donut (formato {{version}}). Actualiza la app e inténtalo de nuevo.",
+    "backupUnsafeArchive": "El archivo de copia contiene rutas no seguras y no se restauró.",
+    "backupEmpty": "No hay perfiles para copiar."
   },
   "rail": {
     "profiles": "Perfiles",

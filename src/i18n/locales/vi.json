@@ -304,6 +304,37 @@
       "checkNote": "Donut kiểm tra máy chủ của nó có phản hồi qua proxy trước khi lưu. Lược đồ: http, https, socks5, socks5h.",
       "saved": "Donut hiện kết nối qua {{proxy}}.",
       "removed": "Donut không còn dùng proxy riêng."
+    },
+    "backup": {
+      "title": "Sao lưu và khôi phục",
+      "create": "Tạo bản sao lưu",
+      "createDescription": "Gói dữ liệu hồ sơ và (nếu muốn) danh sách proxy vào một tệp .neobackup bỏ túi.",
+      "createButton": "Tạo bản sao lưu",
+      "restore": "Khôi phục từ bản sao lưu",
+      "restoreDescription": "Đưa hồ sơ trở lại từ một tệp .neobackup được tạo tại đây hoặc trên máy tính khác.",
+      "restoreButton": "Khôi phục",
+      "createDialogTitle": "Tạo bản sao lưu",
+      "createDialogDescription": "Chọn hồ sơ cần lưu trữ. Bản sao lưu giữ mọi phiên đăng nhập; bộ nhớ đệm không được đưa vào.",
+      "loadingProfiles": "Đang tải hồ sơ…",
+      "noProfiles": "Không có hồ sơ để sao lưu.",
+      "selectAll": "Chọn tất cả",
+      "includeProxies": "Kèm danh sách proxy",
+      "password": "Mật khẩu mã hóa (không bắt buộc)",
+      "passwordPlaceholder": "Để trống nếu không mã hóa",
+      "passwordHint": "Bản sao lưu đã mã hóa chỉ mở được bằng mật khẩu này. Không có cách khôi phục.",
+      "saveTitle": "Lưu bản sao lưu",
+      "archiveFilter": "Bản sao lưu NeoDonut",
+      "createConfirm": "Tạo bản sao lưu",
+      "restoreDialogTitle": "Khôi phục từ bản sao lưu",
+      "restoreDialogDescription": "Chọn một tệp .neobackup. Các hồ sơ máy tính này đã có sẽ được bỏ qua, trừ khi bạn chọn ghi đè.",
+      "chooseFile": "Chọn tệp",
+      "noFileChosen": "Chưa chọn tệp",
+      "overwrite": "Ghi đè hồ sơ hiện có",
+      "overwriteHint": "Thay thế hồ sơ cùng định danh, kể cả dữ liệu của nó. Không thể hoàn tác.",
+      "openTitle": "Mở bản sao lưu",
+      "restoreConfirm": "Khôi phục",
+      "createdEncrypted": "Bản sao lưu được mã hóa bằng mật khẩu của bạn.",
+      "restoreSkipped": "Đã bỏ qua {{count}} hồ sơ vốn đã có trên máy tính này."
     }
   },
   "header": {
@@ -1420,7 +1451,9 @@
       "exportSuccess": "Đã xuất thành công {{count}} mục",
       "syncSuccess": "Đồng bộ hoàn tất",
       "profileSynced": "Đã đồng bộ profile '{{name}}' thành công",
-      "cacheCleared": "Xóa bộ nhớ đệm thành công"
+      "cacheCleared": "Xóa bộ nhớ đệm thành công",
+      "backupCreated": "Đã tạo bản sao lưu: {{count}} hồ sơ, {{size}}",
+      "backupRestored": "Đã khôi phục {{count}} hồ sơ từ bản sao lưu"
     },
     "error": {
       "profileCreateFailed": "Tạo profile thất bại",
@@ -2500,7 +2533,10 @@
       "askAgent": "Hỏi tác tử",
       "showWindow": "Hiện cửa sổ",
       "pin": "Ghim",
-      "unpin": "Bỏ ghim"
+      "unpin": "Bỏ ghim",
+      "cleanCache": "Xóa bộ nhớ đệm (giải phóng dung lượng)",
+      "cacheCleaned": "Đã xóa bộ nhớ đệm",
+      "cacheFreed": "Đã giải phóng {{size}}"
     },
     "emptyGroupTitle": "Nhóm này đang trống",
     "emptyGroupHint": "Tạo một hồ sơ trong nhóm này hoặc chuyển các hồ sơ hiện có vào đây.",
@@ -3023,7 +3059,13 @@
     "previewsNotEntitled": "Xem trước trực tiếp cần gói Pro trở lên.",
     "proxyRotationIntervalInvalid": "Chu kỳ xoay IP tự động phải nằm trong khoảng từ 0 đến 43200 phút.",
     "bulkTableEmpty": "Bảng không có hồ sơ nào để tạo.",
-    "staggeredLaunchBusy": "Một lần khởi động cách quãng đang chạy. Hãy đợi nó xong hoặc hủy nó."
+    "staggeredLaunchBusy": "Một lần khởi động cách quãng đang chạy. Hãy đợi nó xong hoặc hủy nó.",
+    "backupWriteFailed": "Không thể ghi bản sao lưu: {{detail}}",
+    "backupRestoreFailed": "Không thể khôi phục bản sao lưu: {{detail}}",
+    "backupArchiveInvalid": "Tệp này không phải là tệp sao lưu đọc được.",
+    "backupTooNew": "Bản sao lưu này được tạo bằng phiên bản Donut mới hơn (định dạng {{version}}). Hãy cập nhật ứng dụng rồi thử lại.",
+    "backupUnsafeArchive": "Tệp sao lưu chứa đường dẫn không an toàn nên không được khôi phục.",
+    "backupEmpty": "Không có hồ sơ để sao lưu."
   },
   "rail": {
     "profiles": "Profile",

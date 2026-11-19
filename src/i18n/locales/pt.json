@@ -305,6 +305,37 @@
       "checkNote": "O Donut verifica se os servidores dele respondem pelo proxy antes de salvá-lo. Esquemas: http, https, socks5, socks5h.",
       "saved": "O Donut agora se conecta por {{proxy}}.",
       "removed": "O Donut não usa mais um proxy próprio."
+    },
+    "backup": {
+      "title": "Backup e restauração",
+      "create": "Criar backup",
+      "createDescription": "Empacota os dados dos perfis e, se quiser, a lista de proxies em um único arquivo .neobackup portátil.",
+      "createButton": "Criar backup",
+      "restore": "Restaurar de um backup",
+      "restoreDescription": "Traz perfis de volta de um arquivo .neobackup feito aqui ou em outro computador.",
+      "restoreButton": "Restaurar",
+      "createDialogTitle": "Criar backup",
+      "createDialogDescription": "Escolha os perfis a arquivar. O backup guarda todos os logins; os caches ficam de fora.",
+      "loadingProfiles": "Carregando perfis…",
+      "noProfiles": "Não há perfis para salvar.",
+      "selectAll": "Selecionar tudo",
+      "includeProxies": "Incluir a lista de proxies",
+      "password": "Senha de criptografia (opcional)",
+      "passwordPlaceholder": "Deixe vazio para não criptografar",
+      "passwordHint": "Um backup criptografado só abre com esta senha. Não há recuperação.",
+      "saveTitle": "Salvar backup",
+      "archiveFilter": "Backup do NeoDonut",
+      "createConfirm": "Criar backup",
+      "restoreDialogTitle": "Restaurar de um backup",
+      "restoreDialogDescription": "Escolha um arquivo .neobackup. Os perfis que este computador já tem são ignorados, a menos que você marque substituir.",
+      "chooseFile": "Escolher arquivo",
+      "noFileChosen": "Nenhum arquivo escolhido",
+      "overwrite": "Substituir perfis existentes",
+      "overwriteHint": "Substitui um perfil com o mesmo id, incluindo os dados. Não pode ser desfeito.",
+      "openTitle": "Abrir backup",
+      "restoreConfirm": "Restaurar",
+      "createdEncrypted": "O backup está criptografado com sua senha.",
+      "restoreSkipped": "{{count}} perfis ignorados porque já existiam neste computador."
     }
   },
   "header": {
@@ -1431,7 +1462,9 @@
       "exportSuccess": "{{count}} itens exportados com sucesso",
       "syncSuccess": "Sincronização concluída com sucesso",
       "profileSynced": "Perfil '{{name}}' sincronizado com sucesso",
-      "cacheCleared": "Cache limpo com sucesso"
+      "cacheCleared": "Cache limpo com sucesso",
+      "backupCreated": "Backup criado: {{count}} perfis, {{size}}",
+      "backupRestored": "{{count}} perfis restaurados do backup"
     },
     "error": {
       "profileCreateFailed": "Falha ao criar perfil",
@@ -2519,7 +2552,10 @@
       "askAgent": "Perguntar ao agente",
       "showWindow": "Mostrar janela",
       "pin": "Fixar",
-      "unpin": "Desafixar"
+      "unpin": "Desafixar",
+      "cleanCache": "Limpar cache (liberar espaço)",
+      "cacheCleaned": "Cache limpo",
+      "cacheFreed": "Liberados {{size}}"
     },
     "emptyGroupTitle": "Este grupo está vazio",
     "emptyGroupHint": "Crie um perfil neste grupo ou mova perfis existentes para ele.",
@@ -3043,7 +3079,13 @@
     "previewsNotEntitled": "As pré-visualizações ao vivo precisam do plano Pro ou superior.",
     "proxyRotationIntervalInvalid": "O intervalo de rotação automática deve estar entre 0 e 43200 minutos.",
     "bulkTableEmpty": "A tabela não contém perfis para criar.",
-    "staggeredLaunchBusy": "Uma inicialização escalonada já está em andamento. Aguarde o fim ou cancele-a."
+    "staggeredLaunchBusy": "Uma inicialização escalonada já está em andamento. Aguarde o fim ou cancele-a.",
+    "backupWriteFailed": "Não foi possível gravar o backup: {{detail}}",
+    "backupRestoreFailed": "Não foi possível restaurar o backup: {{detail}}",
+    "backupArchiveInvalid": "Esse arquivo não é um backup legível.",
+    "backupTooNew": "Este backup foi feito por uma versão mais recente do Donut (formato {{version}}). Atualize o aplicativo e tente de novo.",
+    "backupUnsafeArchive": "O arquivo de backup contém caminhos inseguros e não foi restaurado.",
+    "backupEmpty": "Não há perfis para salvar."
   },
   "rail": {
     "profiles": "Perfis",

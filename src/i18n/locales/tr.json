@@ -305,6 +305,37 @@
       "checkNote": "Donut, kaydetmeden önce sunucularının proxy üzerinden yanıt verdiğini denetler. Şemalar: http, https, socks5, socks5h.",
       "saved": "Donut artık {{proxy}} üzerinden bağlanıyor.",
       "removed": "Donut artık kendi proxy'sini kullanmıyor."
+    },
+    "backup": {
+      "title": "Yedekleme ve geri yükleme",
+      "create": "Yedek oluştur",
+      "createDescription": "Profil verilerini ve istersen proxy listesini taşınabilir tek bir .neobackup dosyasına paketler.",
+      "createButton": "Yedek oluştur",
+      "restore": "Yedekten geri yükle",
+      "restoreDescription": "Burada ya da başka bir bilgisayarda yapılmış bir .neobackup arşivinden profilleri geri getirir.",
+      "restoreButton": "Geri yükle",
+      "createDialogTitle": "Yedek oluştur",
+      "createDialogDescription": "Arşivlenecek profilleri seç. Yedek tüm oturumları içerir; önbellekler dışarıda kalır.",
+      "loadingProfiles": "Profiller yükleniyor…",
+      "noProfiles": "Yedeklenecek profil yok.",
+      "selectAll": "Tümünü seç",
+      "includeProxies": "Proxy listesini ekle",
+      "password": "Şifreleme parolası (isteğe bağlı)",
+      "passwordPlaceholder": "Şifrelememek için boş bırak",
+      "passwordHint": "Şifrelenmiş yedeği yalnızca bu parola açar. Kurtarma yolu yoktur.",
+      "saveTitle": "Yedeği kaydet",
+      "archiveFilter": "NeoDonut yedeği",
+      "createConfirm": "Yedek oluştur",
+      "restoreDialogTitle": "Yedekten geri yükle",
+      "restoreDialogDescription": "Bir .neobackup dosyası seç. Bu bilgisayarda zaten olan profiller, üzerine yazmadıkça atlanır.",
+      "chooseFile": "Dosya seç",
+      "noFileChosen": "Dosya seçilmedi",
+      "overwrite": "Var olan profillerin üzerine yaz",
+      "overwriteHint": "Aynı kimlikteki profili verileriyle birlikte değiştirir. Bu işlem geri alınamaz.",
+      "openTitle": "Yedek aç",
+      "restoreConfirm": "Geri yükle",
+      "createdEncrypted": "Yedek parolanla şifrelendi.",
+      "restoreSkipped": "Bu bilgisayarda zaten olan {{count}} profil atlandı."
     }
   },
   "header": {
@@ -1423,7 +1454,9 @@
       "exportSuccess": "{{count}} öğe başarıyla dışa aktarıldı",
       "syncSuccess": "Eşitleme başarıyla tamamlandı",
       "profileSynced": "'{{name}}' profili başarıyla eşitlendi",
-      "cacheCleared": "Önbellek başarıyla temizlendi"
+      "cacheCleared": "Önbellek başarıyla temizlendi",
+      "backupCreated": "Yedek oluşturuldu: {{count}} profil, {{size}}",
+      "backupRestored": "Yedekten {{count}} profil geri yüklendi"
     },
     "error": {
       "profileCreateFailed": "Profil oluşturulamadı",
@@ -2505,7 +2538,10 @@
       "askAgent": "Ajana sor",
       "showWindow": "Pencereyi göster",
       "pin": "Sabitle",
-      "unpin": "Sabitlemeyi kaldır"
+      "unpin": "Sabitlemeyi kaldır",
+      "cleanCache": "Önbelleği temizle (yer aç)",
+      "cacheCleaned": "Önbellek temizlendi",
+      "cacheFreed": "{{size}} boşaltıldı"
     },
     "emptyGroupTitle": "Bu grup boş",
     "emptyGroupHint": "Bu grupta bir profil oluşturun veya mevcut profilleri buraya taşıyın.",
@@ -3029,7 +3065,13 @@
     "previewsNotEntitled": "Canlı önizlemeler için Pro veya üstü plan gerekir.",
     "proxyRotationIntervalInvalid": "Otomatik rotasyon aralığı 0 ile 43200 dakika arasında olmalıdır.",
     "bulkTableEmpty": "Tabloda oluşturulacak profil yok.",
-    "staggeredLaunchBusy": "Gecikmeli bir başlatma zaten çalışıyor. Bitmesini bekleyin veya iptal edin."
+    "staggeredLaunchBusy": "Gecikmeli bir başlatma zaten çalışıyor. Bitmesini bekleyin veya iptal edin.",
+    "backupWriteFailed": "Yedek yazılamadı: {{detail}}",
+    "backupRestoreFailed": "Yedek geri yüklenemedi: {{detail}}",
+    "backupArchiveInvalid": "Bu dosya okunabilir bir yedek arşivi değil.",
+    "backupTooNew": "Bu yedek daha yeni bir Donut sürümüyle yapılmış (biçim {{version}}). Uygulamayı güncelleyip yeniden deneyin.",
+    "backupUnsafeArchive": "Yedek arşivi güvenli olmayan yollar içeriyor ve geri yüklenmedi.",
+    "backupEmpty": "Yedeklenecek profil yok."
   },
   "rail": {
     "profiles": "Profiller",

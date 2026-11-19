@@ -172,6 +172,7 @@ pub mod app_dirs;
 mod app_proxy;
 mod auto_updater;
 mod automation_rate_limiter;
+mod backup_manager;
 mod bookmark_import;
 mod browser;
 mod browser_runner;
@@ -3859,6 +3860,9 @@ pub fn run_with_builder(
       profile::portable::export_profile,
       profile::portable::preview_profile_archive,
       profile::portable::import_profile_archive,
+      backup_manager::create_backup,
+      backup_manager::restore_backup,
+      backup_manager::clean_profile_cache,
       launch_gate::ack_launch_gate,
       window_decorations::get_window_decoration_layout,
       validate_vless_uri,

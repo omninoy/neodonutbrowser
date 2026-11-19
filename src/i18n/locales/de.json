@@ -305,6 +305,37 @@
       "checkNote": "Donut prüft vor dem Speichern, ob seine Server über den Proxy antworten. Schemata: http, https, socks5, socks5h.",
       "saved": "Donut verbindet sich jetzt über {{proxy}}.",
       "removed": "Donut nutzt keinen eigenen Proxy mehr."
+    },
+    "backup": {
+      "title": "Backup & Wiederherstellung",
+      "create": "Backup erstellen",
+      "createDescription": "Profil-Daten und optional die Proxy-Liste in eine portable .neobackup-Datei packen.",
+      "createButton": "Backup erstellen",
+      "restore": "Aus Backup wiederherstellen",
+      "restoreDescription": "Profile aus einem .neobackup-Archiv zurückholen, das hier oder auf einem anderen Computer erstellt wurde.",
+      "restoreButton": "Wiederherstellen",
+      "createDialogTitle": "Backup erstellen",
+      "createDialogDescription": "Wähle die Profile für das Archiv. Das Backup enthält alle Anmeldungen; der Cache bleibt außen vor.",
+      "loadingProfiles": "Profile werden geladen…",
+      "noProfiles": "Keine Profile zu sichern.",
+      "selectAll": "Alle auswählen",
+      "includeProxies": "Proxy-Liste einschließen",
+      "password": "Verschlüsselungspasswort (optional)",
+      "passwordPlaceholder": "Leer lassen, um nicht zu verschlüsseln",
+      "passwordHint": "Ein verschlüsseltes Backup lässt sich nur mit diesem Passwort öffnen. Es gibt keine Wiederherstellung.",
+      "saveTitle": "Backup speichern",
+      "archiveFilter": "NeoDonut-Backup",
+      "createConfirm": "Backup erstellen",
+      "restoreDialogTitle": "Aus Backup wiederherstellen",
+      "restoreDialogDescription": "Wähle eine .neobackup-Datei. Profile, die dieser Computer bereits hat, werden übersprungen, außer du überschreibst sie.",
+      "chooseFile": "Datei wählen",
+      "noFileChosen": "Keine Datei ausgewählt",
+      "overwrite": "Vorhandene Profile überschreiben",
+      "overwriteHint": "Ersetzt ein Profil mit derselben ID samt Daten. Dies kann nicht rückgängig gemacht werden.",
+      "openTitle": "Backup öffnen",
+      "restoreConfirm": "Wiederherstellen",
+      "createdEncrypted": "Das Backup ist mit deinem Passwort verschlüsselt.",
+      "restoreSkipped": "{{count}} Profile übersprungen, die dieser Computer bereits hat."
     }
   },
   "header": {
@@ -1423,7 +1454,9 @@
       "exportSuccess": "{{count}} Elemente erfolgreich exportiert",
       "syncSuccess": "Synchronisierung erfolgreich abgeschlossen",
       "profileSynced": "Profil „{{name}}“ erfolgreich synchronisiert",
-      "cacheCleared": "Cache erfolgreich geleert"
+      "cacheCleared": "Cache erfolgreich geleert",
+      "backupCreated": "Backup erstellt: {{count}} Profile, {{size}}",
+      "backupRestored": "{{count}} Profile aus dem Backup wiederhergestellt"
     },
     "error": {
       "profileCreateFailed": "Das Profil konnte nicht erstellt werden",
@@ -2505,7 +2538,10 @@
       "askAgent": "Agenten fragen",
       "showWindow": "Fenster anzeigen",
       "pin": "Anheften",
-      "unpin": "Lösen"
+      "unpin": "Lösen",
+      "cleanCache": "Cache leeren (Platz freigeben)",
+      "cacheCleaned": "Cache geleert",
+      "cacheFreed": "{{size}} freigegeben"
     },
     "emptyGroupTitle": "Diese Gruppe ist leer",
     "emptyGroupHint": "Erstellen Sie ein Profil in dieser Gruppe oder verschieben Sie vorhandene Profile hierher.",
@@ -3029,7 +3065,13 @@
     "previewsNotEntitled": "Die Live-Vorschau braucht den Pro-Tarif oder höher.",
     "proxyRotationIntervalInvalid": "Das Auto-Rotationsintervall muss zwischen 0 und 43200 Minuten liegen.",
     "bulkTableEmpty": "Die Tabelle enthält keine zu erstellenden Profile.",
-    "staggeredLaunchBusy": "Ein Start mit Verzögerung läuft bereits. Warte auf das Ende oder brich ihn ab."
+    "staggeredLaunchBusy": "Ein Start mit Verzögerung läuft bereits. Warte auf das Ende oder brich ihn ab.",
+    "backupWriteFailed": "Das Backup konnte nicht geschrieben werden: {{detail}}",
+    "backupRestoreFailed": "Das Backup konnte nicht wiederhergestellt werden: {{detail}}",
+    "backupArchiveInvalid": "Diese Datei ist kein lesbares Backup-Archiv.",
+    "backupTooNew": "Dieses Backup stammt von einer neueren Donut-Version (Format {{version}}). Aktualisiere die App und versuche es erneut.",
+    "backupUnsafeArchive": "Das Backup-Archiv enthält unsichere Pfade und wurde nicht wiederhergestellt.",
+    "backupEmpty": "Es gibt keine Profile zum Sichern."
   },
   "rail": {
     "profiles": "Profile",

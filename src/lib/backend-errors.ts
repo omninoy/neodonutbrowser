@@ -363,6 +363,14 @@ export type BackendErrorCode =
   | "PROFILE_IMPORT_FAILED"
   | "PROFILE_IMPORT_TOO_NEW"
   | "PROFILE_IMPORT_UNSAFE_ARCHIVE"
+  // The .neobackup feature: the write half builds the archive, the restore
+  // half reads it back, and the codes name which side failed.
+  | "BACKUP_WRITE_FAILED"
+  | "BACKUP_RESTORE_FAILED"
+  | "BACKUP_ARCHIVE_INVALID"
+  | "BACKUP_TOO_NEW"
+  | "BACKUP_UNSAFE_ARCHIVE"
+  | "BACKUP_EMPTY"
   | "RECORDING_ALREADY_RUNNING"
   | "PROFILE_NOT_RUNNING"
   | "NETWORK_CAPTURE_FAILED"
@@ -1286,6 +1294,24 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       return t("backendErrors.profileImportTooNew");
     case "PROFILE_IMPORT_UNSAFE_ARCHIVE":
       return t("backendErrors.profileImportUnsafeArchive");
+    case "BACKUP_WRITE_FAILED":
+      return t("backendErrors.backupWriteFailed", {
+        detail: parsed.params?.detail ?? "",
+      });
+    case "BACKUP_RESTORE_FAILED":
+      return t("backendErrors.backupRestoreFailed", {
+        detail: parsed.params?.detail ?? "",
+      });
+    case "BACKUP_ARCHIVE_INVALID":
+      return t("backendErrors.backupArchiveInvalid");
+    case "BACKUP_TOO_NEW":
+      return t("backendErrors.backupTooNew", {
+        version: parsed.params?.detail ?? "",
+      });
+    case "BACKUP_UNSAFE_ARCHIVE":
+      return t("backendErrors.backupUnsafeArchive");
+    case "BACKUP_EMPTY":
+      return t("backendErrors.backupEmpty");
     case "RECORDING_ALREADY_RUNNING":
       return t("backendErrors.recordingAlreadyRunning");
     case "PROFILE_NOT_RUNNING":

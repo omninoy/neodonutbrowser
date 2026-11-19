@@ -304,6 +304,37 @@
       "checkNote": "保存する前に、プロキシ経由で Donut のサーバーが応答するか確認します。スキーム: http、https、socks5、socks5h。",
       "saved": "Donut は {{proxy}} 経由で接続します。",
       "removed": "Donut は独自のプロキシを使わなくなりました。"
+    },
+    "backup": {
+      "title": "バックアップと復元",
+      "create": "バックアップを作成",
+      "createDescription": "プロフィールのデータと（任意で）プロキシリストを、持ち運べる .neobackup ファイル 1 つにまとめます。",
+      "createButton": "バックアップ作成",
+      "restore": "バックアップから復元",
+      "restoreDescription": "この PC や別の PC で作成した .neobackup アーカイブからプロフィールを戻します。",
+      "restoreButton": "復元",
+      "createDialogTitle": "バックアップを作成",
+      "createDialogDescription": "アーカイブするプロフィールを選択してください。バックアップにはログイン情報がすべて含まれ、キャッシュは含まれません。",
+      "loadingProfiles": "プロフィールを読み込み中…",
+      "noProfiles": "バックアップするプロフィールがありません。",
+      "selectAll": "すべて選択",
+      "includeProxies": "プロキシリストを含める",
+      "password": "暗号化パスワード（任意）",
+      "passwordPlaceholder": "空欄のままなら暗号化しません",
+      "passwordHint": "暗号化したバックアップはこのパスワードがなければ開けません。復元もできません。",
+      "saveTitle": "バックアップを保存",
+      "archiveFilter": "NeoDonut バックアップ",
+      "createConfirm": "作成",
+      "restoreDialogTitle": "バックアップから復元",
+      "restoreDialogDescription": ".neobackup ファイルを選択してください。この PC に既にあるプロフィールは、上書きを有効にしない限りスキップされます。",
+      "chooseFile": "ファイルを選択",
+      "noFileChosen": "ファイル未選択",
+      "overwrite": "既存のプロフィールを上書き",
+      "overwriteHint": "同じ ID のプロフィールをデータごと置き換えます。元に戻せません。",
+      "openTitle": "バックアップを開く",
+      "restoreConfirm": "復元",
+      "createdEncrypted": "バックアップはパスワードで暗号化されています。",
+      "restoreSkipped": "この PC に既にあった {{count}} 件のプロフィールをスキップしました。"
     }
   },
   "header": {
@@ -1420,7 +1451,9 @@
       "exportSuccess": "{{count}} 個のアイテムが正常にエクスポートされました",
       "syncSuccess": "同期が正常に完了しました",
       "profileSynced": "プロファイル '{{name}}' が正常に同期されました",
-      "cacheCleared": "キャッシュが正常にクリアされました"
+      "cacheCleared": "キャッシュが正常にクリアされました",
+      "backupCreated": "バックアップを作成しました：{{count}} 件のプロフィール、{{size}}",
+      "backupRestored": "バックアップから {{count}} 件のプロフィールを復元しました"
     },
     "error": {
       "profileCreateFailed": "プロファイルの作成に失敗しました",
@@ -2500,7 +2533,10 @@
       "askAgent": "エージェントに依頼",
       "showWindow": "ウィンドウを表示",
       "pin": "ピン留め",
-      "unpin": "ピン留めを解除"
+      "unpin": "ピン留めを解除",
+      "cleanCache": "キャッシュを消去（空き容量を確保）",
+      "cacheCleaned": "キャッシュを消去しました",
+      "cacheFreed": "{{size}} を解放しました"
     },
     "emptyGroupTitle": "このグループは空です",
     "emptyGroupHint": "このグループにプロファイルを作成するか、既存のプロファイルを移動してください。",
@@ -3023,7 +3059,13 @@
     "previewsNotEntitled": "ライブプレビューには Pro 以上のプランが必要です。",
     "proxyRotationIntervalInvalid": "自動ロテーション間隔は 0〜43200 分の範囲で指定してください。",
     "bulkTableEmpty": "作成するプロファイルが表にありません。",
-    "staggeredLaunchBusy": "遅延起動はすでに実行中です。終了を待つか取り消してください。"
+    "staggeredLaunchBusy": "遅延起動はすでに実行中です。終了を待つか取り消してください。",
+    "backupWriteFailed": "バックアップを書き込めませんでした：{{detail}}",
+    "backupRestoreFailed": "バックアップを復元できませんでした：{{detail}}",
+    "backupArchiveInvalid": "このファイルは読み取り可能なバックアップアーカイブではありません。",
+    "backupTooNew": "このバックアップは新しいバージョンの Donut で作成されています（形式 {{version}}）。アプリを更新してからもう一度お試しください。",
+    "backupUnsafeArchive": "バックアップアーカイブに安全でないパスが含まれているため、復元しませんでした。",
+    "backupEmpty": "バックアップするプロフィールがありません。"
   },
   "rail": {
     "profiles": "プロファイル",
