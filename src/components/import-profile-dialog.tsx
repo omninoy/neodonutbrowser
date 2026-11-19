@@ -1017,8 +1017,6 @@ export function ImportProfileDialog({
                         setWayfernConfig((prev) => ({ ...prev, [key]: value }));
                       }}
                       isCreating={true}
-                      crossOsUnlocked={crossOsUnlocked}
-                      limitedMode={!crossOsUnlocked}
                     />
                   </AnimatedDisclosureContent>
                 </div>

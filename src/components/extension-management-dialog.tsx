@@ -167,7 +167,7 @@ export function ExtensionManagementDialog({
   const { t } = useTranslation();
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [extensionGroups, setExtensionGroups] = useState<ExtensionGroup[]>([]);
-  const [isLoading, setIsLoading] = useState(!limitedMode);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Extension import state
   const [isUploading, setIsUploading] = useState(false);
@@ -1450,24 +1450,6 @@ export function ExtensionManagementDialog({
           )}
 
           <div className="@container relative flex min-h-0 w-full flex-1 flex-col">
-            {limitedMode && (
-              <>
-                <div className="absolute inset-0 z-1 bg-background/30 backdrop-blur-[6px]" />
-                <div className="absolute inset-y-0 left-0 z-2 w-6 bg-linear-to-r from-background to-transparent" />
-                <div className="absolute inset-y-0 right-0 z-2 w-6 bg-linear-to-l from-background to-transparent" />
-                <div className="absolute inset-x-0 top-0 z-2 h-6 bg-linear-to-b from-background to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 z-2 h-6 bg-linear-to-t from-background to-transparent" />
-                <div className="absolute inset-0 z-3 flex items-center justify-center">
-                  <div className="flex items-center gap-2 rounded-lg bg-background/80 px-3 py-1.5">
-                    <ProBadge />
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {t("extensions.proRequired")}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-
             <AnimatedTabs
               key={initialTab}
               value={activeTab}
@@ -1507,7 +1489,7 @@ export function ExtensionManagementDialog({
                             />
                           }
                           label={t("extensions.updates.check")}
-                          disabled={limitedMode || checkingUpdates}
+                          disabled={checkingUpdates}
                           onClick={() => void checkUpdates()}
                         />
                       )}
@@ -1515,7 +1497,6 @@ export function ExtensionManagementDialog({
                         icon={<LuGlobe className="size-4" />}
                         label={t("extensions.fromUrl")}
                         tooltip={t("extensions.fromUrlTooltip")}
-                        disabled={limitedMode}
                         onClick={() => {
                           setShowUrlForm((open) => !open);
                         }}
@@ -1524,14 +1505,12 @@ export function ExtensionManagementDialog({
                         icon={<LuFolderOpen className="size-4" />}
                         label={t("extensions.loadUnpacked")}
                         tooltip={t("extensions.loadUnpackedTooltip")}
-                        disabled={limitedMode}
                         onClick={() => void handleLoadUnpacked()}
                       />
                       <PageAction
                         primary
                         icon={<LuUpload className="size-4" />}
                         label={t("extensions.upload")}
-                        disabled={limitedMode}
                         onClick={pickArchive}
                       />
                     </>
@@ -1540,7 +1519,6 @@ export function ExtensionManagementDialog({
                       primary
                       icon={<LuPlus className="size-4" />}
                       label={t("extensions.newGroup")}
-                      disabled={limitedMode}
                       onClick={() => setShowCreateGroup(true)}
                     />
                   )}
@@ -1561,7 +1539,6 @@ export function ExtensionManagementDialog({
                 accept=".crx,.zip"
                 className="hidden"
                 onChange={handleFileSelect}
-                disabled={limitedMode}
               />
 
               <AnimatedTabsContent
@@ -1756,7 +1733,6 @@ export function ExtensionManagementDialog({
                           <RippleButton
                             size="sm"
                             className="gap-2"
-                            disabled={limitedMode}
                             onClick={pickArchive}
                           >
                             <LuUpload className="size-4" />
@@ -1766,7 +1742,6 @@ export function ExtensionManagementDialog({
                             size="sm"
                             variant="soft"
                             className="gap-2"
-                            disabled={limitedMode}
                             onClick={() => {
                               setShowUrlForm(true);
                             }}
@@ -1849,7 +1824,6 @@ export function ExtensionManagementDialog({
                           <RippleButton
                             size="sm"
                             className="gap-2"
-                            disabled={limitedMode}
                             onClick={() => setShowCreateGroup(true)}
                           >
                             <LuPlus className="size-4" />

@@ -3204,7 +3204,6 @@ export default function Home() {
                     onAssignExtensionGroup={handleAssignExtensionGroup}
                     onOpenProfileSyncDialog={handleOpenProfileSyncDialog}
                     onToggleProfileSync={handleToggleProfileSync}
-                    crossOsUnlocked={crossOsUnlocked}
                     syncUnlocked={syncUnlocked}
                     getProfileSyncInfo={getProfileSyncInfo}
                     onLaunchWithSync={(profile) => {
@@ -3313,7 +3312,6 @@ export default function Home() {
                   onClose={() => {
                     closeSubPage(() => setExtensionManagementDialogOpen(false));
                   }}
-                  limitedMode={false}
                   subPage={currentPage === "extensions"}
                   initialTab={extensionManagementInitialTab}
                 />
@@ -3325,7 +3323,6 @@ export default function Home() {
                   onClose={() => {
                     closeSubPage(() => setImportProfileDialogOpen(false));
                   }}
-                  crossOsUnlocked={crossOsUnlocked}
                   subPage={currentPage === "import"}
                 />
               )}
@@ -3628,7 +3625,6 @@ export default function Home() {
               ? runningProfiles.has(currentProfileForWayfernConfig.id)
               : false
           }
-          crossOsUnlocked={crossOsUnlocked}
         />
 
         <GroupAssignmentDialog

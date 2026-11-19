@@ -4860,7 +4860,6 @@ async fn kill_profile(
   Ok(StatusCode::NO_CONTENT)
 }
 
-=======
 // API Handler - Batch run profiles. Never breaks the batch on a single profile's failure —
 // each profile gets its own result entry. Launches start `delay_ms` apart with
 // at most `concurrency` starting at once, like a bulk launch in the app.

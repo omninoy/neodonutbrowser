@@ -1044,7 +1044,7 @@ function ProfileInfoContents({
       onClose={() => void onRequestClose()}
       onCloneProfile={onCloneProfile}
       handoffState={handoffState ?? null}
-      crossOsUnlocked={crossOsUnlocked}
+      crossOsUnlocked={true}
       onToggleRun={onToggleRun}
       canToggleRun={canToggleRun}
       isLaunching={isLaunching}

@@ -4800,15 +4800,30 @@ impl McpServer {
     self.engine_ready.store(true, Ordering::SeqCst);
   }
 
-=======
-  pub fn get_port(&self) -> Option<u16> {
-    let port = self.port.load(Ordering::SeqCst);
-    if port > 0 {
-      Some(port)
-    } else {
-      None
+  /// Gate an MCP tool on a capability the caller already resolved (e.g.
+  /// `CLOUD_AUTH.can_use_browser_automation().await`). Logs the rejected gate
+  /// with enough state for support to diagnose, without leaking secrets.
+  async fn require_capability(feature: &str, allowed: bool) -> Result<(), McpError> {
+    if !allowed {
+      let summary = match CLOUD_AUTH.get_user().await {
+        Some(state) => format!(
+          "logged_in=true plan={} subscription_status={} plan_period={:?}",
+          state.user.plan, state.user.subscription_status, state.user.plan_period,
+        ),
+        None => "logged_in=false".to_string(),
+      };
+      log::warn!("MCP tool refused: plan lacks feature feature=\"{feature}\" {summary}");
+      return Err(McpError {
+        code: -32000,
+        message: format!("{feature} is not included in this account's plan"),
+        data: Some(serde_json::json!({ "code": "PLAN_REQUIRED", "feature": feature })),
+      });
     }
+    Ok(())
   }
+
+  /// Largest JSON-RPC payload the engine will parse.
+  pub(crate) const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 
   /// The longest a session teardown will spend deleting page globals.
   ///
@@ -5177,7 +5192,6 @@ impl McpServer {
       },
       McpTool {
         name: "run_profile".to_string(),
-=======
         description: "Launch a browser profile with an optional URL.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
@@ -10418,7 +10432,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-=======
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())
@@ -10450,7 +10463,6 @@ impl McpServer {
       .get("randomize_fingerprint_on_launch")
       .and_then(|v| v.as_bool());
 
-=======
     let profiles = ProfileManager::instance()
       .list_profiles()
       .map_err(|e| McpError {
@@ -10655,7 +10667,6 @@ impl McpServer {
   }
 
   async fn handle_list_extensions(&self) -> Result<serde_json::Value, McpError> {
-=======
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let extensions = mgr.list_extensions().map_err(|e| McpError {
       code: -32000,
@@ -10666,7 +10677,6 @@ impl McpServer {
   }
 
   async fn handle_list_extension_groups(&self) -> Result<serde_json::Value, McpError> {
-=======
     let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
     let groups = mgr.list_groups().map_err(|e| McpError {
       code: -32000,
@@ -10767,7 +10777,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-=======
     let name = arguments
       .get("name")
       .and_then(|v| v.as_str())
@@ -10877,7 +10886,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-=======
     let extension_id = arguments
       .get("extension_id")
       .and_then(|v| v.as_str())
@@ -10901,7 +10909,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-=======
     let group_id = arguments
       .get("group_id")
       .and_then(|v| v.as_str())
@@ -10928,7 +10935,6 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-=======
     let profile_id = arguments
       .get("profile_id")
       .and_then(|v| v.as_str())

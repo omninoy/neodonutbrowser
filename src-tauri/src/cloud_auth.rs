@@ -276,7 +276,6 @@ pub struct CloudUser {
   #[serde(rename = "effectivePlan", default)]
   pub effective_plan: Option<String>,
   // This desktop session's position among the user's active devices, oldest
-=======
   // first. `default` keeps older login/state payloads (which lack these fields)
   // deserializing cleanly.
   #[serde(rename = "deviceOrdinal", default)]
@@ -303,7 +302,6 @@ impl CloudUser {
   /// locally from the plan fields (keeps older cached state / backends working).
   pub fn entitlements(&self) -> Entitlements {
     if let Some(e) = &self.entitlements {
-=======
       return with_local_capabilities(e.clone());
     }
     derive_entitlements(
@@ -1681,7 +1679,6 @@ impl CloudAuthManager {
     let token = match result {
       Ok(token) => token,
       Err(e) => {
-=======
         // A rejected token request must not invalidate the cloud session or
         // prevent a local browser launch. Drop any stale token and continue with
         // the browser's local capabilities.

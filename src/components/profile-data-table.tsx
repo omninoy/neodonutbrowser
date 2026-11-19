@@ -137,6 +137,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ProBadge } from "@/components/ui/pro-badge";
 import {
   Table,
   TableBody,
@@ -4983,7 +4984,6 @@ export function ProfilesDataTable({
                       if (profile.ephemeral) setProfileToDelete(profile);
                       else void onDeleteProfile(profile);
                     }}
-                    crossOsUnlocked={crossOsUnlocked}
                     isRunning={infoIsRunning}
                     isDisabled={infoIsDisabled}
                     isCrossOs={infoIsCrossOs}
@@ -5020,9 +5020,6 @@ export function ProfilesDataTable({
             >
               <LuPlay className="fill-current" />
             </DataTableActionBarAction>
-            {!bulkActionsUnlocked && (
-              <ProBadge className="pointer-events-none absolute -top-2 -right-2" />
-            )}
           </span>
         )}
         {onBulkStop && (
@@ -5043,9 +5040,6 @@ export function ProfilesDataTable({
             >
               <LuSquare className="fill-current" />
             </DataTableActionBarAction>
-            {!bulkActionsUnlocked && (
-              <ProBadge className="pointer-events-none absolute -top-2 -right-2" />
-            )}
           </span>
         )}
         {onRunAgentTask && (
