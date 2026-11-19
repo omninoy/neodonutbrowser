@@ -2497,6 +2497,8 @@
       "rename": "Yeniden adlandır",
       "moveToGroup": "Gruba taşı",
       "copyId": "Kimliği kopyala",
+      "exportCookies": "Çerezleri dışa aktar",
+      "importCookies": "Çerezleri içe aktar",
       "runRemote": "Bulutta çalıştır",
       "lockNow": "Şimdi kilitle",
       "moveToTrash": "Çöp kutusuna taşı",
@@ -2681,6 +2683,7 @@
     "cookieImportProfileProtected": "Parola korumalı bir profile çerez içe aktarılamaz. Önce parolayı kaldırın.",
     "cookieImportRemoteSession": "Bu profili bir uzak oturum kullanırken çerezler içe aktarılamaz. Eşitlemenin bitmesini bekleyin.",
     "cookieImportNoCookies": "Yapıştırdığınız içerikte çerez bulunamadı.",
+    "cookieImportBadFormat": "İçerik seçilen çerez biçimiyle eşleşmiyor. JSON'un JSON olarak, Netscape'in ise cookies.txt olarak yapıştırıldığını kontrol edin.",
     "selfHostedRequiresLogout": "Kendi sunucunuzu yapılandırmadan önce Donut hesabınızdan çıkış yapın.",
     "fingerprintRequiresPro": "Parmak izini görüntülemek veya düzenlemek etkin bir ücretli plan gerektirir. Koruma tüm planlara dahildir.",
     "proxyNotWorking": "Seçilen proxy çalışmıyor, bu nedenle profil oluşturulmadı.",
@@ -3658,7 +3661,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Düşük niyetli alıcı",
-      "lowIntentPurchaserHint": "Profili fiyata duyarlı bir alıcı olarak konumlar: karşılaştırma, kupon, nakit iade ve ikinci el siteleri; mağazalara doğrudan değil toplayıcılar üzerinden ulaşır."
+      "lowIntentPurchaserHint": "Profili fiyata duyarlı bir alıcı olarak konumlar: karşılaştırma, kupon, nakit iade ve ikinci el siteleri; mağazalara doğrudan değil toplayıcılar üzerinden ulaşır.",
+      "geoRu": "Coğrafya: Rusya",
+      "geoRuHint": "Günlük Rusya hizmetleri: arama ve portallar, sosyal akışlar, pazaryerleri, ilanlar ve haberler.",
+      "geoUs": "Coğrafya: ABD",
+      "geoUsHint": "Tipik ABD gezinmesi: arama ve portallar, ulusal haberler, ilanlar ve alışveriş.",
+      "geoEu": "Coğrafya: Avrupa",
+      "geoEuHint": "Almanya, Fransa, Birleşik Krallık ve İspanya'nın Avrupa basını ve hizmetleri; ayrıca seyahat ve perakende.",
+      "techDev": "Teknoloji ve geliştirme",
+      "techDevHint": "Geliştirici rutini: kod barındırma, soru-cevap, toplayıcılar, teknik okumalar ve makaleler.",
+      "cryptoWeb3": "Kripto ve Web3",
+      "cryptoWeb3Hint": "Piyasa takibi, on-chain tarayıcılar ve kripto haberleri — yalnızca okuma, cüzdan veya işlem yok."
     },
     "preflight": {
       "ineligible_one": "{{count}} profil uzaktan çalıştırılamıyor",

@@ -147,6 +147,26 @@ const TEMPLATE_LABEL_KEYS: Record<string, { name: string; hint: string }> = {
     name: "cookieBot.template.lowIntentPurchaser",
     hint: "cookieBot.template.lowIntentPurchaserHint",
   },
+  "geo-ru": {
+    name: "cookieBot.template.geoRu",
+    hint: "cookieBot.template.geoRuHint",
+  },
+  "geo-us": {
+    name: "cookieBot.template.geoUs",
+    hint: "cookieBot.template.geoUsHint",
+  },
+  "geo-eu": {
+    name: "cookieBot.template.geoEu",
+    hint: "cookieBot.template.geoEuHint",
+  },
+  "tech-dev": {
+    name: "cookieBot.template.techDev",
+    hint: "cookieBot.template.techDevHint",
+  },
+  "crypto-web3": {
+    name: "cookieBot.template.cryptoWeb3",
+    hint: "cookieBot.template.cryptoWeb3Hint",
+  },
 };
 
 /** Where this enrolment's sites come from. */

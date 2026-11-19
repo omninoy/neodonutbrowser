@@ -343,6 +343,8 @@ interface TableMeta {
   onCloneProfile?: (profile: BrowserProfile) => void;
   onCopyCookiesToProfile?: (profile: BrowserProfile) => void;
   onOpenCookieManagement?: (profile: BrowserProfile) => void;
+  onExportCookies?: (profile: BrowserProfile) => void;
+  onImportCookies?: (profile: BrowserProfile) => void;
 
   // Live traffic of running rows. A store, not state: a poll re-renders
   // only the traffic cells whose numbers changed.
@@ -2177,6 +2179,8 @@ interface ProfilesDataTableProps {
   onConfigureWayfern: (profile: BrowserProfile) => void;
   onCopyCookiesToProfile?: (profile: BrowserProfile) => void;
   onOpenCookieManagement?: (profile: BrowserProfile) => void;
+  onExportCookies?: (profile: BrowserProfile) => void;
+  onImportCookies?: (profile: BrowserProfile) => void;
   runningProfiles: Set<string>;
   /**
    * Loaded by the page rather than here, because the search filter resolves
@@ -2265,6 +2269,8 @@ export function ProfilesDataTable({
   onConfigureWayfern,
   onCopyCookiesToProfile,
   onOpenCookieManagement,
+  onExportCookies,
+  onImportCookies,
   runningProfiles,
   extensionGroups,
   profileStatuses = EMPTY_STATUSES,
@@ -3141,6 +3147,8 @@ export function ProfilesDataTable({
       onConfigureWayfern,
       onCopyCookiesToProfile,
       onOpenCookieManagement,
+      onExportCookies,
+      onImportCookies,
 
       trafficStore,
       onOpenTrafficDialog: openTrafficDialog,
@@ -3233,6 +3241,8 @@ export function ProfilesDataTable({
       onConfigureWayfern,
       onCopyCookiesToProfile,
       onOpenCookieManagement,
+      onExportCookies,
+      onImportCookies,
       syncStatuses,
       onOpenProfileSyncDialog,
       onToggleProfileSync,
@@ -4475,6 +4485,21 @@ export function ProfilesDataTable({
       onMoveToGroup: onAssignProfilesToGroup
         ? () => onAssignProfilesToGroup([menuProfile.id])
         : undefined,
+      // Cookie store actions only exist for the local browser engine: an
+      // ephemeral profile is discarded on close, so it has nowhere to keep
+      // them, and other browsers have no readable cookie store here.
+      onExportCookies:
+        onExportCookies &&
+        menuProfile.browser === "wayfern" &&
+        menuProfile.ephemeral !== true
+          ? () => onExportCookies(menuProfile)
+          : undefined,
+      onImportCookies:
+        onImportCookies &&
+        menuProfile.browser === "wayfern" &&
+        menuProfile.ephemeral !== true
+          ? () => onImportCookies(menuProfile)
+          : undefined,
       isPinned: pinned.has(menuProfile.id),
       onTogglePin: () => togglePinned([menuProfile.id]),
       onRunRemote: onRunRemote ? () => onRunRemote(menuProfile) : undefined,

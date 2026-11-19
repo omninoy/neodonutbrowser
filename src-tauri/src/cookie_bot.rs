@@ -1345,6 +1345,36 @@ pub async fn list_presets() -> Result<CookieBotPresetList, CookieBotError> {
         name: Some("Соцсети и видео".to_string()),
         description: Some("YouTube, Twitch, Reddit, Pinterest, Imgur".to_string()),
       },
+      CookieBotTemplate {
+        id: "geo-ru".to_string(),
+        site_count: 9,
+        name: Some("Гео: Россия".to_string()),
+        description: Some("Яндекс, VK, Дзен, Ozon, Wildberries, Авито, Хабр".to_string()),
+      },
+      CookieBotTemplate {
+        id: "geo-us".to_string(),
+        site_count: 8,
+        name: Some("Гео: США".to_string()),
+        description: Some("Google, Yahoo, CNN, NYT, Craigslist, Amazon, Reddit".to_string()),
+      },
+      CookieBotTemplate {
+        id: "geo-eu".to_string(),
+        site_count: 7,
+        name: Some("Гео: Европа".to_string()),
+        description: Some("Spiegel, Zeit, Le Monde, BBC, El Mundo, Booking".to_string()),
+      },
+      CookieBotTemplate {
+        id: "tech-dev".to_string(),
+        site_count: 6,
+        name: Some("Tech и разработка".to_string()),
+        description: Some("GitHub, Stack Overflow, Hacker News, dev.to, arXiv".to_string()),
+      },
+      CookieBotTemplate {
+        id: "crypto-web3".to_string(),
+        site_count: 6,
+        name: Some("Крипто и Web3".to_string()),
+        description: Some("CoinMarketCap, CoinGecko, Binance, Etherscan".to_string()),
+      },
     ],
     default_preset: Some("standard".to_string()),
     limits: Some(CookieBotLimits {

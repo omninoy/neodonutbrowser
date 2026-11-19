@@ -7,6 +7,7 @@ import {
   LuAppWindow,
   LuCloud,
   LuCopy,
+  LuDownload,
   LuFolderInput,
   LuInfo,
   LuLock,
@@ -18,6 +19,7 @@ import {
   LuSquare,
   LuSquareStack,
   LuTrash2,
+  LuUpload,
 } from "react-icons/lu";
 import {
   ContextMenuContent,
@@ -43,6 +45,10 @@ export interface RowMenuActions {
   onRename: () => void;
   onDuplicate?: () => void;
   onMoveToGroup?: () => void;
+  /** Opens the cookie dialog on its export tab; only for local-browser profiles. */
+  onExportCookies?: () => void;
+  /** Opens the cookie dialog on its import tab; only for local-browser profiles. */
+  onImportCookies?: () => void;
   isPinned: boolean;
   onTogglePin: () => void;
   onRunRemote?: () => void;
@@ -169,6 +175,29 @@ export function RowContextMenuContent({
         <LuCopy />
         {t("profileTable.menu.copyId")}
       </ContextMenuItem>
+      {(actions.onExportCookies || actions.onImportCookies) && (
+        <>
+          <ContextMenuSeparator />
+          {actions.onExportCookies && (
+            <ContextMenuItem
+              data-slot="profile-row-export-cookies"
+              onSelect={actions.onExportCookies}
+            >
+              <LuDownload />
+              {t("profileTable.menu.exportCookies")}
+            </ContextMenuItem>
+          )}
+          {actions.onImportCookies && (
+            <ContextMenuItem
+              data-slot="profile-row-import-cookies"
+              onSelect={actions.onImportCookies}
+            >
+              <LuUpload />
+              {t("profileTable.menu.importCookies")}
+            </ContextMenuItem>
+          )}
+        </>
+      )}
       {actions.onAskAgent && (
         <ContextMenuItem
           data-slot="profile-row-ask-agent"

@@ -781,6 +781,26 @@ async fn export_profile_cookies(profile_id: String, format: String) -> Result<St
 }
 
 #[tauri::command]
+async fn import_profile_cookies(
+  app_handle: tauri::AppHandle,
+  profile_id: String,
+  raw_cookies: String,
+  format: String,
+) -> Result<usize, String> {
+  let written = cookie_manager::CookieManager::import_profile_cookies(
+    &app_handle,
+    &profile_id,
+    &raw_cookies,
+    &format,
+  )
+  .await?;
+
+  queue_profile_cookie_sync(&profile_id);
+
+  Ok(written)
+}
+
+#[tauri::command]
 fn check_wayfern_terms_accepted() -> bool {
   wayfern_terms::WayfernTermsManager::instance().is_terms_accepted()
 }
@@ -3873,6 +3893,7 @@ pub fn run_with_builder(
       analyze_pasted_cookies,
       import_pasted_cookies,
       export_profile_cookies,
+      import_profile_cookies,
       check_wayfern_terms_accepted,
       check_wayfern_downloaded,
       accept_wayfern_terms,
@@ -4280,6 +4301,9 @@ mod tests {
       "delete_extension_group",
       "delete_vpn_config",
       "delete_profile_template",
+      "import_profile_cookies",
+      "is_proxy_in_use_by_synced_profile",
+      "is_vpn_in_use_by_synced_profile",
     ];
 
     // Extract command names from the generate_handler! macro in this file

@@ -2493,6 +2493,8 @@
       "rename": "Rename",
       "moveToGroup": "Move to group",
       "copyId": "Copy ID",
+      "exportCookies": "Export cookies",
+      "importCookies": "Import cookies",
       "runRemote": "Run in cloud",
       "lockNow": "Lock now",
       "moveToTrash": "Move to Trash",
@@ -2677,6 +2679,7 @@
     "cookieImportProfileProtected": "Cannot import cookies into a password-protected profile. Remove the password first.",
     "cookieImportRemoteSession": "Cannot import cookies while a remote session owns this profile. Wait for it to finish syncing.",
     "cookieImportNoCookies": "No cookies were found in what you pasted.",
+    "cookieImportBadFormat": "The content does not match the selected cookie format. Check that JSON is pasted as JSON and Netscape as cookies.txt.",
     "selfHostedRequiresLogout": "Sign out of your Donut account before configuring a self-hosted server.",
     "proxyNotWorking": "The selected proxy isn't working, so the profile wasn't created.",
     "proxyPaymentRequired": "The selected proxy requires payment (402). Its subscription may have expired. The profile was not created.",
@@ -3653,7 +3656,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Low-intent purchaser",
-      "lowIntentPurchaserHint": "Positions the profile as a price-sensitive buyer: comparison, coupon, cashback and resale sites, reaching retailers through aggregators rather than directly."
+      "lowIntentPurchaserHint": "Positions the profile as a price-sensitive buyer: comparison, coupon, cashback and resale sites, reaching retailers through aggregators rather than directly.",
+      "geoRu": "Geo: Russia",
+      "geoRuHint": "Everyday Russian services: search and portals, social feeds, marketplaces, classifieds and news.",
+      "geoUs": "Geo: United States",
+      "geoUsHint": "Mainstream US browsing: search and portals, national news, classifieds and shopping.",
+      "geoEu": "Geo: Europe",
+      "geoEuHint": "European press and services across Germany, France, the UK and Spain, plus travel and retail.",
+      "techDev": "Tech & development",
+      "techDevHint": "Developer routine: code hosting, Q&A, aggregators, long-form tech reads and papers.",
+      "cryptoWeb3": "Crypto & Web3",
+      "cryptoWeb3Hint": "Market tracking, on-chain explorers and crypto news — reads only, no wallets or trading."
     },
     "preflight": {
       "ineligible_one": "{{count}} profile can't run remotely",

@@ -2497,6 +2497,8 @@
       "rename": "Umbenennen",
       "moveToGroup": "In Gruppe verschieben",
       "copyId": "ID kopieren",
+      "exportCookies": "Cookies exportieren",
+      "importCookies": "Cookies importieren",
       "runRemote": "In der Cloud ausführen",
       "lockNow": "Jetzt sperren",
       "moveToTrash": "In den Papierkorb",
@@ -2681,6 +2683,7 @@
     "cookieImportProfileProtected": "In ein passwortgeschütztes Profil können keine Cookies importiert werden. Entfernen Sie zuerst das Passwort.",
     "cookieImportRemoteSession": "Cookies können nicht importiert werden, solange eine entfernte Sitzung dieses Profil nutzt. Warten Sie, bis die Synchronisierung abgeschlossen ist.",
     "cookieImportNoCookies": "In Ihrer Eingabe wurden keine Cookies gefunden.",
+    "cookieImportBadFormat": "Der Inhalt passt nicht zum gewählten Cookie-Format. Prüfen Sie, ob JSON als JSON und Netscape als cookies.txt eingefügt wurde.",
     "selfHostedRequiresLogout": "Melden Sie sich von Ihrem Donut-Konto ab, bevor Sie einen selbst gehosteten Server konfigurieren.",
     "fingerprintRequiresPro": "Zum Anzeigen oder Bearbeiten des Fingerprints ist ein aktiver kostenpflichtiger Tarif erforderlich. Der Schutz ist in allen Tarifen enthalten.",
     "proxyNotWorking": "Der ausgewählte Proxy funktioniert nicht, daher wurde das Profil nicht erstellt.",
@@ -3658,7 +3661,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Käufer mit geringer Kaufabsicht",
-      "lowIntentPurchaserHint": "Positioniert das Profil als preisbewussten Käufer: Vergleichs-, Gutschein-, Cashback- und Wiederverkaufsseiten, wobei Händler über Aggregatoren statt direkt aufgerufen werden."
+      "lowIntentPurchaserHint": "Positioniert das Profil als preisbewussten Käufer: Vergleichs-, Gutschein-, Cashback- und Wiederverkaufsseiten, wobei Händler über Aggregatoren statt direkt aufgerufen werden.",
+      "geoRu": "Geo: Russland",
+      "geoRuHint": "Alltägliche russische Dienste: Suche und Portale, soziale Feeds, Marktplätze, Kleinanzeigen und Nachrichten.",
+      "geoUs": "Geo: USA",
+      "geoUsHint": "Typisches US-Browsing: Suche und Portale, landesweite Nachrichten, Kleinanzeigen und Einkaufen.",
+      "geoEu": "Geo: Europa",
+      "geoEuHint": "Europäische Presse und Dienste aus Deutschland, Frankreich, Großbritannien und Spanien, dazu Reisen und Handel.",
+      "techDev": "Tech & Entwicklung",
+      "techDevHint": "Entwickleralltag: Code-Hosting, Q&A, Aggregatoren, ausführliche Tech-Lektüre und Fachartikel.",
+      "cryptoWeb3": "Krypto & Web3",
+      "cryptoWeb3Hint": "Marktbeobachtung, On-Chain-Explorer und Krypto-Nachrichten — nur Lesen, keine Wallets oder Trades."
     },
     "preflight": {
       "ineligible_one": "{{count}} Profil kann nicht remote ausgeführt werden",

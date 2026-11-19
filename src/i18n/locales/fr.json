@@ -2511,6 +2511,8 @@
       "rename": "Renommer",
       "moveToGroup": "Déplacer vers un groupe",
       "copyId": "Copier l’ID",
+      "exportCookies": "Exporter les cookies",
+      "importCookies": "Importer les cookies",
       "runRemote": "Exécuter dans le cloud",
       "lockNow": "Verrouiller maintenant",
       "moveToTrash": "Placer dans la corbeille",
@@ -2695,6 +2697,7 @@
     "cookieImportProfileProtected": "Impossible d'importer des cookies dans un profil protégé par mot de passe. Retirez d'abord le mot de passe.",
     "cookieImportRemoteSession": "Impossible d'importer des cookies tant qu'une session distante détient ce profil. Attendez la fin de la synchronisation.",
     "cookieImportNoCookies": "Aucun cookie n'a été trouvé dans ce que vous avez collé.",
+    "cookieImportBadFormat": "Le contenu ne correspond pas au format de cookies sélectionné. Vérifiez que le JSON est collé en JSON et Netscape en cookies.txt.",
     "selfHostedRequiresLogout": "Déconnectez-vous de votre compte Donut avant de configurer un serveur auto-hébergé.",
     "proxyNotWorking": "Le proxy sélectionné ne fonctionne pas, le profil n'a donc pas été créé.",
     "proxyPaymentRequired": "Le proxy sélectionné requiert un paiement (402). Son abonnement a peut-être expiré. Le profil n'a pas été créé.",
@@ -3688,7 +3691,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Acheteur à faible intention",
-      "lowIntentPurchaserHint": "Positionne le profil comme un acheteur sensible au prix : comparateurs, coupons, cashback et revente, en arrivant chez les marchands via des agrégateurs plutôt qu'en direct."
+      "lowIntentPurchaserHint": "Positionne le profil comme un acheteur sensible au prix : comparateurs, coupons, cashback et revente, en arrivant chez les marchands via des agrégateurs plutôt qu'en direct.",
+      "geoRu": "Géo : Russie",
+      "geoRuHint": "Services russes du quotidien : recherche et portails, fils sociaux, places de marché, petites annonces et actualités.",
+      "geoUs": "Géo : États-Unis",
+      "geoUsHint": "Navigation américaine classique : recherche et portails, actualités nationales, petites annonces et achats.",
+      "geoEu": "Géo : Europe",
+      "geoEuHint": "Presse et services européens d'Allemagne, de France, du Royaume-Uni et d'Espagne, plus voyages et commerce.",
+      "techDev": "Tech et développement",
+      "techDevHint": "Routine de développeur : hébergement de code, questions-réponses, agrégateurs, lectures techniques et articles.",
+      "cryptoWeb3": "Crypto et Web3",
+      "cryptoWeb3Hint": "Suivi de marché, explorateurs on-chain et actualités crypto — lecture seule, sans portefeuilles ni trading."
     },
     "preflight": {
       "ineligible_one": "{{count}} profil ne peut pas s'exécuter à distance",

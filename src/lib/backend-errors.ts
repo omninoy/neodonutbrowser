@@ -61,6 +61,7 @@ export type BackendErrorCode =
   | "COOKIE_IMPORT_PROFILE_PROTECTED"
   | "COOKIE_IMPORT_REMOTE_SESSION"
   | "COOKIE_IMPORT_NO_COOKIES"
+  | "COOKIE_IMPORT_BAD_FORMAT"
   | "SELF_HOSTED_REQUIRES_LOGOUT"
   | "SELF_HOSTED_TEAM_SEAT"
   | "ACCOUNT_SYNC_SIGN_IN_REQUIRED"
@@ -615,6 +616,8 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       return t("backendErrors.cookieImportRemoteSession");
     case "COOKIE_IMPORT_NO_COOKIES":
       return t("backendErrors.cookieImportNoCookies");
+    case "COOKIE_IMPORT_BAD_FORMAT":
+      return t("backendErrors.cookieImportBadFormat");
     case "SELF_HOSTED_REQUIRES_LOGOUT":
       return t("backendErrors.selfHostedRequiresLogout");
     case "SELF_HOSTED_TEAM_SEAT":

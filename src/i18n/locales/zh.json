@@ -2492,6 +2492,8 @@
       "rename": "重命名",
       "moveToGroup": "移动到分组",
       "copyId": "复制 ID",
+      "exportCookies": "导出 Cookie",
+      "importCookies": "导入 Cookie",
       "runRemote": "在云端运行",
       "lockNow": "立即锁定",
       "moveToTrash": "移到回收站",
@@ -2676,6 +2678,7 @@
     "cookieImportProfileProtected": "无法将 Cookie 导入密码保护的配置文件。先移除密码。",
     "cookieImportRemoteSession": "远程会话正在占用此配置文件，无法导入 Cookie。等待同步完成。",
     "cookieImportNoCookies": "在你粘贴的内容中没有找到 Cookie。",
+    "cookieImportBadFormat": "内容与所选的 Cookie 格式不符。请检查 JSON 是否以 JSON 格式粘贴，Netscape 是否为 cookies.txt。",
     "selfHostedRequiresLogout": "在配置自托管服务器之前先退出 Donut 账户。",
     "fingerprintRequiresPro": "查看或编辑指纹需要有效的付费方案。所有方案均包含指纹保护。",
     "proxyNotWorking": "所选代理无法使用，因此未创建配置文件。",
@@ -3653,7 +3656,17 @@
     },
     "template": {
       "lowIntentPurchaser": "低购买意向买家",
-      "lowIntentPurchaserHint": "把配置文件定位为对价格敏感的买家：比价、优惠券、返现和二手转卖网站，并通过聚合站点而非直接访问零售商。"
+      "lowIntentPurchaserHint": "把配置文件定位为对价格敏感的买家：比价、优惠券、返现和二手转卖网站，并通过聚合站点而非直接访问零售商。",
+      "geoRu": "地区：俄罗斯",
+      "geoRuHint": "俄罗斯日常服务：搜索与门户、社交动态、电商平台、分类信息和新闻。",
+      "geoUs": "地区：美国",
+      "geoUsHint": "典型的美国浏览：搜索与门户、全国新闻、分类信息和购物。",
+      "geoEu": "地区：欧洲",
+      "geoEuHint": "德国、法国、英国和西班牙的欧洲媒体与服务，以及旅行和零售。",
+      "techDev": "科技与开发",
+      "techDevHint": "开发者日常：代码托管、问答、聚合站、技术长文与论文。",
+      "cryptoWeb3": "加密货币与 Web3",
+      "cryptoWeb3Hint": "行情追踪、链上浏览器和加密新闻——仅浏览，不涉及钱包或交易。"
     },
     "preflight": {
       "ineligible_one": "{{count}} 个配置文件无法远程运行",

@@ -2511,6 +2511,8 @@
       "rename": "Cambiar nombre",
       "moveToGroup": "Mover a un grupo",
       "copyId": "Copiar ID",
+      "exportCookies": "Exportar cookies",
+      "importCookies": "Importar cookies",
       "runRemote": "Ejecutar en la nube",
       "lockNow": "Bloquear ahora",
       "moveToTrash": "Mover a la papelera",
@@ -2695,6 +2697,7 @@
     "cookieImportProfileProtected": "No se pueden importar cookies en un perfil protegido con contraseña. Quita primero la contraseña.",
     "cookieImportRemoteSession": "No se pueden importar cookies mientras una sesión remota controla este perfil. Espera a que termine de sincronizarse.",
     "cookieImportNoCookies": "No se encontraron cookies en lo que pegaste.",
+    "cookieImportBadFormat": "El contenido no coincide con el formato de cookies seleccionado. Comprueba que el JSON esté pegado como JSON y Netscape como cookies.txt.",
     "selfHostedRequiresLogout": "Cierra sesión en tu cuenta de Donut antes de configurar un servidor autoalojado.",
     "proxyNotWorking": "El proxy seleccionado no funciona, por lo que no se creó el perfil.",
     "proxyPaymentRequired": "El proxy seleccionado requiere pago (402). Su suscripción puede haber vencido. No se creó el perfil.",
@@ -3688,7 +3691,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Comprador de baja intención",
-      "lowIntentPurchaserHint": "Posiciona el perfil como un comprador sensible al precio: sitios de comparación, cupones, reembolsos y reventa, llegando a las tiendas a través de agregadores en lugar de directamente."
+      "lowIntentPurchaserHint": "Posiciona el perfil como un comprador sensible al precio: sitios de comparación, cupones, reembolsos y reventa, llegando a las tiendas a través de agregadores en lugar de directamente.",
+      "geoRu": "Geo: Rusia",
+      "geoRuHint": "Servicios rusos cotidianos: buscadores y portales, redes sociales, marketplaces, anuncios y noticias.",
+      "geoUs": "Geo: EE. UU.",
+      "geoUsHint": "Navegación típica de EE. UU.: buscadores y portales, noticias nacionales, anuncios y compras.",
+      "geoEu": "Geo: Europa",
+      "geoEuHint": "Prensa y servicios europeos de Alemania, Francia, Reino Unido y España, además de viajes y comercio.",
+      "techDev": "Tech y desarrollo",
+      "techDevHint": "Rutina de desarrollador: alojamiento de código, preguntas y respuestas, agregadores, lecturas técnicas y artículos.",
+      "cryptoWeb3": "Cripto y Web3",
+      "cryptoWeb3Hint": "Seguimiento de mercado, exploradores on-chain y noticias cripto — solo lectura, sin monederos ni trading."
     },
     "preflight": {
       "ineligible_one": "{{count}} perfil no puede ejecutarse en remoto",

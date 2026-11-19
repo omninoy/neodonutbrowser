@@ -2492,6 +2492,8 @@
       "rename": "名前を変更",
       "moveToGroup": "グループに移動",
       "copyId": "ID をコピー",
+      "exportCookies": "Cookie をエクスポート",
+      "importCookies": "Cookie をインポート",
       "runRemote": "クラウドで実行",
       "lockNow": "今すぐロック",
       "moveToTrash": "ゴミ箱に移動",
@@ -2676,6 +2678,7 @@
     "cookieImportProfileProtected": "パスワード保護されたプロファイルには Cookie をインポートできません。先にパスワードを解除してください。",
     "cookieImportRemoteSession": "リモートセッションがこのプロファイルを使用している間は Cookie をインポートできません。同期の完了をお待ちください。",
     "cookieImportNoCookies": "貼り付けた内容から Cookie が見つかりませんでした。",
+    "cookieImportBadFormat": "内容が選択した Cookie 形式と一致しません。JSON は JSON として、Netscape は cookies.txt として貼り付けているか確認してください。",
     "selfHostedRequiresLogout": "セルフホストサーバーを設定する前に Donut アカウントからサインアウトしてください。",
     "proxyNotWorking": "選択したプロキシが機能していないため、プロファイルは作成されませんでした。",
     "proxyPaymentRequired": "選択したプロキシは支払いが必要です（402）。サブスクリプションが期限切れの可能性があります。そのため、プロファイルは作成されませんでした。",
@@ -3652,7 +3655,17 @@
     },
     "template": {
       "lowIntentPurchaser": "低購買意欲の買い物客",
-      "lowIntentPurchaserHint": "価格に敏感な買い手としてプロファイルを位置づけます。比較・クーポン・キャッシュバック・リセールのサイトを巡り、直接ではなく集約サイト経由で小売サイトに到達します。"
+      "lowIntentPurchaserHint": "価格に敏感な買い手としてプロファイルを位置づけます。比較・クーポン・キャッシュバック・リセールのサイトを巡り、直接ではなく集約サイト経由で小売サイトに到達します。",
+      "geoRu": "ジオ: ロシア",
+      "geoRuHint": "ロシアの日常サービス:検索とポータル、SNS、マーケットプレイス、広告、ニュース。",
+      "geoUs": "ジオ: 米国",
+      "geoUsHint": "米国の一般的な閲覧:検索とポータル、全国ニュース、広告、ショッピング。",
+      "geoEu": "ジオ: ヨーロッパ",
+      "geoEuHint": "ドイツ・フランス・イギリス・スペインの欧州メディアとサービス、旅行や小売も。",
+      "techDev": "テック & 開発",
+      "techDevHint": "開発者の日常:コードホスティング、Q&A、アグリゲーター、技術記事や論文。",
+      "cryptoWeb3": "暗号資産 & Web3",
+      "cryptoWeb3Hint": "市況トラッキング、オンチェーンエクスプローラー、暗号資産ニュース — 閲覧のみ、ウォレットや取引はなし。"
     },
     "preflight": {
       "ineligible_one": "{{count}} 件のプロファイルはリモートで実行できません",

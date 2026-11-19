@@ -3,6 +3,7 @@
 //! Local headless CDP warming runner for Cookie Bot.
 
 use crate::cookie_bot::CookieBotRun;
+use rand::RngExt;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,6 +24,52 @@ pub fn cancel_local_run(run_id: &str) -> bool {
 
 pub fn default_sites_for_template(template_id: &str) -> Vec<String> {
   match template_id {
+    "geo-ru" => vec![
+      "https://ya.ru".into(),
+      "https://vk.com".into(),
+      "https://dzen.ru".into(),
+      "https://www.ozon.ru".into(),
+      "https://www.wildberries.ru".into(),
+      "https://www.avito.ru".into(),
+      "https://habr.com".into(),
+      "https://www.rbc.ru".into(),
+      "https://www.kinopoisk.ru".into(),
+    ],
+    "geo-us" => vec![
+      "https://www.google.com".into(),
+      "https://www.yahoo.com".into(),
+      "https://www.cnn.com".into(),
+      "https://www.foxnews.com".into(),
+      "https://www.nytimes.com".into(),
+      "https://craigslist.org".into(),
+      "https://www.amazon.com".into(),
+      "https://www.reddit.com".into(),
+    ],
+    "geo-eu" => vec![
+      "https://www.spiegel.de".into(),
+      "https://www.zeit.de".into(),
+      "https://www.lemonde.fr".into(),
+      "https://www.bbc.co.uk".into(),
+      "https://www.elmundo.es".into(),
+      "https://www.amazon.de".into(),
+      "https://www.booking.com".into(),
+    ],
+    "tech-dev" => vec![
+      "https://github.com".into(),
+      "https://stackoverflow.com".into(),
+      "https://news.ycombinator.com".into(),
+      "https://dev.to".into(),
+      "https://arxiv.org".into(),
+      "https://medium.com".into(),
+    ],
+    "crypto-web3" => vec![
+      "https://coinmarketcap.com".into(),
+      "https://www.coingecko.com".into(),
+      "https://www.binance.com".into(),
+      "https://etherscan.io".into(),
+      "https://www.coindesk.com".into(),
+      "https://decrypt.co".into(),
+    ],
     "news-and-media" => vec![
       "https://www.bbc.com".into(),
       "https://www.cnn.com".into(),
@@ -210,20 +257,64 @@ pub async fn execute_cookie_warming(
       // Wait for page load and rendering
       tokio::time::sleep(Duration::from_secs(4)).await;
 
-      // Human-like smooth scroll
-      let scroll_script = r#"
-        (function() {
-          const scrollStep = Math.floor(Math.random() * 450 + 200);
-          window.scrollBy({ top: scrollStep, behavior: 'smooth' });
-        })()
-      "#;
-      let _ = wayfern
-        .send_cdp_command(
-          &ws_url,
-          "Runtime.evaluate",
-          json!({ "expression": scroll_script }),
-        )
-        .await;
+      // Human-like multi-step scrolling: several scroll steps with
+      // micro-pauses between them, each a random depth, with an occasional
+      // reverse step that reads like re-reading a passage. The cancel flag is
+      // checked between every step so a user stop lands within one pause.
+      //
+      // The whole step plan is drawn up front, inside a scoped block:
+      // `ThreadRng` is not `Send`, so the generator must not live across the
+      // CDP awaits below.
+      let scroll_plan: Vec<(i64, bool, u64)> = {
+        let mut rng = rand::rng();
+        let steps = rng.random_range(3..=6);
+        (0..steps)
+          .map(|_| {
+            let pause_ms = rng.random_range(500..=1500);
+            // 10-20% of steps go back up a little, like re-reading.
+            if rng.random_range(0.0..1.0) < 0.15 {
+              (100, true, pause_ms)
+            } else {
+              (rng.random_range(150..=600), false, pause_ms)
+            }
+          })
+          .collect()
+      };
+      for (depth, reverse, pause_ms) in scroll_plan {
+        if cancel_flag.load(Ordering::SeqCst)
+          || run_start_instant.elapsed() > max_duration
+        {
+          break;
+        }
+
+        let direction = if reverse { "-" } else { "" };
+        let scroll_script = format!(
+          r#"
+            (function() {{
+              window.scrollBy({{ top: {direction}{depth}, behavior: 'smooth' }});
+            }})()
+          "#
+        );
+        let _ = wayfern
+          .send_cdp_command(
+            &ws_url,
+            "Runtime.evaluate",
+            json!({ "expression": scroll_script }),
+          )
+          .await;
+
+        // Reading pause between steps (500-1500ms), slept in small chunks so
+        // a cancel is honoured mid-pause rather than after it.
+        let mut waited_ms = 0u64;
+        while waited_ms < pause_ms {
+          if cancel_flag.load(Ordering::SeqCst) {
+            break;
+          }
+          let chunk = (pause_ms - waited_ms).min(150);
+          tokio::time::sleep(Duration::from_millis(chunk)).await;
+          waited_ms += chunk;
+        }
+      }
 
       // Natural delay per site (8-15 seconds)
       for _ in 0..8 {

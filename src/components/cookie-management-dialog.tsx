@@ -230,6 +230,12 @@ export function CookieManagementDialog({
 
   const profileId = profile?.id;
 
+  // Sync the active tab each time the dialog opens: the profile menu may ask
+  // for the export tab after a previous close left the import one active.
+  useEffect(() => {
+    if (isOpen) setActiveTab(initialTab);
+  }, [isOpen, initialTab]);
+
   useEffect(() => {
     if (!isOpen || !profileId || importResult) return;
     if (pasteContent.trim() === "") {

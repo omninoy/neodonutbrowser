@@ -3,6 +3,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrent } from "@tauri-apps/plugin-deep-link";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -517,6 +519,10 @@ export default function Home() {
   const [cookieCopyDialogOpen, setCookieCopyDialogOpen] = useState(false);
   const [cookieManagementDialogOpen, setCookieManagementDialogOpen] =
     useState(false);
+  /** Which tab the cookie management dialog opens on. */
+  const [cookieManagementTab, setCookieManagementTab] = useState<
+    "import" | "export"
+  >("import");
   const [
     currentProfileForCookieManagement,
     setCurrentProfileForCookieManagement,
@@ -2464,8 +2470,34 @@ export default function Home() {
 
   const handleOpenCookieManagement = useCallback((profile: BrowserProfile) => {
     setCurrentProfileForCookieManagement(profile);
+    setCookieManagementTab("import");
     setCookieManagementDialogOpen(true);
   }, []);
+
+  const handleImportCookies = handleOpenCookieManagement;
+
+  // Export straight from the menu: the backend formats every cookie, we pick
+  // a destination file. Cancelling the dialog is a no-op, not an error.
+  const handleExportCookies = useCallback(
+    async (profile: BrowserProfile) => {
+      try {
+        const content = await invoke<string>("export_profile_cookies", {
+          profileId: profile.id,
+          format: "json",
+        });
+        const filePath = await save({
+          defaultPath: `${profile.name}_cookies.json`,
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+        if (!filePath) return;
+        await writeTextFile(filePath, content);
+        showSuccessToast(t("cookies.export.success"));
+      } catch (e) {
+        showErrorToast(translateBackendError(t, e));
+      }
+    },
+    [t],
+  );
 
   const handleGroupAssignmentComplete = useCallback(() => {
     // No need to manually reload - useProfileEvents will handle the update
@@ -3189,6 +3221,8 @@ export default function Home() {
                     onConfigureWayfern={handleConfigureWayfern}
                     onCopyCookiesToProfile={handleCopyCookiesToProfile}
                     onOpenCookieManagement={handleOpenCookieManagement}
+                    onExportCookies={handleExportCookies}
+                    onImportCookies={handleImportCookies}
                     runningProfiles={runningProfiles}
                     extensionGroups={extensionGroups}
                     isUpdating={isUpdating}
@@ -3713,6 +3747,7 @@ export default function Home() {
             setCurrentProfileForCookieManagement(null);
           }}
           profile={currentProfileForCookieManagement}
+          initialTab={cookieManagementTab}
         />
 
         <DeleteConfirmationDialog

@@ -2492,6 +2492,8 @@
       "rename": "Đổi tên",
       "moveToGroup": "Chuyển vào nhóm",
       "copyId": "Sao chép ID",
+      "exportCookies": "Xuất cookie",
+      "importCookies": "Nhập cookie",
       "runRemote": "Chạy trên đám mây",
       "lockNow": "Khóa ngay",
       "moveToTrash": "Chuyển vào thùng rác",
@@ -2676,6 +2678,7 @@
     "cookieImportProfileProtected": "Không thể nhập cookie vào hồ sơ được bảo vệ bằng mật khẩu. Hãy gỡ mật khẩu trước.",
     "cookieImportRemoteSession": "Không thể nhập cookie khi một phiên từ xa đang giữ hồ sơ này. Hãy đợi quá trình đồng bộ hoàn tất.",
     "cookieImportNoCookies": "Không tìm thấy cookie nào trong nội dung bạn đã dán.",
+    "cookieImportBadFormat": "Nội dung không khớp với định dạng cookie đã chọn. Hãy kiểm tra JSON được dán dưới dạng JSON và Netscape dưới dạng cookies.txt.",
     "selfHostedRequiresLogout": "Đăng xuất khỏi tài khoản Donut trước khi cấu hình máy chủ tự lưu trữ.",
     "proxyNotWorking": "Proxy đã chọn không hoạt động, nên profile chưa được tạo.",
     "proxyPaymentRequired": "Proxy đã chọn yêu cầu thanh toán (402). Gói đăng ký của nó có thể đã hết hạn. Profile chưa được tạo.",
@@ -3652,7 +3655,17 @@
     },
     "template": {
       "lowIntentPurchaser": "Người mua ít ý định",
-      "lowIntentPurchaserHint": "Định vị hồ sơ như một người mua nhạy cảm về giá: các trang so sánh, mã giảm giá, hoàn tiền và mua bán lại, đến với người bán qua trang tổng hợp thay vì trực tiếp."
+      "lowIntentPurchaserHint": "Định vị hồ sơ như một người mua nhạy cảm về giá: các trang so sánh, mã giảm giá, hoàn tiền và mua bán lại, đến với người bán qua trang tổng hợp thay vì trực tiếp.",
+      "geoRu": "Địa lý: Nga",
+      "geoRuHint": "Dịch vụ Nga thường ngày: tìm kiếm và cổng thông tin, mạng xã hội, sàn thương mại, rao vặt và tin tức.",
+      "geoUs": "Địa lý: Mỹ",
+      "geoUsHint": "Lướt web kiểu Mỹ: tìm kiếm và cổng thông tin, tin tức quốc gia, rao vặt và mua sắm.",
+      "geoEu": "Địa lý: châu Âu",
+      "geoEuHint": "Báo chí và dịch vụ châu Âu của Đức, Pháp, Anh và Tây Ban Nha, kèm du lịch và bán lẻ.",
+      "techDev": "Công nghệ & phát triển",
+      "techDevHint": "Thường ngày của lập trình viên: lưu trữ mã, hỏi đáp, trang tổng hợp, bài đọc kỹ thuật và bài nghiên cứu.",
+      "cryptoWeb3": "Crypto & Web3",
+      "cryptoWeb3Hint": "Theo dõi thị trường, trình khám phá on-chain và tin tức crypto — chỉ đọc, không ví hay giao dịch."
     },
     "preflight": {
       "ineligible_one": "{{count}} hồ sơ không chạy từ xa được",

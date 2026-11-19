@@ -1222,6 +1222,47 @@ impl CookieManager {
       _ => Err(format!("Unsupported export format: {format}")),
     }
   }
+
+  /// Public API: Import cookies in a declared format (`json` or `netscape`)
+  /// and write them into the profile's cookie store. Returns how many cookies
+  /// landed (fresh writes plus overwrites of existing rows).
+  ///
+  /// The paste pipeline does the actual parsing and every safety check the
+  /// dialog flow applies (running browser, protected profile, remote session).
+  /// The declared format is a contract check on top: a caller that promised a
+  /// Netscape file must not silently feed JSON through, and vice versa.
+  pub async fn import_profile_cookies(
+    app_handle: &AppHandle,
+    profile_id: &str,
+    raw_cookies: &str,
+    format: &str,
+  ) -> Result<usize, String> {
+    let expected = match format {
+      "json" => crate::cookie_paste::PasteFormat::Json,
+      "netscape" => crate::cookie_paste::PasteFormat::Netscape,
+      _ => return Err(format!("Unsupported import format: {format}")),
+    };
+
+    let parsed = crate::cookie_paste::parse_paste(raw_cookies, None);
+    if parsed.cookies.is_empty() {
+      return Err(crate::backend_error("COOKIE_IMPORT_NO_COOKIES"));
+    }
+    if parsed.format != Some(expected) {
+      return Err(crate::backend_error("COOKIE_IMPORT_BAD_FORMAT"));
+    }
+
+    let result = Self::import_paste(
+      app_handle,
+      profile_id,
+      raw_cookies,
+      None,
+      CookieWriteMode::Merge,
+      true,
+    )
+    .await?;
+
+    Ok((result.added + result.overwritten) as usize)
+  }
 }
 
 #[cfg(test)]
