@@ -25,6 +25,8 @@ bui = "bui"
 # German and French words in the tray menu labels (tray.rs).
 Alle = "Alle"
 cours = "cours"
+neodonut = "neodonut"
+neodonutbrowser = "neodonutbrowser"
 
 [default.extend-identifiers]
 # Chrome Web Store extension name in the known-VPN list.

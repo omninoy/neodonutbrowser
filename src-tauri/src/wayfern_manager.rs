@@ -3191,7 +3191,8 @@ impl WayfernManager {
       token.as_deref(),
       &format!("purpose=fingerprint_view profile={}", profile.id),
     )
-    .await {
+    .await
+    {
       Ok(s) => s,
       Err(e) => {
         log::warn!("Headless Wayfern start for fingerprint_view failed: {e}");

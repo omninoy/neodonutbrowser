@@ -7912,123 +7912,53 @@ impl McpServer {
       "get_sync_sessions" => self.handle_get_sync_sessions().await,
       "remove_sync_follower" => self.handle_remove_sync_follower(arguments).await,
       // Browser interaction tools (require paid subscription)
-      "navigate" => {
-        self.handle_navigate(arguments).await
-      }
-      "screenshot" => {
-        self.handle_screenshot(arguments).await
-      }
-      "run_actions" => {
-        self.handle_run_actions(caller, arguments).await
-      }
-      "list_tabs" => {
-        self.handle_list_tabs(arguments).await
-      }
-      "open_tab" => {
-        self.handle_open_tab(arguments).await
-      }
-      "switch_tab" => {
-        self.handle_switch_tab(arguments).await
-      }
-      "close_tab" => {
-        self.handle_close_tab(arguments).await
-      }
-      "scroll" => {
-        self.handle_scroll(arguments).await
-      }
-      "press_key" => {
-        self.handle_press_key(arguments).await
-      }
-      "go_back" => {
-        self.handle_go_back(arguments).await
-      }
-      "wait_for" => {
-        self.handle_wait_for(arguments).await
-      }
-      "evaluate_javascript" => {
-        self.handle_evaluate_javascript(arguments).await
-      }
-      "click_element" => {
-        self.handle_click_element(arguments).await
-      }
-      "type_text" => {
-        self.handle_type_text(arguments).await
-      }
-      "get_page_content" => {
-        self.handle_get_page_content(arguments).await
-      }
-      "get_page_info" => {
-        self.handle_get_page_info(arguments).await
-      }
-      "get_dialog" => {
-        self.handle_get_dialog(arguments).await
-      }
-      "handle_dialog" => {
-        self.handle_handle_dialog(arguments).await
-      }
+      "navigate" => self.handle_navigate(arguments).await,
+      "screenshot" => self.handle_screenshot(arguments).await,
+      "run_actions" => self.handle_run_actions(caller, arguments).await,
+      "list_tabs" => self.handle_list_tabs(arguments).await,
+      "open_tab" => self.handle_open_tab(arguments).await,
+      "switch_tab" => self.handle_switch_tab(arguments).await,
+      "close_tab" => self.handle_close_tab(arguments).await,
+      "scroll" => self.handle_scroll(arguments).await,
+      "press_key" => self.handle_press_key(arguments).await,
+      "go_back" => self.handle_go_back(arguments).await,
+      "wait_for" => self.handle_wait_for(arguments).await,
+      "evaluate_javascript" => self.handle_evaluate_javascript(arguments).await,
+      "click_element" => self.handle_click_element(arguments).await,
+      "type_text" => self.handle_type_text(arguments).await,
+      "get_page_content" => self.handle_get_page_content(arguments).await,
+      "get_page_info" => self.handle_get_page_info(arguments).await,
+      "get_dialog" => self.handle_get_dialog(arguments).await,
+      "handle_dialog" => self.handle_handle_dialog(arguments).await,
       "get_interactive_elements" => {
         self
           .handle_get_interactive_elements(caller, arguments)
           .await
       }
-      "click_by_index" => {
-        self.handle_click_by_index(caller, arguments).await
-      }
-      "type_by_index" => {
-        self.handle_type_by_index(caller, arguments).await
-      }
+      "click_by_index" => self.handle_click_by_index(caller, arguments).await,
+      "type_by_index" => self.handle_type_by_index(caller, arguments).await,
       // The agent surface: perception, locators, extraction, the picker and
       // humanized input. Gated exactly like click_element, because every one
       // of them drives, or reads, the same browser.
-      "perceive_page" => {
-        self.handle_perceive_page(arguments).await
-      }
-      "resolve_locator" => {
-        self.handle_resolve_locator(arguments).await
-      }
-      "click_locator" => {
-        self.handle_click_locator(arguments).await
-      }
-      "press_and_hold" => {
-        self.handle_press_and_hold(caller, arguments).await
-      }
-      "type_locator" => {
-        self.handle_type_locator(arguments).await
-      }
-      "select_option" => {
-        self.handle_select_option(caller, arguments).await
-      }
-      "file_upload" => {
-        self.handle_file_upload(caller, arguments).await
-      }
-      "list_downloads" => {
-        self.handle_list_downloads(arguments).await
-      }
-      "confirm_download" => {
-        self.handle_confirm_download(arguments).await
-      }
-      "start_network_capture" => {
-        self.handle_start_network_capture(arguments).await
-      }
+      "perceive_page" => self.handle_perceive_page(arguments).await,
+      "resolve_locator" => self.handle_resolve_locator(arguments).await,
+      "click_locator" => self.handle_click_locator(arguments).await,
+      "press_and_hold" => self.handle_press_and_hold(caller, arguments).await,
+      "type_locator" => self.handle_type_locator(arguments).await,
+      "select_option" => self.handle_select_option(caller, arguments).await,
+      "file_upload" => self.handle_file_upload(caller, arguments).await,
+      "list_downloads" => self.handle_list_downloads(arguments).await,
+      "confirm_download" => self.handle_confirm_download(arguments).await,
+      "start_network_capture" => self.handle_start_network_capture(arguments).await,
       // Stopping only deletes; it works without a plan, like stop_sync_session.
       "stop_network_capture" => Self::handle_stop_network_capture(arguments),
-      "list_network_requests" => {
-        Self::handle_list_network_requests(arguments)
-      }
-      "get_network_request" => {
-        Self::handle_get_network_request(arguments)
-      }
-      "extract_structured" => {
-        self.handle_extract_structured(arguments).await
-      }
-      "pick_element" => {
-        self.handle_pick_element(arguments).await
-      }
+      "list_network_requests" => Self::handle_list_network_requests(arguments),
+      "get_network_request" => Self::handle_get_network_request(arguments),
+      "extract_structured" => self.handle_extract_structured(arguments).await,
+      "pick_element" => self.handle_pick_element(arguments).await,
       // Leasing a host is the most expensive thing this server can do, so it
       // is gated exactly like the local launch it replaces.
-      "run_profile_remote" => {
-        self.handle_run_profile_remote(arguments).await
-      }
+      "run_profile_remote" => self.handle_run_profile_remote(arguments).await,
       // No capability gate on the stop. A lapsed plan must never be the reason
       // an agent cannot end something that is spending hours.
       "stop_remote_session" => Self::handle_stop_remote_session(arguments).await,

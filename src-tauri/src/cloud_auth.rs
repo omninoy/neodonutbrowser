@@ -237,11 +237,11 @@ fn derive_entitlements(
     scheduled_automation: matches!(plan, "solo" | "pro" | "team" | "enterprise"),
     agent: false,
     profile_limit,
-      requests_per_hour: DEFAULT_REQUESTS_PER_HOUR,
-      // Deliberately 0 in the fallback: the allowance is the server's to state and
-      // guessing it here would show a customer hours they may not have.
-      remote_browser_hours: 0,
-    })
+    requests_per_hour: DEFAULT_REQUESTS_PER_HOUR,
+    // Deliberately 0 in the fallback: the allowance is the server's to state and
+    // guessing it here would show a customer hours they may not have.
+    remote_browser_hours: 0,
+  })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1842,8 +1842,8 @@ impl CloudAuthManager {
       // transition, so a session that signed in before upgrading stayed
       // tokenless for up to ten hours while reporting the feature as unlocked.
       // A plan change revokes the server's tokens, so it mints one too.
-      let missing_entitled_token = CLOUD_AUTH.is_logged_in().await
-        && CLOUD_AUTH.get_wayfern_token().await.is_none();
+      let missing_entitled_token =
+        CLOUD_AUTH.is_logged_in().await && CLOUD_AUTH.get_wayfern_token().await.is_none();
       let plan_changed = CLOUD_AUTH.plan_marker().await != plan_before;
       if CLOUD_AUTH.wayfern_token_due(crate::proxy_manager::now_secs())
         || missing_entitled_token
@@ -1955,9 +1955,9 @@ pub async fn cloud_exchange_device_code(
     }
   }
 
-    // Request a Wayfern token for every signed-in user.
-    if let Err(e) = CLOUD_AUTH.request_wayfern_token().await {
-      log::warn!("Failed to request wayfern token after login: {e}");
+  // Request a Wayfern token for every signed-in user.
+  if let Err(e) = CLOUD_AUTH.request_wayfern_token().await {
+    log::warn!("Failed to request wayfern token after login: {e}");
   }
 
   // Sync cloud proxy after login
@@ -2042,9 +2042,7 @@ pub async fn cloud_refresh_profile() -> Result<CloudUser, String> {
   // that upgraded after its last sign-in therefore refreshed into the correct
   // entitlements while still holding no token, and "Refresh" did not fix it.
   // Only mint when one is genuinely missing, so this stays a no-op afterwards.
-  if CLOUD_AUTH.is_logged_in().await
-    && CLOUD_AUTH.get_wayfern_token().await.is_none()
-  {
+  if CLOUD_AUTH.is_logged_in().await && CLOUD_AUTH.get_wayfern_token().await.is_none() {
     // Failures are logged inside.
     let _ = CLOUD_AUTH.request_wayfern_token().await;
   }

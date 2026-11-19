@@ -2498,9 +2498,18 @@ mod tests {
 
   #[test]
   fn test_parse_neo_version() {
-    assert_eq!(AppAutoUpdater::parse_neo_version("v1.2.3-neo.4"), Some((1, 2, 3, 4)));
-    assert_eq!(AppAutoUpdater::parse_neo_version("1.2.3-neo.4"), Some((1, 2, 3, 4)));
-    assert_eq!(AppAutoUpdater::parse_neo_version("v2.0.0-neo.1"), Some((2, 0, 0, 1)));
+    assert_eq!(
+      AppAutoUpdater::parse_neo_version("v1.2.3-neo.4"),
+      Some((1, 2, 3, 4))
+    );
+    assert_eq!(
+      AppAutoUpdater::parse_neo_version("1.2.3-neo.4"),
+      Some((1, 2, 3, 4))
+    );
+    assert_eq!(
+      AppAutoUpdater::parse_neo_version("v2.0.0-neo.1"),
+      Some((2, 0, 0, 1))
+    );
     assert_eq!(AppAutoUpdater::parse_neo_version("0.1.0"), None);
   }
 

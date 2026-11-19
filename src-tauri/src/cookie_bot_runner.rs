@@ -82,8 +82,11 @@ pub async fn execute_cookie_warming(
   let profile = match crate::profile::ProfileManager::instance()
     .list_profiles()
     .ok()
-    .and_then(|profiles| profiles.into_iter().find(|p| p.id.to_string() == profile_id))
-  {
+    .and_then(|profiles| {
+      profiles
+        .into_iter()
+        .find(|p| p.id.to_string() == profile_id)
+    }) {
     Some(p) => p,
     None => {
       run.status = "failed".to_string();
@@ -213,7 +216,11 @@ pub async fn execute_cookie_warming(
         })()
       "#;
       let _ = wayfern
-        .send_cdp_command(&ws_url, "Runtime.evaluate", json!({ "expression": scroll_script }))
+        .send_cdp_command(
+          &ws_url,
+          "Runtime.evaluate",
+          json!({ "expression": scroll_script }),
+        )
         .await;
 
       // Natural delay per site (8-15 seconds)
@@ -233,7 +240,9 @@ pub async fn execute_cookie_warming(
 
   // 5. Cleanup & stop browser
   log::info!("Cookie bot warming finished for profile={}", profile.id);
-  let _ = wayfern.send_cdp_command(&ws_url, "Browser.close", json!({})).await;
+  let _ = wayfern
+    .send_cdp_command(&ws_url, "Browser.close", json!({}))
+    .await;
   tokio::time::sleep(Duration::from_millis(500)).await;
   let _ = wayfern.stop_wayfern(&profile_path_str).await;
 

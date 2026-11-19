@@ -12,7 +12,7 @@
 
 use crate::cloud_errors::{self, BackendFailure, FailureCodes};
 use crate::profile::types::BrowserProfile;
-use crate::sync::encryption::{remote_seal, RemoteSeal};
+use crate::sync::encryption::remote_seal;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -1242,14 +1242,8 @@ pub async fn run_now(
     let pid = profile_id.to_string();
     let run_clone = run.clone();
     tauri::async_runtime::spawn(async move {
-      crate::cookie_bot_runner::execute_cookie_warming(
-        app_handle,
-        pid,
-        run_clone,
-        sites,
-        max_mins,
-      )
-      .await;
+      crate::cookie_bot_runner::execute_cookie_warming(app_handle, pid, run_clone, sites, max_mins)
+        .await;
     });
   } else {
     log::warn!("Cookie bot cannot run: AppHandle is not initialized yet");
