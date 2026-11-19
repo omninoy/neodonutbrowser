@@ -2,7 +2,7 @@
   "name": "neodonutbrowser",
   "private": true,
   "license": "AGPL-3.0",
-  "version": "0.36.0",
+  "version": "0.36.1-beta.1",
   "type": "module",
   "scripts": {
     "predev": "pnpm licenses:generate",

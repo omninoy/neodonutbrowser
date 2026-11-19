@@ -76,7 +76,11 @@ import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useEntityTrash } from "@/hooks/use-trash-events";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
 import { parseBackendError, translateBackendError } from "@/lib/backend-errors";
-import { runProxyCheck } from "@/lib/proxy-check-store";
+import {
+  getCachedProxyResult,
+  runProxyCheck,
+  useProxyCheckVersion,
+} from "@/lib/proxy-check-store";
 import { rotateProxyIps } from "@/lib/proxy-rotation";
 import { isFirstHopEncrypted, proxyProtocolToken } from "@/lib/proxy-string";
 import { canonicalProxyType, proxyTypeLabelKey } from "@/lib/proxy-type";
@@ -85,7 +89,12 @@ import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import type { StoredProxy, VpnConfig } from "@/types";
 import { ProxyCheckButton, ProxyUdpBadge } from "./proxy-check-button";
 import { RippleButton } from "./ui/ripple";
-import { VpnCheckButton } from "./vpn-check-button";
+import {
+  getCachedVpnResult,
+  runVpnCheck,
+  useVpnCheckVersion,
+  VpnCheckButton,
+} from "./vpn-check-button";
 import { VpnFormDialog } from "./vpn-form-dialog";
 import { VpnImportDialog } from "./vpn-import-dialog";
 
@@ -119,7 +128,6 @@ export function ProxyManagementDialog({
   const [proxySyncErrors, setProxySyncErrors] = useState<
     Record<string, string>
   >({});
-  const [proxyInUse, setProxyInUse] = useState<Record<string, boolean>>({});
   const [isTogglingSync, setIsTogglingSync] = useState<Record<string, boolean>>(
     {},
   );
@@ -136,7 +144,6 @@ export function ProxyManagementDialog({
   const [vpnSyncErrors, setVpnSyncErrors] = useState<Record<string, string>>(
     {},
   );
-  const [vpnInUse, setVpnInUse] = useState<Record<string, boolean>>({});
   const [isTogglingVpnSync, setIsTogglingVpnSync] = useState<
     Record<string, boolean>
   >({});
@@ -152,6 +159,9 @@ export function ProxyManagementDialog({
   // to body) to only the currently visible list. Initial value comes from
   // initialTab; subsequent changes drive the animated tabs via onValueChange.
   const [activeTab, setActiveTab] = useState<"proxies" | "vpns">(initialTab);
+  const [hasOpenedVpns, setHasOpenedVpns] = useState(initialTab === "vpns");
+  const proxyCheckVersion = useProxyCheckVersion();
+  const vpnCheckVersion = useVpnCheckVersion();
   // Reset selections when the dialog closes so the floating action bar
   // (portaled to body) doesn't linger on the page across navigations.
   useEffect(() => {
@@ -241,45 +251,29 @@ export function ProxyManagementDialog({
     };
   }, []);
 
-  // Load whether sync is required by an assigned profile.
-  useEffect(() => {
-    const loadProxyInUse = async () => {
-      const inUse = await Promise.all(
-        storedProxies.map((proxy) =>
-          invoke<boolean>("is_proxy_in_use_by_synced_profile", {
-            proxyId: proxy.id,
-          }).catch(() => false),
-        ),
-      );
-      setProxyInUse(
-        Object.fromEntries(
-          storedProxies.map((proxy, i) => [proxy.id, inUse[i]]),
-        ),
-      );
-    };
-    if (storedProxies.length > 0) {
-      void loadProxyInUse();
+  // Determine if proxy is in use by any synced profile. Synchronous from referencedProfiles to eliminate dialog open lag.
+  const proxyInUse = useMemo(() => {
+    if (!referencedProfiles) return {};
+    const map: Record<string, boolean> = {};
+    for (const p of referencedProfiles) {
+      if (p.proxy_id && p.sync_mode && p.sync_mode !== "Disabled") {
+        map[p.proxy_id] = true;
+      }
     }
-  }, [storedProxies]);
+    return map;
+  }, [referencedProfiles]);
 
-  // Load VPN in-use status
-  useEffect(() => {
-    const loadVpnInUse = async () => {
-      const inUse = await Promise.all(
-        vpnConfigs.map((vpn) =>
-          invoke<boolean>("is_vpn_in_use_by_synced_profile", {
-            vpnId: vpn.id,
-          }).catch(() => false),
-        ),
-      );
-      setVpnInUse(
-        Object.fromEntries(vpnConfigs.map((vpn, i) => [vpn.id, inUse[i]])),
-      );
-    };
-    if (vpnConfigs.length > 0) {
-      void loadVpnInUse();
+  // Determine if VPN is in use by any synced profile. Synchronous from referencedProfiles to eliminate dialog open lag.
+  const vpnInUse = useMemo(() => {
+    if (!referencedProfiles) return {};
+    const map: Record<string, boolean> = {};
+    for (const p of referencedProfiles) {
+      if (p.vpn_id && p.sync_mode && p.sync_mode !== "Disabled") {
+        map[p.vpn_id] = true;
+      }
     }
-  }, [vpnConfigs]);
+    return map;
+  }, [referencedProfiles]);
 
   const { request: requestProxyTrash, remove: removeProxies } =
     useEntityTrash("proxy");
@@ -569,8 +563,29 @@ export function ProxyManagementDialog({
       {
         id: "check",
         size: checkWidth,
-        enableSorting: false,
-        header: () => t("common.labels.status"),
+        enableSorting: true,
+        header: ({ column }) => (
+          <SortableColumnHeader
+            column={column}
+            label={t("proxies.management.pingCol")}
+          />
+        ),
+        sortingFn: (
+          rowA: { original: StoredProxy },
+          rowB: { original: StoredProxy },
+        ) => {
+          const resA = getCachedProxyResult(rowA.original.id);
+          const resB = getCachedProxyResult(rowB.original.id);
+          const latA =
+            resA?.is_valid && typeof resA.latency_ms === "number"
+              ? resA.latency_ms
+              : 999999;
+          const latB =
+            resB?.is_valid && typeof resB.latency_ms === "number"
+              ? resB.latency_ms
+              : 999999;
+          return latA - latB;
+        },
         cell: ({ row }) => (
           <ProxyCheckButton proxy={row.original} variant="status" />
         ),
@@ -692,6 +707,7 @@ export function ProxyManagementDialog({
       handleToggleSync,
       handleEditProxy,
       handleDeleteProxy,
+      proxyCheckVersion,
     ],
   );
 
@@ -762,8 +778,29 @@ export function ProxyManagementDialog({
       {
         id: "check",
         size: checkWidth,
-        enableSorting: false,
-        header: () => t("common.labels.status"),
+        enableSorting: true,
+        header: ({ column }) => (
+          <SortableColumnHeader
+            column={column}
+            label={t("proxies.management.pingCol")}
+          />
+        ),
+        sortingFn: (
+          rowA: { original: VpnConfig },
+          rowB: { original: VpnConfig },
+        ) => {
+          const resA = getCachedVpnResult(rowA.original.id);
+          const resB = getCachedVpnResult(rowB.original.id);
+          const latA =
+            resA?.is_valid && typeof resA.latency_ms === "number"
+              ? resA.latency_ms
+              : 999999;
+          const latB =
+            resB?.is_valid && typeof resB.latency_ms === "number"
+              ? resB.latency_ms
+              : 999999;
+          return latA - latB;
+        },
         cell: ({ row }) => <VpnCheckButton vpn={row.original} />,
       },
       {
@@ -859,6 +896,7 @@ export function ProxyManagementDialog({
       handleToggleVpnSync,
       handleEditVpn,
       handleDeleteVpn,
+      vpnCheckVersion,
     ],
   );
 
@@ -1020,31 +1058,76 @@ export function ProxyManagementDialog({
     await emit("stored-proxies-changed");
   }, [selectedProxies, proxyInUse, t]);
 
-  /** Checks the selection a few at a time, then reports the tally once. */
-  const handleBulkCheckProxies = useCallback(async () => {
-    const queue = [...selectedProxies];
-    if (queue.length === 0) return;
-    let passed = 0;
-    let failed = 0;
-    const worker = async () => {
-      for (let proxy = queue.shift(); proxy; proxy = queue.shift()) {
-        try {
-          const result = await runProxyCheck(proxy, (error) =>
-            translateBackendError(t, error),
-          );
-          if (result?.is_valid) passed += 1;
-          else if (result) failed += 1;
-        } catch {
-          failed += 1;
+  const [isBulkCheckingProxies, setIsBulkCheckingProxies] = useState(false);
+  const [isBulkCheckingVpns, setIsBulkCheckingVpns] = useState(false);
+
+  /** Checks the selection or all proxies with 8 concurrent workers. */
+  const handleBulkCheckProxies = useCallback(
+    async (targets?: StoredProxy[]) => {
+      const proxiesToCheck = targets ?? selectedProxies;
+      const queue = [...proxiesToCheck];
+      if (queue.length === 0) return;
+      setIsBulkCheckingProxies(true);
+      let passed = 0;
+      let failed = 0;
+      const worker = async () => {
+        for (let proxy = queue.shift(); proxy; proxy = queue.shift()) {
+          try {
+            const result = await runProxyCheck(proxy, (error) =>
+              translateBackendError(t, error),
+            );
+            if (result?.is_valid) passed += 1;
+            else if (result) failed += 1;
+          } catch {
+            failed += 1;
+          }
         }
+      };
+      try {
+        await Promise.all(Array.from({ length: 8 }, worker));
+        const summary = t("proxies.management.checkSummary", { passed, failed });
+        if (failed === 0) showSuccessToast(summary);
+        else if (passed === 0) showErrorToast(summary);
+        else toast.warning(summary);
+      } finally {
+        setIsBulkCheckingProxies(false);
       }
-    };
-    await Promise.all(Array.from({ length: 4 }, worker));
-    const summary = t("proxies.management.checkSummary", { passed, failed });
-    if (failed === 0) showSuccessToast(summary);
-    else if (passed === 0) showErrorToast(summary);
-    else toast.warning(summary);
-  }, [selectedProxies, t]);
+    },
+    [selectedProxies, t],
+  );
+
+  /** Checks the selection or all VPNs with 6 concurrent workers. */
+  const handleBulkCheckVpns = useCallback(
+    async (targets?: VpnConfig[]) => {
+      const vpnsToCheck = targets ?? selectedVpns;
+      const queue = [...vpnsToCheck];
+      if (queue.length === 0) return;
+      setIsBulkCheckingVpns(true);
+      let passed = 0;
+      let failed = 0;
+      const worker = async () => {
+        for (let vpn = queue.shift(); vpn; vpn = queue.shift()) {
+          try {
+            const result = await runVpnCheck(vpn);
+            if (result?.is_valid) passed += 1;
+            else if (result) failed += 1;
+          } catch {
+            failed += 1;
+          }
+        }
+      };
+      try {
+        await Promise.all(Array.from({ length: 6 }, worker));
+        const summary = t("proxies.management.checkSummary", { passed, failed });
+        if (failed === 0) showSuccessToast(summary);
+        else if (passed === 0) showErrorToast(summary);
+        else toast.warning(summary);
+      } finally {
+        setIsBulkCheckingVpns(false);
+      }
+    },
+    [selectedVpns, t],
+  );
 
   const handleBulkToggleVpnsSync = useCallback(async () => {
     if (selectedVpns.length === 0) return;
@@ -1098,7 +1181,11 @@ export function ProxyManagementDialog({
             <AnimatedTabs
               key={initialTab}
               defaultValue={initialTab}
-              onValueChange={(v) => setActiveTab(v as "proxies" | "vpns")}
+              onValueChange={(v) => {
+                const tab = v as "proxies" | "vpns";
+                setActiveTab(tab);
+                if (tab === "vpns") setHasOpenedVpns(true);
+              }}
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -1121,6 +1208,16 @@ export function ProxyManagementDialog({
                 <div className="flex items-center gap-2">
                   {activeTab === "proxies" ? (
                     <>
+                      <PageAction
+                        icon={<LuActivity className="size-4" />}
+                        label={t("proxies.management.checkAll")}
+                        disabled={
+                          storedProxies.length === 0 || isBulkCheckingProxies
+                        }
+                        onClick={() =>
+                          void handleBulkCheckProxies(storedProxies)
+                        }
+                      />
                       <PageAction
                         icon={<LuUpload className="size-4" />}
                         label={t("common.buttons.import")}
@@ -1146,6 +1243,14 @@ export function ProxyManagementDialog({
                   ) : (
                     <>
                       <PageAction
+                        icon={<LuActivity className="size-4" />}
+                        label={t("proxies.management.checkAll")}
+                        disabled={
+                          vpnConfigs.length === 0 || isBulkCheckingVpns
+                        }
+                        onClick={() => void handleBulkCheckVpns(vpnConfigs)}
+                      />
+                      <PageAction
                         icon={<LuUpload className="size-4" />}
                         label={t("common.buttons.import")}
                         onClick={() => {
@@ -1165,7 +1270,8 @@ export function ProxyManagementDialog({
 
               <AnimatedTabsContent
                 value="proxies"
-                className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex"
+                forceMount
+                className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
               >
                 <ManagedDataTable
                   table={proxiesTable}
@@ -1204,41 +1310,44 @@ export function ProxyManagementDialog({
 
               <AnimatedTabsContent
                 value="vpns"
-                className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex"
+                forceMount
+                className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
               >
-                <ManagedDataTable
-                  table={vpnsTable}
-                  tools={vpnsTableTools}
-                  loading={isLoadingVpns}
-                  empty={
-                    <EntityEmptyState
-                      entity="vpns"
-                      icon={LuShieldCheck}
-                      title={t("entities.empty.vpns.title")}
-                      description={t("entities.empty.vpns.body")}
-                    >
-                      <RippleButton
-                        size="sm"
-                        className="gap-2"
-                        onClick={handleCreateVpn}
+                {(hasOpenedVpns || activeTab === "vpns") && (
+                  <ManagedDataTable
+                    table={vpnsTable}
+                    tools={vpnsTableTools}
+                    loading={isLoadingVpns}
+                    empty={
+                      <EntityEmptyState
+                        entity="vpns"
+                        icon={LuShieldCheck}
+                        title={t("entities.empty.vpns.title")}
+                        description={t("entities.empty.vpns.body")}
                       >
-                        <LuPlus className="size-4" />
-                        {t("proxies.management.newVpn")}
-                      </RippleButton>
-                      <RippleButton
-                        size="sm"
-                        variant="soft"
-                        className="gap-2"
-                        onClick={() => {
-                          setShowVpnImportDialog(true);
-                        }}
-                      >
-                        <LuUpload className="size-4" />
-                        {t("common.buttons.import")}
-                      </RippleButton>
-                    </EntityEmptyState>
-                  }
-                />
+                        <RippleButton
+                          size="sm"
+                          className="gap-2"
+                          onClick={handleCreateVpn}
+                        >
+                          <LuPlus className="size-4" />
+                          {t("proxies.management.newVpn")}
+                        </RippleButton>
+                        <RippleButton
+                          size="sm"
+                          variant="soft"
+                          className="gap-2"
+                          onClick={() => {
+                            setShowVpnImportDialog(true);
+                          }}
+                        >
+                          <LuUpload className="size-4" />
+                          {t("common.buttons.import")}
+                        </RippleButton>
+                      </EntityEmptyState>
+                    }
+                  />
+                )}
               </AnimatedTabsContent>
             </AnimatedTabs>
           </div>
@@ -1348,6 +1457,12 @@ export function ProxyManagementDialog({
             onClick={() => void handleBulkToggleVpnsSync()}
           >
             <LuRefreshCw />
+          </DataTableActionBarAction>
+          <DataTableActionBarAction
+            tooltip={t("proxies.management.checkSelected")}
+            onClick={() => void handleBulkCheckVpns()}
+          >
+            <LuActivity />
           </DataTableActionBarAction>
           <DataTableActionBarAction
             tooltip={t("common.buttons.delete")}

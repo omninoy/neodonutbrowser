@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { FiCheck, FiX } from "react-icons/fi";
-import { LuCheck, LuCircleDashed, LuCopy } from "react-icons/lu";
+import { LuCheck, LuCircleDashed, LuCopy, LuGlobe } from "react-icons/lu";
 import { toast } from "sonner";
 import {
   CheckPill,
@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { translateBackendError } from "@/lib/backend-errors";
-import { formatRelativeTime } from "@/lib/flag-utils";
+import { extractCountryCode, formatRelativeTime } from "@/lib/flag-utils";
 import { runProxyCheck, useProxyCheck } from "@/lib/proxy-check-store";
 import { playUiSound } from "@/lib/ui-sounds";
 import { cn } from "@/lib/utils";
@@ -324,6 +324,29 @@ export function ProxyCheckButton({
         ? "ok"
         : "failed";
 
+  const countryCode =
+    result?.country_code ?? extractCountryCode(proxy.geo_country, proxy.name);
+
+  const leftIcon = countryCode ? (
+    <FlagIcon
+      countryCode={countryCode}
+      className="h-2.5 shrink-0 rounded-[2px]"
+    />
+  ) : (
+    <LuGlobe className="size-3 text-muted-foreground shrink-0" />
+  );
+
+  const rightIcon =
+    state === "checking" ? (
+      <CheckSpinner />
+    ) : state === "ok" ? (
+      <LuCheck className="text-success-text size-3 shrink-0" />
+    ) : state === "failed" ? (
+      <FiX className="text-destructive-text size-3 shrink-0" />
+    ) : (
+      <LuCircleDashed className="size-3 text-muted-foreground/60 shrink-0" />
+    );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip>
@@ -339,22 +362,8 @@ export function ProxyCheckButton({
                 disabled={disabled}
                 aria-busy={checking}
                 aria-label={triggerLabel}
-                icon={
-                  state === "checking" ? (
-                    <CheckSpinner />
-                  ) : state === "ok" && result?.country_code ? (
-                    <FlagIcon
-                      countryCode={result.country_code}
-                      className="h-2.5 shrink-0 rounded-[2px]"
-                    />
-                  ) : state === "ok" ? (
-                    <LuCheck className="text-success-text" />
-                  ) : state === "failed" ? (
-                    <FiX />
-                  ) : (
-                    <LuCircleDashed />
-                  )
-                }
+                icon={leftIcon}
+                suffixIcon={rightIcon}
               >
                 {state === "checking"
                   ? t("appFeedback.checking")

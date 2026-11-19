@@ -2,7 +2,8 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuUsers } from "react-icons/lu";
+import { LuBot, LuUsers } from "react-icons/lu";
+import { AiSettingsDialog } from "@/components/agent-chat/ai-settings-dialog";
 import { ChatTurnView } from "@/components/agent-chat/chat-turn";
 import {
   Composer,
@@ -69,8 +70,9 @@ import {
 } from "@/lib/agent-tasks";
 import type { AgentTemplate } from "@/lib/agent-templates";
 import { translateBackendError } from "@/lib/backend-errors";
+import { DEFAULT_AI_SETTINGS, getAiSettings } from "@/lib/ai-settings";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
-import type { BrowserProfile } from "@/types";
+import type { AiSettings, BrowserProfile } from "@/types";
 
 /** What the agent page shows: the chats, or a view of connected agents. */
 export type AgentView = "chat" | ConsoleTab;
@@ -94,6 +96,8 @@ function ChatView({
   host,
   nameOf,
   composer,
+  aiSettings,
+  onOpenAiSettings,
   onOpenAccount,
   onSaveRoutine,
 }: {
@@ -102,6 +106,8 @@ function ChatView({
   host: HostContext;
   nameOf: (profileId: string) => string;
   composer: ReactNode;
+  aiSettings: AiSettings;
+  onOpenAiSettings: () => void;
   onOpenAccount: () => void;
   onSaveRoutine: (turnIndex: number) => void;
 }) {
@@ -148,6 +154,15 @@ function ChatView({
       className="@container flex min-h-0 min-w-0 flex-1 flex-col gap-2"
     >
       <PaneHeader lead={<SidebarToggle />} title={chat.title}>
+        <button
+          type="button"
+          onClick={onOpenAiSettings}
+          className="flex items-center gap-1.5 rounded-full border border-border/80 bg-foreground/5 hover:bg-foreground/10 px-2.5 py-1 text-xs text-foreground transition-colors cursor-pointer"
+          title="Настройки сторонней ИИ модели"
+        >
+          <LuBot className="size-3.5 text-primary" />
+          <span className="font-mono text-[11px] font-medium">{aiSettings.model}</span>
+        </button>
         <span
           data-slot="chat-profile"
           className="flex max-w-48 shrink-0 items-center gap-1.5 rounded-full bg-foreground/5 px-2.5 py-1 text-xs text-muted-foreground"
@@ -251,11 +266,23 @@ export function AgentWorkspace({
   const [draftProfiles, setDraftProfiles] = useState<string[] | null>(null);
   const [focusKey, setFocusKey] = useState("");
   const [fill, setFill] = useState<ComposerFill | null>(null);
+  const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (enabled) {
+      getAiSettings().then(setAiSettings).catch(() => {});
+    }
+  }, [enabled]);
+
   const chatId = selection.kind === "chat" ? selection.id : null;
   const { chat, adopt } = useAgentChat(chatId);
 
   const usable = useMemo(
-    () => profiles.filter((profile) => profile.browser === "wayfern"),
+    () =>
+      profiles.filter((profile) => profile.browser === "wayfern").length > 0
+        ? profiles.filter((profile) => profile.browser === "wayfern")
+        : profiles,
     [profiles],
   );
   // A chat from another device names a profile this one may not have.
@@ -542,6 +569,8 @@ export function AgentWorkspace({
           host={host}
           nameOf={nameOf}
           composer={composer(false)}
+          aiSettings={aiSettings}
+          onOpenAiSettings={() => setAiDialogOpen(true)}
           onOpenAccount={onOpenAccount}
           onSaveRoutine={(index) => {
             select({
@@ -567,11 +596,27 @@ export function AgentWorkspace({
             <div className="flex w-full max-w-[42rem] flex-col gap-6">
               <div
                 data-slot="chat-empty"
-                className="flex flex-col items-center gap-1.5 text-center"
+                className="flex flex-col items-center gap-2.5 text-center"
               >
                 <h2 className="text-2xl font-semibold">
                   {t("agent.home.title")}
                 </h2>
+                <button
+                  type="button"
+                  onClick={() => setAiDialogOpen(true)}
+                  className="flex items-center gap-2 rounded-full border border-border/80 bg-card/60 hover:bg-accent/80 px-3.5 py-1.5 text-xs text-foreground shadow-xs transition-colors cursor-pointer"
+                >
+                  <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <LuBot className="size-3.5" />
+                  </div>
+                  <span>Модель:</span>
+                  <span className="font-mono font-semibold text-primary">
+                    {aiSettings.provider} ({aiSettings.model})
+                  </span>
+                  <span className="text-[11px] text-muted-foreground underline ml-1">
+                    Сменить
+                  </span>
+                </button>
                 {usable.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     {t("agent.chat.noProfiles")}
@@ -627,6 +672,11 @@ export function AgentWorkspace({
       <div data-slot="agent-chat" className="flex min-h-0 flex-1 flex-col">
         {pane()}
       </div>
+      <AiSettingsDialog
+        open={aiDialogOpen}
+        onOpenChange={setAiDialogOpen}
+        onSettingsSaved={setAiSettings}
+      />
     </AgentShell>
   );
 }

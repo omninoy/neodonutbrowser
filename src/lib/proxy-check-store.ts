@@ -39,6 +39,57 @@ const routes = new Map<string, string>();
 /** Checks saved per proxy; only the read after the newest one publishes. */
 const savedChecks = new Map<string, number>();
 let watchingSaves = false;
+let batchLoaded = false;
+let batchPromise: Promise<void> | null = null;
+
+export async function loadAllCachedProxyChecks(): Promise<void> {
+  if (batchLoaded) return;
+  if (batchPromise) return batchPromise;
+  batchPromise = invoke<Record<string, ProxyCheckResult>>("get_all_cached_proxy_checks")
+    .then((map) => {
+      batchLoaded = true;
+      let changed = false;
+      for (const [proxyId, result] of Object.entries(map)) {
+        const current = entries.get(proxyId);
+        if (!current || !current.result) {
+          entries.set(proxyId, {
+            routeKey: routes.get(proxyId) ?? "",
+            result,
+            checking: false,
+            failure: null,
+          });
+          changed = true;
+          for (const listener of listeners.get(proxyId) ?? []) listener();
+        }
+      }
+      if (changed) {
+        version += 1;
+        for (const listener of anyListeners) listener();
+      }
+    })
+    .catch(() => {
+      batchLoaded = true;
+    });
+  return batchPromise;
+}
+
+export function getCachedProxyStatus(
+  proxyId: string,
+): "valid" | "invalid" | "untested" {
+  const entry = entries.get(proxyId);
+  if (!entry || !entry.result) return "untested";
+  return entry.result.is_valid ? "valid" : "invalid";
+}
+
+export function getCachedProxyResult(
+  proxyId: string,
+): ProxyCheckResult | null {
+  return entries.get(proxyId)?.result ?? null;
+}
+
+export function useProxyCheckVersion() {
+  return useSyncExternalStore(subscribeAny, readVersion, readVersion);
+}
 
 /**
  * A check the backend saved (the API, an agent, a launch): read its receipt
@@ -72,6 +123,7 @@ function nextSave(proxyId: string): number {
 function watchSavedChecks() {
   if (watchingSaves) return;
   watchingSaves = true;
+  void loadAllCachedProxyChecks();
   listen<string>("proxy-check-saved", (event) =>
     onCheckSaved(event.payload),
   ).catch(() => {
@@ -153,7 +205,11 @@ function subscribe(proxyId: string, listener: () => void) {
 async function loadCached(proxyId: string, routeKey: string) {
   routes.set(proxyId, routeKey);
   const known = entries.get(proxyId);
-  if (known?.routeKey === routeKey) return;
+  if (known?.routeKey === routeKey && known.result !== null) return;
+  if (known?.result && !known.routeKey) {
+    publish(proxyId, { ...known, routeKey });
+    return;
+  }
   const pending = cacheReads.get(routeKey);
   if (pending) return pending;
   // The backend keys its cache by the settings it was checked with, so a
@@ -230,7 +286,8 @@ export function useProxyCheck(proxy: StoredProxy) {
   const raw = useSyncExternalStore(subscribeToProxy, getSnapshot, getSnapshot);
   // A receipt for a different route (rotated password, new host) is stale
   // and reads as "not checked" until the cache for this route is loaded.
-  const entry = raw.routeKey === routeKey ? raw : IDLE;
+  const entry =
+    raw.routeKey === routeKey || (!raw.routeKey && raw.result) ? raw : IDLE;
 
   useEffect(() => {
     void loadCached(proxyId, routeKey);

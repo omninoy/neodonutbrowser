@@ -32,13 +32,13 @@ const ENDPOINTS: [&str; 6] = [
 /// targets uses up the deadline.
 const IPV6_ENDPOINTS: [&str; 2] = ["https://api6.ipify.org", "https://ipv6.icanhazip.com"];
 
-/// 10s rather than 5s: residential proxies that allocate an exit on first
-/// connect routinely need more than 5s for the initial request.
-const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+/// 6s rather than 10s: residential proxies that allocate an exit on first
+/// connect routinely need 3-5s, while failing faster on dead endpoints.
+const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(6);
 
 /// Without it, a proxy that accepts connections but stalls holds callers for
 /// every endpoint's full timeout.
-const OVERALL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
+const OVERALL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(12);
 
 /// Fetch public IP address, optionally through a proxy.
 pub async fn fetch_public_ip(proxy: Option<&str>) -> Result<String, IpError> {

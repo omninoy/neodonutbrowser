@@ -11,7 +11,7 @@
 use super::engine::{EngineError, EngineLink};
 use super::host::{self, HostCall};
 use super::model::{EngineEvent, Task, TaskStatus};
-use super::{attach, ensure_entitled, error_code, load_profile, now_ms};
+use super::{ensure_entitled, load_profile, now_ms};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -254,6 +254,7 @@ impl Chat {
 }
 
 /// What a follow-up does after the engine answered `agentMessage`.
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FollowUp {
   /// The task took the message.
@@ -263,6 +264,7 @@ pub enum FollowUp {
   Failed(String),
 }
 
+#[allow(dead_code)]
 pub fn follow_up_plan(outcome: &Result<Value, EngineError>) -> FollowUp {
   match outcome {
     Ok(_) => FollowUp::Continued,
@@ -279,6 +281,11 @@ pub fn follow_up_plan(outcome: &Result<Value, EngineError>) -> FollowUp {
     }
     Err(e) => FollowUp::Failed(e.code()),
   }
+}
+
+#[allow(dead_code)]
+fn start_params(task_id: &str, text: &str) -> Value {
+  json!({ "taskId": task_id, "prompt": text, "autonomy": "ask", "host": host::METHODS })
 }
 
 // ---- Storage ----
@@ -340,15 +347,15 @@ fn load_from(dir: &Path, now: u64) -> HashMap<String, Chat> {
 }
 
 #[derive(Default)]
-struct Chats {
-  loaded: bool,
-  chats: HashMap<String, Chat>,
-  saved_at: HashMap<String, u64>,
+pub(crate) struct Chats {
+  pub loaded: bool,
+  pub chats: HashMap<String, Chat>,
+  pub saved_at: HashMap<String, u64>,
 }
 
 static CHATS: LazyLock<Mutex<Chats>> = LazyLock::new(|| Mutex::new(Chats::default()));
 
-fn chats() -> MutexGuard<'static, Chats> {
+pub(crate) fn chats() -> MutexGuard<'static, Chats> {
   let mut guard = CHATS.lock().unwrap_or_else(|p| p.into_inner());
   if !guard.loaded {
     guard.chats = load_from(&chats_dir(), now_ms());
@@ -358,14 +365,14 @@ fn chats() -> MutexGuard<'static, Chats> {
 }
 
 impl Chats {
-  fn get(&self, id: &str) -> Result<&Chat, String> {
+  pub(crate) fn get(&self, id: &str) -> Result<&Chat, String> {
     self
       .chats
       .get(id)
       .ok_or_else(|| crate::backend_error("AGENT_CHAT_NOT_FOUND"))
   }
 
-  fn get_mut(&mut self, id: &str) -> Result<&mut Chat, String> {
+  pub(crate) fn get_mut(&mut self, id: &str) -> Result<&mut Chat, String> {
     self
       .chats
       .get_mut(id)
@@ -374,7 +381,7 @@ impl Chats {
 
   /// Write a chat and show its current turn. A step alone waits for the next
   /// change, at most `STEP_SAVE_EVERY_MS`.
-  fn changed(&mut self, id: &str, step_only: bool) {
+  pub(crate) fn changed(&mut self, id: &str, step_only: bool) {
     let Some(chat) = self.chats.get_mut(id) else {
       return;
     };
@@ -398,7 +405,7 @@ impl Chats {
   }
 }
 
-fn publish(chat: &Chat) {
+pub(crate) fn publish(chat: &Chat) {
   let Some(turn) = chat.current() else {
     return;
   };
@@ -488,6 +495,7 @@ fn log_end(chat_id: &str, task: &Task) {
 }
 
 /// End the current turn of a chat that did not start.
+#[allow(dead_code)]
 fn fail_turn(chat_id: &str, turn_id: &str, code: String) {
   let mut store = chats();
   let Ok(chat) = store.get_mut(chat_id) else {
@@ -508,6 +516,7 @@ fn fail_turn(chat_id: &str, turn_id: &str, code: String) {
 
 /// Set the current turn's engine task before the engine is asked, so an
 /// event that comes before the reply finds it.
+#[allow(dead_code)]
 fn bind_task(chat_id: &str, turn_id: &str, task_id: &str, kind: TurnKind) -> Result<(), String> {
   let mut store = chats();
   let chat = store.get_mut(chat_id)?;
@@ -529,6 +538,7 @@ fn bind_task(chat_id: &str, turn_id: &str, task_id: &str, kind: TurnKind) -> Res
 }
 
 /// The engine took the turn: it is running unless an event moved it on.
+#[allow(dead_code)]
 fn mark_running(chat_id: &str, turn_id: &str) {
   let mut store = chats();
   let Ok(chat) = store.get_mut(chat_id) else {
@@ -543,91 +553,9 @@ fn mark_running(chat_id: &str, turn_id: &str) {
   }
 }
 
-async fn link_for(profile_id: &str, chat_id: &str) -> Result<EngineLink, String> {
-  let profile = load_profile(profile_id)?;
-  if profile.browser != "wayfern" {
-    return Err(crate::backend_error("AGENT_UNSUPPORTED"));
-  }
-  let in_a_run = super::store().busy(profile_id, None);
-  if in_a_run || busy(profile_id, Some(chat_id)) {
-    return Err(crate::backend_error("AGENT_BUSY"));
-  }
-  let (link, _) = attach(&profile, false).await?;
-  Ok(link)
-}
-
-/// A chat task may ask the app to act; a routine or batch task never does.
-fn start_params(task_id: &str, text: &str) -> Value {
-  json!({ "taskId": task_id, "prompt": text, "autonomy": "ask", "host": host::METHODS })
-}
-
-/// Start or continue the engine task for the current turn.
+/// Start or continue the engine task for the current turn using AI service.
 async fn run_turn(chat_id: String, turn_id: String) {
-  let (profile_id, text, prior) = {
-    let store = chats();
-    let Ok(chat) = store.get(&chat_id) else {
-      return;
-    };
-    let Some(turn) = chat.current().filter(|turn| turn.id == turn_id) else {
-      return;
-    };
-    let prior = chat
-      .turns
-      .iter()
-      .rev()
-      .skip(1)
-      .find_map(|turn| turn.task.task_id.clone());
-    (chat.profile_id.clone(), turn.text.clone(), prior)
-  };
-  let outcome: Result<TurnKind, String> = async {
-    let link = link_for(&profile_id, &chat_id).await?;
-    if let Some(task_id) = &prior {
-      bind_task(&chat_id, &turn_id, task_id, TurnKind::FollowUp)?;
-      let reply = link
-        .call(
-          "Wayfern.agentMessage",
-          json!({ "taskId": task_id, "text": text }),
-        )
-        .await;
-      match follow_up_plan(&reply) {
-        FollowUp::Continued => return Ok(TurnKind::FollowUp),
-        FollowUp::Failed(code) => return Err(code),
-        FollowUp::StartFresh => {}
-      }
-    }
-    let kind = if prior.is_some() {
-      TurnKind::Fresh
-    } else {
-      TurnKind::Start
-    };
-    let task_id = uuid::Uuid::new_v4().to_string();
-    bind_task(&chat_id, &turn_id, &task_id, kind)?;
-    link
-      .call("Wayfern.agentStart", start_params(&task_id, &text))
-      .await
-      .map_err(|e| e.code())?;
-    Ok(kind)
-  }
-  .await;
-  match outcome {
-    Ok(kind) => {
-      mark_running(&chat_id, &turn_id);
-      log::info!(
-        "Agent chat turn started chat={chat_id} profile={profile_id} kind={}",
-        serde_json::to_value(kind)
-          .ok()
-          .and_then(|v| v.as_str().map(str::to_string))
-          .unwrap_or_default()
-      );
-    }
-    Err(code) => {
-      log::warn!(
-        "Agent chat turn did not start chat={chat_id} profile={profile_id} err={}",
-        error_code(&code)
-      );
-      fail_turn(&chat_id, &turn_id, code);
-    }
-  }
+  super::ai_service::run_ai_turn(chat_id, turn_id).await;
 }
 
 /// The link and engine task of a chat's running turn.

@@ -1664,13 +1664,13 @@ impl ProxyManager {
         // Wrap in a timeout so the check worker doesn't stay alive indefinitely
         // if the upstream is slow or unreachable.
         let result = tokio::time::timeout(
-          std::time::Duration::from_secs(30),
+          std::time::Duration::from_secs(12),
           ip_utils::fetch_public_ip(Some(&local_url)),
         )
         .await
         .unwrap_or_else(|_| {
           Err(ip_utils::IpError::Network(
-            "Proxy check timed out after 30s".to_string(),
+            "Proxy check timed out after 12s".to_string(),
           ))
         });
         // Always stop the worker — even if the check failed or timed out
@@ -1791,6 +1791,32 @@ impl ProxyManager {
   // Get cached proxy check result
   pub fn get_cached_proxy_check(&self, proxy_id: &str) -> Option<ProxyCheckResult> {
     self.load_proxy_check_cache(proxy_id)
+  }
+
+  // Get all cached proxy check results
+  pub fn get_all_cached_proxy_checks(&self) -> std::collections::HashMap<String, ProxyCheckResult> {
+    let mut map = std::collections::HashMap::new();
+    let items: Vec<(String, ProxySettings)> = match self.stored_proxies.lock() {
+      Ok(s) => s
+        .iter()
+        .map(|(id, p)| (id.clone(), p.proxy_settings.clone()))
+        .collect(),
+      Err(_) => return map,
+    };
+    for (id, settings) in items {
+      if let Ok(cache_file) = self.get_proxy_check_cache_file(&id) {
+        if cache_file.exists() {
+          if let Ok(content) = fs::read_to_string(&cache_file) {
+            if let Ok(cached) = serde_json::from_str::<CachedProxyCheck>(&content) {
+              if let Some(result) = cached.for_settings(&settings) {
+                map.insert(id, result);
+              }
+            }
+          }
+        }
+      }
+    }
+    map
   }
 
   // Export all proxies as JSON

@@ -77,6 +77,7 @@ pub async fn current() -> Result<(AgentToken, bool), String> {
 }
 
 /// Forget the token, on sign-out or when the entitlement goes.
+#[allow(dead_code)]
 pub fn clear() {
   if let Ok(mut slot) = CURRENT.lock() {
     *slot = None;

@@ -618,6 +618,15 @@ fn get_cached_proxy_check(proxy_id: String) -> Option<crate::proxy_manager::Prox
   crate::proxy_manager::PROXY_MANAGER.get_cached_proxy_check(&proxy_id)
 }
 
+#[tauri::command]
+async fn get_all_cached_proxy_checks() -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
+  tokio::task::spawn_blocking(|| {
+    crate::proxy_manager::PROXY_MANAGER.get_all_cached_proxy_checks()
+  })
+  .await
+  .unwrap_or_default()
+}
+
 /// Every check a proxy remembers, newest first, capped at
 /// `PROXY_CHECK_HISTORY_LIMIT`.
 #[tauri::command]
@@ -1877,6 +1886,52 @@ async fn update_vpn_config(vpn_id: String, name: String) -> Result<vpn::VpnConfi
   Ok(config)
 }
 
+fn get_vpn_check_cache_dir() -> std::path::PathBuf {
+  let path = crate::app_dirs::cache_dir().join("vpn_checks");
+  let _ = std::fs::create_dir_all(&path);
+  path
+}
+
+fn save_vpn_check_cache(vpn_id: &str, result: &crate::proxy_manager::ProxyCheckResult) {
+  let cache_file = get_vpn_check_cache_dir().join(format!("{vpn_id}.json"));
+  if let Ok(content) = serde_json::to_string_pretty(result) {
+    let _ = crate::app_dirs::write_owner_only(&cache_file, content.as_bytes());
+    let _ = crate::events::emit("vpn-check-saved", vpn_id);
+  }
+}
+
+#[tauri::command]
+fn get_cached_vpn_check(vpn_id: String) -> Option<crate::proxy_manager::ProxyCheckResult> {
+  let cache_file = get_vpn_check_cache_dir().join(format!("{vpn_id}.json"));
+  let content = std::fs::read_to_string(&cache_file).ok()?;
+  serde_json::from_str(&content).ok()
+}
+
+#[tauri::command]
+async fn get_all_cached_vpn_checks() -> std::collections::HashMap<String, crate::proxy_manager::ProxyCheckResult> {
+  tokio::task::spawn_blocking(|| {
+    let mut map = std::collections::HashMap::new();
+    let dir = get_vpn_check_cache_dir();
+    if let Ok(entries) = std::fs::read_dir(dir) {
+      for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "json") {
+          if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+              if let Ok(result) = serde_json::from_str(&content) {
+                map.insert(stem.to_string(), result);
+              }
+            }
+          }
+        }
+      }
+    }
+    map
+  })
+  .await
+  .unwrap_or_default()
+}
+
 #[tauri::command]
 async fn check_vpn_validity(
   vpn_id: String,
@@ -1887,6 +1942,7 @@ async fn check_vpn_validity(
 pub async fn check_vpn_validity_core(
   vpn_id: &str,
 ) -> Result<crate::proxy_manager::ProxyCheckResult, String> {
+  let started = std::time::Instant::now();
   let now = std::time::SystemTime::now()
     .duration_since(std::time::UNIX_EPOCH)
     .unwrap_or_default()
@@ -1923,9 +1979,9 @@ pub async fn check_vpn_validity_core(
 
   let mut result = None;
   let mut last_error = String::new();
-  for attempt in 0..3 {
+  for attempt in 0..2 {
     if attempt > 0 {
-      tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+      tokio::time::sleep(std::time::Duration::from_millis(500)).await;
     }
 
     match ip_utils::fetch_public_ip(Some(&local_proxy_url)).await {
@@ -1945,7 +2001,7 @@ pub async fn check_vpn_validity_core(
           // A tunnel is not a SOCKS5 endpoint the UDP probe can question, and
           // claiming either answer without asking would be a guess.
           udp: crate::proxy_udp::UdpSupport::Unknown,
-          latency_ms: None,
+          latency_ms: Some(started.elapsed().as_millis() as u64),
         });
         break;
       }
@@ -1964,7 +2020,7 @@ pub async fn check_vpn_validity_core(
     let _ = vpn_worker_runner::stop_vpn_worker(&vpn_worker.id).await;
   }
   if result.is_none() {
-    log::warn!("VPN check failed vpn={vpn_id} attempts=3 err=\"{last_error}\"");
+    log::warn!("VPN check failed vpn={vpn_id} attempts=2 err=\"{last_error}\"");
   }
 
   let result = result.unwrap_or(crate::proxy_manager::ProxyCheckResult {
@@ -1977,8 +2033,10 @@ pub async fn check_vpn_validity_core(
     isp: None,
     timezone: None,
     udp: crate::proxy_udp::UdpSupport::Unknown,
-    latency_ms: None,
+    latency_ms: Some(started.elapsed().as_millis() as u64),
   });
+
+  save_vpn_check_cache(vpn_id, &result);
 
   Ok(result)
 }
@@ -3705,6 +3763,7 @@ pub fn run_with_builder(
       delete_stored_proxy,
       check_proxy_validity,
       get_cached_proxy_check,
+      get_all_cached_proxy_checks,
       get_proxy_check_history,
       export_proxies,
       import_proxies_json,
@@ -3852,6 +3911,9 @@ pub fn run_with_builder(
       agent_tasks::chat_sync::watch_agent_chats,
       agent_tasks::chat_sync::erase_synced_agent_chats,
       agent_tasks::host::answer_agent_chat_host_call,
+      agent_tasks::ai_service::get_ai_settings,
+      agent_tasks::ai_service::save_ai_settings,
+      agent_tasks::ai_service::fetch_ai_models,
       start_mcp_remote_bridge,
       stop_mcp_remote_bridge,
       get_mcp_remote_status,
@@ -3869,6 +3931,8 @@ pub fn run_with_builder(
       create_vpn_config_manual,
       update_vpn_config,
       check_vpn_validity,
+      get_cached_vpn_check,
+      get_all_cached_vpn_checks,
       connect_vpn,
       disconnect_vpn,
       get_vpn_status,

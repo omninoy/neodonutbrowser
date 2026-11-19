@@ -10,6 +10,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -90,6 +91,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WayfernConfigForm } from "@/components/wayfern-config-form";
+import { FlagIcon } from "@/components/flag-icon";
+import {
+  getCachedVpnResult,
+  loadAllCachedVpnChecks,
+  useVpnCheckVersion,
+} from "@/components/vpn-check-button";
 import { useBrowserDownload } from "@/hooks/use-browser-download";
 import { useGroupEvents } from "@/hooks/use-group-events";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
@@ -100,7 +107,13 @@ import { useVpnEvents } from "@/hooks/use-vpn-events";
 import { translateBackendError } from "@/lib/backend-errors";
 import { getOSDisplayName, getOSIcon } from "@/lib/browser-utils";
 import { DNS_BLOCKLIST_LEVELS } from "@/lib/dns-blocklist-levels";
+import { extractCountryCode } from "@/lib/flag-utils";
 import { MOTION_DURATION, MOTION_EASE_OUT, MOTION_SPRING } from "@/lib/motion";
+import {
+  getCachedProxyResult,
+  loadAllCachedProxyChecks,
+  useProxyCheckVersion,
+} from "@/lib/proxy-check-store";
 import { startPagesFromText } from "@/lib/start-pages";
 import { notifySystem } from "@/lib/system-notify";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
@@ -329,6 +342,49 @@ export function CreateProfileDialog({
   // The dialog stays mounted; its lists load only while it is open.
   const { storedProxies } = useProxyEvents({ enabled: isOpen });
   const { vpnConfigs } = useVpnEvents({ enabled: isOpen });
+  const proxyCheckVersion = useProxyCheckVersion();
+  const vpnCheckVersion = useVpnCheckVersion();
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadAllCachedProxyChecks();
+      void loadAllCachedVpnChecks();
+    }
+  }, [isOpen]);
+
+  const sortedProxies = useMemo(() => {
+    return [...storedProxies].sort((a, b) => {
+      const resA = getCachedProxyResult(a.id);
+      const resB = getCachedProxyResult(b.id);
+      const latA =
+        resA?.is_valid && typeof resA.latency_ms === "number"
+          ? resA.latency_ms
+          : Infinity;
+      const latB =
+        resB?.is_valid && typeof resB.latency_ms === "number"
+          ? resB.latency_ms
+          : Infinity;
+      if (latA !== latB) return latA - latB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [storedProxies, proxyCheckVersion]);
+
+  const sortedVpns = useMemo(() => {
+    return [...vpnConfigs].sort((a, b) => {
+      const resA = getCachedVpnResult(a.id);
+      const resB = getCachedVpnResult(b.id);
+      const latA =
+        resA?.is_valid && typeof resA.latency_ms === "number"
+          ? resA.latency_ms
+          : Infinity;
+      const latB =
+        resB?.is_valid && typeof resB.latency_ms === "number"
+          ? resB.latency_ms
+          : Infinity;
+      if (latA !== latB) return latA - latB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [vpnConfigs, vpnCheckVersion]);
   const { groups, isLoading: isLoadingGroups } = useGroupEvents({
     enabled: isOpen,
   });
@@ -424,6 +480,16 @@ export function CreateProfileDialog({
   const selectedProxy = storedProxies.find(
     (proxy) => proxy.id === selectedProxyId,
   );
+  const selectedProxyResult = selectedProxy
+    ? getCachedProxyResult(selectedProxy.id)
+    : null;
+  const selectedCountryCode = selectedProxy
+    ? (selectedProxyResult?.country_code ??
+       extractCountryCode(selectedProxy.geo_country, selectedProxy.name))
+    : selectedVpn
+      ? (getCachedVpnResult(selectedVpn.id)?.country_code ??
+         extractCountryCode(undefined, selectedVpn.name))
+      : undefined;
   const proxyLabel = selectedVpn
     ? `WG — ${selectedVpn.name}`
     : (selectedProxy?.name ?? t("createProfile.proxy.noProxy"));
@@ -970,7 +1036,16 @@ export function CreateProfileDialog({
                   disabled={isCreating}
                 >
                   <PillIcon on={!!selectedProxyId} animate={animateEntry}>
-                    {selectedVpn ? <LuShieldCheck /> : <LuGlobe />}
+                    {selectedCountryCode ? (
+                      <FlagIcon
+                        countryCode={selectedCountryCode}
+                        className="h-3 shrink-0 rounded-[2px]"
+                      />
+                    ) : selectedVpn ? (
+                      <LuShieldCheck />
+                    ) : (
+                      <LuGlobe />
+                    )}
                   </PillIcon>
                   <PillLabel
                     id={proxyValueId}
@@ -986,7 +1061,7 @@ export function CreateProfileDialog({
                   />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-0" align="start" sideOffset={6}>
+              <PopoverContent className="w-80 p-0" align="start" sideOffset={6}>
                 <Command>
                   <CommandInput placeholder={t("createProfile.proxy.search")} />
                   <CommandList id={proxyListboxId}>
@@ -1014,59 +1089,111 @@ export function CreateProfileDialog({
                         />
                         {t("common.labels.none")}
                       </CommandItem>
-                      {storedProxies.map((proxy) => (
-                        <CommandItem
-                          key={proxy.id}
-                          value={proxy.id}
-                          keywords={[proxy.name]}
-                          onSelect={() => {
-                            setSelectedProxyId(proxy.id);
-                            setProxyPopoverOpen(false);
-                          }}
-                        >
-                          <LuCheck
-                            className={cn(
-                              "size-4 shrink-0",
-                              selectedProxyId === proxy.id
-                                ? "opacity-100"
-                                : "opacity-0",
-                            )}
-                            aria-hidden="true"
-                          />
-                          <span className="truncate">{proxy.name}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                    {vpnConfigs.length > 0 && (
-                      <CommandGroup heading={t("proxies.management.tabVpns")}>
-                        {vpnConfigs.map((vpn) => (
+                      {sortedProxies.map((proxy) => {
+                        const res = getCachedProxyResult(proxy.id);
+                        const countryCode =
+                          res?.country_code ??
+                          extractCountryCode(proxy.geo_country, proxy.name);
+                        const latency =
+                          res?.is_valid && typeof res.latency_ms === "number"
+                            ? res.latency_ms
+                            : null;
+                        return (
                           <CommandItem
-                            key={vpn.id}
-                            value={`vpn-${vpn.id}`}
-                            keywords={[vpn.name, "VPN", "WireGuard"]}
+                            key={proxy.id}
+                            value={proxy.id}
+                            keywords={[proxy.name, countryCode ?? ""]}
                             onSelect={() => {
-                              setSelectedProxyId(`vpn-${vpn.id}`);
+                              setSelectedProxyId(proxy.id);
                               setProxyPopoverOpen(false);
                             }}
+                            className="flex items-center gap-2"
                           >
                             <LuCheck
                               className={cn(
                                 "size-4 shrink-0",
-                                selectedProxyId === `vpn-${vpn.id}`
+                                selectedProxyId === proxy.id
                                   ? "opacity-100"
                                   : "opacity-0",
                               )}
                               aria-hidden="true"
                             />
-                            <Badge
-                              variant="soft"
-                              className="px-1 py-0 text-[11px] leading-tight"
-                            >
-                              WG
-                            </Badge>
-                            <span className="truncate">{vpn.name}</span>
+                            {countryCode ? (
+                              <FlagIcon
+                                countryCode={countryCode}
+                                className="h-3 shrink-0 rounded-[2px]"
+                              />
+                            ) : (
+                              <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
+                            )}
+                            <span className="truncate">{proxy.name}</span>
+                            {latency !== null && (
+                              <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                                {latency} ms
+                              </span>
+                            )}
                           </CommandItem>
-                        ))}
+                        );
+                      })}
+                    </CommandGroup>
+                    {sortedVpns.length > 0 && (
+                      <CommandGroup heading={t("proxies.management.tabVpns")}>
+                        {sortedVpns.map((vpn) => {
+                          const res = getCachedVpnResult(vpn.id);
+                          const countryCode =
+                            res?.country_code ??
+                            extractCountryCode(undefined, vpn.name);
+                          const latency =
+                            res?.is_valid && typeof res.latency_ms === "number"
+                              ? res.latency_ms
+                              : null;
+                          return (
+                            <CommandItem
+                              key={vpn.id}
+                              value={`vpn-${vpn.id}`}
+                              keywords={[
+                                vpn.name,
+                                "VPN",
+                                "WireGuard",
+                                countryCode ?? "",
+                              ]}
+                              onSelect={() => {
+                                setSelectedProxyId(`vpn-${vpn.id}`);
+                                setProxyPopoverOpen(false);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <LuCheck
+                                className={cn(
+                                  "size-4 shrink-0",
+                                  selectedProxyId === `vpn-${vpn.id}`
+                                    ? "opacity-100"
+                                    : "opacity-0",
+                                )}
+                                aria-hidden="true"
+                              />
+                              {countryCode ? (
+                                <FlagIcon
+                                  countryCode={countryCode}
+                                  className="h-3 shrink-0 rounded-[2px]"
+                                />
+                              ) : (
+                                <Badge
+                                  variant="soft"
+                                  className="px-1 py-0 text-[11px] leading-tight"
+                                >
+                                  WG
+                                </Badge>
+                              )}
+                              <span className="truncate">{vpn.name}</span>
+                              {latency !== null && (
+                                <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                                  {latency} ms
+                                </span>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
                       </CommandGroup>
                     )}
                     <CommandSeparator

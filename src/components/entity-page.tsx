@@ -359,6 +359,7 @@ export function CheckSpinner() {
 export function CheckPill({
   state,
   icon,
+  suffixIcon,
   resultKey,
   children,
   className,
@@ -366,6 +367,7 @@ export function CheckPill({
 }: React.ComponentProps<"button"> & {
   state: CheckState;
   icon: ReactNode;
+  suffixIcon?: ReactNode;
   /** Changes when a new result arrives, so the same state still rolls in. */
   resultKey?: string | number;
 }) {
@@ -408,6 +410,7 @@ export function CheckPill({
         >
           {icon}
           <span className="truncate">{children}</span>
+          {suffixIcon}
         </motion.span>
       </AnimatePresence>
     </button>

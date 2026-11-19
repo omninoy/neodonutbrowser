@@ -52,6 +52,16 @@ import {
   type TableFilter,
   type TableId,
 } from "@/lib/table-tools";
+import {
+  getCachedProxyResult,
+  getCachedProxyStatus,
+  useProxyCheckVersion,
+} from "@/lib/proxy-check-store";
+import {
+  getCachedVpnResult,
+  getCachedVpnStatus,
+  useVpnCheckVersion,
+} from "@/components/vpn-check-button";
 import { cn } from "@/lib/utils";
 import type {
   Extension,
@@ -73,7 +83,7 @@ const LABELS: Record<EntityTableId, Record<string, string>> = {
     name: "common.labels.name",
     protocol: "proxies.management.protocolCol",
     hostPort: "proxies.management.hostPort",
-    check: "common.labels.status",
+    check: "proxies.management.pingCol",
     udp: "proxies.management.udpCol",
     usage: "proxies.management.usage",
     sync: "proxies.management.syncCol",
@@ -81,7 +91,7 @@ const LABELS: Record<EntityTableId, Record<string, string>> = {
   vpns: {
     name: "common.labels.name",
     type: "common.labels.type",
-    check: "common.labels.status",
+    check: "proxies.management.pingCol",
     usage: "proxies.management.usage",
     sync: "proxies.management.syncCol",
   },
@@ -180,6 +190,15 @@ function entitySearch(row: Entity) {
 }
 
 function extraValue(row: Entity, id: string): string | number {
+  if (id === "check") {
+    const res =
+      "proxy_settings" in row
+        ? getCachedProxyResult(row.id)
+        : getCachedVpnResult(row.id);
+    return res?.is_valid && typeof res.latency_ms === "number"
+      ? res.latency_ms
+      : 999999;
+  }
   if (id === "sync") return row.sync_enabled ? 1 : 0;
   if (id === "count" && "count" in row) return row.count;
   if (id === "bookmarks" && "bookmark_count" in row)
@@ -218,6 +237,7 @@ export function configureEntityColumns<T extends Entity>(
     if (id === "actions" || id === "icon")
       return { ...column, enableHiding: false, enableResizing: false };
     const sortable = [
+      "check",
       "sync",
       "count",
       "bookmarks",
@@ -250,6 +270,8 @@ export function useEntityTableTools<T extends Entity>(
   const { t } = useTranslation();
   const view = useTablePreferences(id);
   const [width, setWidth] = useState(1024);
+  const proxyVersion = useProxyCheckVersion();
+  const vpnVersion = useVpnCheckVersion();
   const labels = useMemo(
     () =>
       Object.entries(LABELS[id]).map(([columnId, key]) => ({
@@ -271,6 +293,21 @@ export function useEntityTableTools<T extends Entity>(
         ],
       },
     ];
+    if (id === "proxies" || id === "vpns") {
+      result.push({
+        id: "check",
+        label: t("common.labels.status"),
+        value: (row) =>
+          id === "proxies"
+            ? getCachedProxyStatus(row.id)
+            : getCachedVpnStatus(row.id),
+        options: [
+          { value: "valid", label: t("entities.check.valid") },
+          { value: "invalid", label: t("entities.check.invalid") },
+          { value: "untested", label: t("entities.check.notChecked") },
+        ],
+      });
+    }
     const extra =
       id === "proxies"
         ? "protocol"
@@ -305,7 +342,7 @@ export function useEntityTableTools<T extends Entity>(
       });
     }
     return result;
-  }, [id, data, t]);
+  }, [id, data, t, proxyVersion, vpnVersion]);
   const filters = useTableFilters(data, entitySearch, definitions, id);
   // Rows a filter hides stay selected; rows that no longer exist do not.
   useLayoutEffect(() => {

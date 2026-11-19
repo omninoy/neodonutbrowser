@@ -1116,3 +1116,25 @@ export interface RestoredEntity {
   /** It synced before, but sync could not be turned back on. */
   sync_stayed_off: boolean;
 }
+
+export type AiProvider =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "openrouter"
+  | "ollama"
+  | "custom";
+
+export interface AiSettings {
+  provider: AiProvider;
+  apiKey: string;
+  baseUrl?: string;
+  model: string;
+  customSystemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  savedKeys: Record<string, string>;
+  savedModels: Record<string, string>;
+  savedBaseUrls: Record<string, string>;
+}
+

@@ -2,13 +2,11 @@
 
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuLogIn } from "react-icons/lu";
 import {
   type AgentView,
   AgentWorkspace,
   type ChatSeed,
 } from "@/components/agent-chat/workspace";
-import { SetupPanel } from "@/components/agent-console-parts";
 import { AgentShell } from "@/components/agent-shell";
 import {
   ConnectedAgentsNav,
@@ -67,7 +65,7 @@ export function AgentPage({
   chatSeed,
 }: AgentPageProps) {
   const { t } = useTranslation();
-  const fallback: AgentView = agent.entitled ? "chat" : "conversation";
+  const fallback: AgentView = "chat";
   const asked = initialView ?? fallback;
   const [view, setView] = useState<AgentView>(asked);
   const [adopted, setAdopted] = useState(asked);
@@ -75,9 +73,7 @@ export function AgentPage({
     setAdopted(asked);
     setView(asked);
   }
-  // Only an account with the agent has chats to show.
-  const shownView: AgentView =
-    view === "chat" && !agent.entitled ? "conversation" : view;
+  const shownView: AgentView = view;
   const changeView = useCallback(
     (next: AgentView) => {
       setView(next);
@@ -92,26 +88,7 @@ export function AgentPage({
   });
 
   const body = () => {
-    if (!cloudUser) {
-      return (
-        <SetupPanel
-          testId="agent-setup-signed-out"
-          icon={<LuLogIn />}
-          title={t("agent.setup.signedOutTitle")}
-          body={t("agent.setup.signedOutBody")}
-        >
-          <Button
-            size="sm"
-            className="h-8 rounded-lg text-xs"
-            data-testid="agent-setup-sign-in"
-            onClick={onOpenAccount}
-          >
-            {t("agent.setup.signedOutAction")}
-          </Button>
-        </SetupPanel>
-      );
-    }
-    if (agent.entitled) {
+    if (shownView === "chat" || !cloudUser || agent.entitled) {
       return (
         <AgentWorkspace
           enabled={isOpen}

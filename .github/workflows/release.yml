@@ -113,12 +113,13 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "NeoDonut Browser ${{ github.ref_name }}"
           releaseBody: |
-            NeoDonut Browser ${{ github.ref_name }} official release for Windows and Linux.
+            NeoDonut Browser ${{ github.ref_name }} release for Windows and Linux.
             - Full fingerprint editing and cross-OS profiles unlocked
             - Integrated local Cookie Bot for automated profile warming
-            - Standalone local agent console and schedulers enabled
+            - Standalone local agent console with custom third-party AI models (OpenAI, Claude, Gemini, OpenRouter, Ollama)
+            - Proxy ping persistence, sorting by ping, flag/check alignment
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') || contains(github.ref_name, 'alpha') }}
           args: ${{ matrix.args }}
 
       - name: Create portable Windows ZIP

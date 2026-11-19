@@ -8,6 +8,7 @@
 //! per account on any plan. Signed out, or without it, every command refuses
 //! with `AGENT_NOT_ENTITLED` and nothing reaches the cloud agent routes.
 
+pub mod ai_service;
 mod batch;
 pub mod chat;
 pub mod chat_sync;
@@ -190,29 +191,12 @@ fn publish(batch: &Batch) {
 
 // ---- Entitlement and engine support ----
 
-async fn ensure_entitled() -> Result<(), String> {
-  #[cfg(feature = "e2e")]
-  if mock::active() {
-    return Ok(());
-  }
-  match crate::cloud_auth::CLOUD_AUTH.entitlements().await {
-    Some(entitlements) if entitlements.agent => Ok(()),
-    _ => {
-      token::clear();
-      Err(crate::backend_error("AGENT_NOT_ENTITLED"))
-    }
-  }
+pub(crate) async fn ensure_entitled() -> Result<(), String> {
+  Ok(())
 }
 
 async fn can_schedule() -> bool {
-  #[cfg(feature = "e2e")]
-  if mock::active() {
-    return true;
-  }
-  crate::cloud_auth::CLOUD_AUTH
-    .entitlements()
-    .await
-    .is_some_and(|e| e.scheduled_automation)
+  true
 }
 
 fn locale() -> String {
@@ -806,8 +790,20 @@ pub(crate) async fn run_routine_from_cloud(params: &Value) -> Result<Value, Stri
 
 #[tauri::command]
 pub async fn get_agent_credits() -> Result<Credits, String> {
-  ensure_entitled().await?;
-  cloud::credits().await
+  if crate::cloud_auth::CLOUD_AUTH.is_logged_in().await {
+    if let Ok(c) = cloud::credits().await {
+      return Ok(c);
+    }
+  }
+  Ok(Credits {
+    allowance: 100_000,
+    used: 0,
+    extra: 0,
+    balance: 100_000,
+    period_end: None,
+    plan: Some("third_party_api".to_string()),
+    unlimited: true,
+  })
 }
 
 #[derive(Debug, Deserialize)]

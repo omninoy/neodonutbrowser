@@ -70,3 +70,6 @@ HANDOFF.md
 .claude/quota-blocked.json
 session-recover.yaml
 # Claude Code session-recovery state
+NeoDonut-Browser-Portable/
+*.zip
+
