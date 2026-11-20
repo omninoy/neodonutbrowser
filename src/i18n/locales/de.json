@@ -346,7 +346,9 @@
     "addons": {
       "title": "Erscheinungsbild & Erweiterungen",
       "description": "Passen Sie Designs, CSS-Snippets und Plugins an."
-    }
+    },
+    "includeBetaUpdates": "Include beta updates",
+    "includeBetaUpdatesDescription": "Check for and install pre-release beta builds from the GitHub repository omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "Profile durchsuchen...",

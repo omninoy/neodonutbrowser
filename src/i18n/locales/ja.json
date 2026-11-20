@@ -346,7 +346,9 @@
     "addons": {
       "title": "外観と拡張機能",
       "description": "テーマ、CSSスニペット、プラグインをカスタマイズします。"
-    }
+    },
+    "includeBetaUpdates": "Include beta updates",
+    "includeBetaUpdatesDescription": "Check for and install pre-release beta builds from the GitHub repository omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "プロファイルを検索...",

@@ -346,7 +346,9 @@
     "addons": {
       "title": "Giao diện & Tiện ích mở rộng",
       "description": "Tùy chỉnh giao diện, đoạn mã CSS và plugin."
-    }
+    },
+    "includeBetaUpdates": "Include beta updates",
+    "includeBetaUpdatesDescription": "Check for and install pre-release beta builds from the GitHub repository omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "Tìm kiếm hồ sơ...",

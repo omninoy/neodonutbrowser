@@ -19,6 +19,7 @@ export interface AppSettings extends SoundFields {
   api_port: number;
   api_token?: string;
   disable_auto_updates?: boolean;
+  include_beta_updates?: boolean;
   keep_decrypted_profiles_in_ram?: boolean;
   fingerprint_gate_disabled?: boolean;
   vpn_extension_warning_disabled?: boolean;

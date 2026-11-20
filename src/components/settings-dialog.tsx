@@ -1206,6 +1206,17 @@ export function SettingsDialog({
                       }
                     />
                   )}
+                  {!isLinux && (
+                    <SwitchRow
+                      id="include-beta-updates"
+                      label={t("settings.includeBetaUpdates")}
+                      description={t("settings.includeBetaUpdatesDescription")}
+                      checked={settings.include_beta_updates ?? true}
+                      onCheckedChange={(v) =>
+                        update({ include_beta_updates: v })
+                      }
+                    />
+                  )}
                   <SwitchRow
                     id="keep-decrypted-profiles-in-ram"
                     label={t("settings.keepDecryptedProfilesInRam")}

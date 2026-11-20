@@ -307,6 +307,8 @@ pub struct AppSettings {
   pub onboarding_completed: bool, // First-launch onboarding has been shown/handled (one-shot)
   #[serde(default)]
   pub disable_auto_updates: bool,
+  #[serde(default = "default_true")]
+  pub include_beta_updates: bool,
   /// When true, the decrypted in-RAM copy of a password-protected profile is
   /// preserved between launches for faster subsequent startups. The on-disk
   /// copy is always re-encrypted regardless of this flag.
@@ -424,6 +426,10 @@ pub struct SyncSettings {
   pub sync_token: Option<String>, // Only populated when reading, not stored in JSON
   #[serde(default)]
   pub source: Option<crate::sync::account_server::SyncSourceKind>,
+}
+
+fn default_true() -> bool {
+  true
 }
 
 fn default_theme() -> String {
@@ -606,6 +612,7 @@ impl Default for AppSettings {
       vpn_extension_warning_disabled: false,
       onboarding_completed: false,
       disable_auto_updates: false,
+      include_beta_updates: true,
       keep_decrypted_profiles_in_ram: false,
       tips_auto_show: true,
       tips_seen: Vec::new(),
@@ -2208,6 +2215,7 @@ mod tests {
       vpn_extension_warning_disabled: false,
       onboarding_completed: false,
       disable_auto_updates: false,
+      include_beta_updates: true,
       keep_decrypted_profiles_in_ram: false,
       tips_auto_show: true,
       tips_seen: Vec::new(),

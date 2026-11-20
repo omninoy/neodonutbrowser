@@ -348,7 +348,9 @@
     "addons": {
       "title": "Внешний вид и расширения",
       "description": "Настройка тем оформления, CSS-сниппетов и песочницы плагинов."
-    }
+    },
+    "includeBetaUpdates": "Получать бета-версии",
+    "includeBetaUpdatesDescription": "Проверять и устанавливать предварительные бета-выпуски из GitHub репозитория omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "Поиск профилей...",

@@ -113,11 +113,30 @@ fn null_as_empty<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<St
   Ok(Option::<String>::deserialize(deserializer)?.unwrap_or_default())
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum PreReleaseTag {
+  Alpha(u32),
+  Beta(u32),
+  Neo(u32),
+  Rc(u32),
+  Other(u32),
+  Final,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct ParsedReleaseVersion {
+  pub major: u32,
+  pub minor: u32,
+  pub patch: u32,
+  pub pre: PreReleaseTag,
+}
+
 /// GitHub's API for this repository.
 const GITHUB_REPO_API: &str = "https://api.github.com/repos/omninoy/neodonutbrowser";
 /// Donut's copy of the newest stable and nightly releases, which the cloud
 /// reads from GitHub with a token. It still answers when GitHub refuses an
 /// address that many installs share (60 unauthenticated requests an hour).
+#[allow(dead_code)]
 const DONUT_RELEASES_URL: &str = "https://api.donutbrowser.com/api/app-releases";
 /// One release list is small; a source slower than this is skipped.
 const SOURCE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -250,9 +269,7 @@ impl AppAutoUpdater {
   pub async fn check_for_updates(
     &self,
   ) -> Result<Option<AppUpdateInfo>, Box<dyn std::error::Error + Send + Sync>> {
-    // Updates disabled in this community build: never self-replace with
-    // upstream releases. Check GitHub manually if a newer build is needed.
-    Ok(None)
+    self.check(false).await
   }
 
   /// Runs one check and writes its one result line: at info when the outcome
@@ -263,12 +280,22 @@ impl AppAutoUpdater {
   ) -> Result<Option<AppUpdateInfo>, Box<dyn std::error::Error + Send + Sync>> {
     let started = std::time::Instant::now();
     let current_version = Self::get_current_version();
+    let settings = crate::settings_manager::SettingsManager::instance()
+      .load_settings()
+      .ok();
+    let include_beta = settings
+      .as_ref()
+      .map(|s| s.include_beta_updates)
+      .unwrap_or(true);
+
     let channel = if Self::is_nightly_build() {
       "nightly"
+    } else if include_beta {
+      "beta"
     } else {
       "stable"
     };
-    let releases = match self.fetch_app_releases(channel == "nightly").await {
+    let releases = match self.fetch_app_releases(channel == "nightly" || include_beta).await {
       Ok(releases) => {
         APP_UPDATE_CHECK_STREAK.succeeded();
         releases
@@ -313,17 +340,42 @@ impl AppAutoUpdater {
     current_version: String,
   ) -> (Option<AppUpdateInfo>, String, String) {
     let is_nightly = Self::is_nightly_build();
-    let filtered_releases: Vec<&AppRelease> = if is_nightly {
+    let settings = crate::settings_manager::SettingsManager::instance()
+      .load_settings()
+      .ok();
+    let include_beta = settings
+      .as_ref()
+      .map(|s| s.include_beta_updates)
+      .unwrap_or(true);
+
+    let mut filtered_releases: Vec<&AppRelease> = if is_nightly {
       releases
         .iter()
         .filter(|release| release.tag_name.starts_with("nightly-"))
         .collect()
-    } else {
+    } else if include_beta {
       releases
         .iter()
         .filter(|release| release.tag_name.starts_with('v'))
         .collect()
+    } else {
+      releases
+        .iter()
+        .filter(|release| {
+          release.tag_name.starts_with('v')
+            && !release.prerelease
+            && !release.tag_name.contains("-beta")
+            && !release.tag_name.contains("-rc")
+            && !release.tag_name.contains("-alpha")
+        })
+        .collect()
     };
+
+    filtered_releases.sort_by(|a, b| {
+      let va = Self::parse_release_version(&a.tag_name);
+      let vb = Self::parse_release_version(&b.tag_name);
+      vb.cmp(&va)
+    });
 
     let Some(latest_release) = filtered_releases.first().copied() else {
       return (
@@ -431,52 +483,24 @@ impl AppAutoUpdater {
     }
   }
 
-  /// The releases of this build's channel from every source that answers,
-  /// newest first: GitHub and Donut's copy, asked at the same time. Fails
-  /// only when neither answers.
+  /// The releases of this build's channel from GitHub repository omninoy/neodonutbrowser.
   async fn fetch_app_releases(
     &self,
-    nightly: bool,
+    nightly_or_beta: bool,
   ) -> Result<Vec<AppRelease>, Box<dyn std::error::Error + Send + Sync>> {
-    let (github, donut) = tokio::join!(
-      self.fetch_github_releases(nightly),
-      self.fetch_donut_releases()
-    );
-    let mut lists = Vec::new();
-    let mut failures = Vec::new();
-    for (source, fetched) in [("github", github), ("donutbrowser.com", donut)] {
-      match fetched {
-        Ok(releases) => lists.push((source, releases)),
-        Err(e) => failures.push((source, e.to_string())),
-      }
-    }
-    if lists.is_empty() {
-      let all = failures
-        .iter()
-        .map(|(source, e)| format!("{source}: {e}"))
-        .collect::<Vec<_>>()
-        .join("; ");
-      return Err(all.into());
-    }
-    for (source, _) in &lists {
-      APP_UPDATE_SOURCE_STREAK.succeeded(source);
-    }
-    for (source, e) in &failures {
-      APP_UPDATE_SOURCE_STREAK.failed(source, e);
-    }
-    Ok(merge_releases(
-      lists.into_iter().map(|(_, releases)| releases),
-    ))
+    let releases = self.fetch_github_releases(nightly_or_beta).await?;
+    APP_UPDATE_SOURCE_STREAK.succeeded("github");
+    Ok(releases)
   }
 
-  /// The latest stable release alone (a few kilobytes), or the newest ten
-  /// for a nightly build, whose tags GitHub does not mark as latest.
+  /// The latest stable release alone, or the newest releases
+  /// for a beta or nightly build, whose tags GitHub does not mark as latest.
   async fn fetch_github_releases(
     &self,
-    nightly: bool,
+    nightly_or_beta: bool,
   ) -> Result<Vec<AppRelease>, Box<dyn std::error::Error + Send + Sync>> {
-    let url = if nightly {
-      format!("{GITHUB_REPO_API}/releases?per_page=10")
+    let url = if nightly_or_beta {
+      format!("{GITHUB_REPO_API}/releases?per_page=15")
     } else {
       format!("{GITHUB_REPO_API}/releases/latest")
     };
@@ -492,13 +516,14 @@ impl AppAutoUpdater {
     if !response.status().is_success() {
       return Err(format!("GitHub API request failed: {}", response.status()).into());
     }
-    if nightly {
+    if nightly_or_beta {
       Ok(response.json().await?)
     } else {
       Ok(vec![response.json().await?])
     }
   }
 
+  #[allow(dead_code)]
   async fn fetch_donut_releases(
     &self,
   ) -> Result<Vec<AppRelease>, Box<dyn std::error::Error + Send + Sync>> {
@@ -521,10 +546,6 @@ impl AppAutoUpdater {
 
   /// Determine if an update should be performed
   fn should_update(&self, current_version: &str, new_version: &str, is_nightly: bool) -> bool {
-    if current_version.starts_with("dev-") {
-      return false;
-    }
-
     if is_nightly {
       // For nightly builds, always update if there's a newer nightly
       if let (Some(current_hash), Some(new_hash)) = (
@@ -541,23 +562,88 @@ impl AppAutoUpdater {
         return true;
       }
     } else {
-      // For stable builds, use semantic versioning comparison
-      return self.is_version_newer(new_version, current_version);
+      let clean_current = if current_version.starts_with("dev-") {
+        current_version.trim_start_matches("dev-")
+      } else {
+        current_version
+      };
+      // For stable or beta builds, use semantic versioning comparison
+      return self.is_version_newer(new_version, clean_current);
     }
 
     false
   }
 
   /// Compare NeoDonut release versions (returns true if version1 > version2).
-  /// Stable fork tags use `v<upstream-version>-neo.<revision>`.
   fn is_version_newer(&self, version1: &str, version2: &str) -> bool {
     match (
-      Self::parse_neo_version(version1),
-      Self::parse_neo_version(version2),
+      Self::parse_release_version(version1),
+      Self::parse_release_version(version2),
     ) {
       (Some(v1), Some(v2)) => v1 > v2,
-      _ => false,
+      _ => match (
+        Self::parse_neo_version(version1),
+        Self::parse_neo_version(version2),
+      ) {
+        (Some(v1), Some(v2)) => v1 > v2,
+        _ => false,
+      },
     }
+  }
+
+  /// Parse SemVer, beta, and neo release versions into an ordered struct.
+  pub fn parse_release_version(version: &str) -> Option<ParsedReleaseVersion> {
+    let clean = version
+      .trim()
+      .trim_start_matches("dev-")
+      .trim_start_matches('v');
+
+    let (base, pre_opt) = if let Some((b, p)) = clean.split_once('-') {
+      (b, Some(p))
+    } else {
+      (clean, None)
+    };
+
+    let mut parts = base.split('.');
+    let major: u32 = parts.next()?.parse().ok()?;
+    let minor: u32 = parts.next()?.parse().ok()?;
+    let patch: u32 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+      return None;
+    }
+
+    let pre = match pre_opt {
+      None => PreReleaseTag::Final,
+      Some(p) => {
+        let p_lower = p.to_lowercase();
+        if let Some(num_str) = p_lower.strip_prefix("beta.") {
+          PreReleaseTag::Beta(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("beta") {
+          PreReleaseTag::Beta(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("neo.") {
+          PreReleaseTag::Neo(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("neo") {
+          PreReleaseTag::Neo(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("rc.") {
+          PreReleaseTag::Rc(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("rc") {
+          PreReleaseTag::Rc(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("alpha.") {
+          PreReleaseTag::Alpha(num_str.parse().unwrap_or(0))
+        } else if let Some(num_str) = p_lower.strip_prefix("alpha") {
+          PreReleaseTag::Alpha(num_str.parse().unwrap_or(0))
+        } else {
+          PreReleaseTag::Other(0)
+        }
+      }
+    };
+
+    Some(ParsedReleaseVersion {
+      major,
+      minor,
+      patch,
+      pre,
+    })
   }
 
   /// Parse `v0.28.2-neo.3` into an ordered tuple.
@@ -2372,6 +2458,7 @@ fn schedule_next_check(after: std::time::Duration) {
 /// Every release the sources listed, once, newest first. When both list a
 /// release, the copy that already carries SHA256SUMS.txt wins, so the source
 /// that saw it first is not held back by the other.
+#[allow(dead_code)]
 fn merge_releases(lists: impl IntoIterator<Item = Vec<AppRelease>>) -> Vec<AppRelease> {
   let mut merged: Vec<AppRelease> = Vec::new();
   for release in lists.into_iter().flatten() {
@@ -2511,6 +2598,34 @@ mod tests {
       Some((2, 0, 0, 1))
     );
     assert_eq!(AppAutoUpdater::parse_neo_version("0.1.0"), None);
+  }
+
+  #[test]
+  fn test_parse_release_version() {
+    assert_eq!(
+      AppAutoUpdater::parse_release_version("v0.36.1-beta.4"),
+      Some(ParsedReleaseVersion {
+        major: 0,
+        minor: 36,
+        patch: 1,
+        pre: PreReleaseTag::Beta(4),
+      })
+    );
+    assert_eq!(
+      AppAutoUpdater::parse_release_version("0.36.0"),
+      Some(ParsedReleaseVersion {
+        major: 0,
+        minor: 36,
+        patch: 0,
+        pre: PreReleaseTag::Final,
+      })
+    );
+    let updater = AppAutoUpdater::instance();
+    assert!(updater.is_version_newer("v0.36.1-beta.4", "v0.36.1-beta.3"));
+    assert!(updater.is_version_newer("v0.36.1-beta.1", "v0.36.0"));
+    assert!(updater.is_version_newer("v0.36.1", "v0.36.1-beta.4"));
+    assert!(!updater.is_version_newer("v0.36.1-beta.3", "v0.36.1-beta.4"));
+    assert!(!updater.is_version_newer("v0.36.0", "v0.36.1-beta.1"));
   }
 
   #[test]

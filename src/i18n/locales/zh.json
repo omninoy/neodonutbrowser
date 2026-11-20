@@ -346,7 +346,9 @@
     "addons": {
       "title": "外观与扩展",
       "description": "自定义主题、CSS 代码段和沙盒插件。"
-    }
+    },
+    "includeBetaUpdates": "Include beta updates",
+    "includeBetaUpdatesDescription": "Check for and install pre-release beta builds from the GitHub repository omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "搜索配置文件...",

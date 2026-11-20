@@ -346,7 +346,9 @@
     "addons": {
       "title": "모양 및 확장 프로그램",
       "description": "테마, CSS 스니펫 및 플러그인을 맞춤 설정합니다."
-    }
+    },
+    "includeBetaUpdates": "Include beta updates",
+    "includeBetaUpdatesDescription": "Check for and install pre-release beta builds from the GitHub repository omninoy/neodonutbrowser."
   },
   "header": {
     "searchPlaceholder": "프로필 검색...",
