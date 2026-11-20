@@ -112,9 +112,49 @@ fn build_udp_datagram(src: IpEndpoint, payload: &[u8]) -> Vec<u8> {
   out
 }
 
+/// The WG tunnel's datagram uplink: straight UDP, or a SOCKS5 UDP detour for
+/// WG→WG chains (hop 2's endpoint rides hop 1's worker).
+enum WgSocket {
+  Direct(Arc<UdpSocket>),
+  Detour(Arc<super::wireguard::SocksUdpTunnel>),
+}
+
+impl WgSocket {
+  fn send_to(&self, data: &[u8], peer: SocketAddr) -> std::io::Result<usize> {
+    match self {
+      Self::Direct(socket) => socket.send_to(data, peer),
+      Self::Detour(tunnel) => {
+        tunnel.send_to(data, peer)?;
+        Ok(data.len())
+      }
+    }
+  }
+
+  fn recv_from(&self, buf: &mut [u8]) -> std::io::Result<(usize, SocketAddr)> {
+    match self {
+      Self::Direct(socket) => socket.recv_from(buf),
+      Self::Detour(tunnel) => tunnel.recv_from(buf),
+    }
+  }
+
+  fn set_read_timeout(&self, timeout: Option<std::time::Duration>) -> std::io::Result<()> {
+    match self {
+      Self::Direct(socket) => socket.set_read_timeout(timeout),
+      Self::Detour(tunnel) => tunnel.udp.set_read_timeout(timeout),
+    }
+  }
+
+  fn set_nonblocking(&self, nonblocking: bool) -> std::io::Result<()> {
+    match self {
+      Self::Direct(socket) => socket.set_nonblocking(nonblocking),
+      Self::Detour(tunnel) => tunnel.udp.set_nonblocking(nonblocking),
+    }
+  }
+}
+
 struct WgDevice {
   tunn: Arc<Mutex<Box<Tunn>>>,
-  udp_socket: Arc<UdpSocket>,
+  udp_socket: Arc<WgSocket>,
   peer_addr: SocketAddr,
   rx_queue: VecDeque<Vec<u8>>,
   tx_queue: VecDeque<Vec<u8>>,
@@ -393,7 +433,7 @@ impl WireGuardSocks5Server {
   /// Returns how many attempts the handshake took.
   fn do_handshake(
     tunn: &mut Tunn,
-    socket: &UdpSocket,
+    socket: &WgSocket,
     peer_addr: SocketAddr,
   ) -> Result<u32, VpnError> {
     socket
@@ -478,19 +518,32 @@ impl WireGuardSocks5Server {
     let peer_addr = self.resolve_endpoint()?;
     let mut tunn = self.create_tunnel()?;
 
-    let udp_socket = UdpSocket::bind("0.0.0.0:0")
-      .map_err(|e| VpnError::Connection(format!("Failed to create UDP socket: {e}")))?;
+    let uplink: WgSocket = if let Some(detour) = &self.config.dial_via_socks {
+      let relay = detour
+        .to_socket_addrs()
+        .map_err(|e| VpnError::Connection(format!("Bad SOCKS detour '{detour}': {e}")))?
+        .next()
+        .ok_or_else(|| VpnError::Connection(format!("SOCKS detour '{detour}' did not resolve")))?;
+      log::info!(
+        "WireGuard worker dialing endpoint via SOCKS detour detour={relay} endpoint={peer_addr}"
+      );
+      let tunnel = super::wireguard::SocksUdpTunnel::connect(relay)
+        .map_err(|e| VpnError::Connection(format!("SOCKS detour associate failed: {e}")))?;
+      WgSocket::Detour(Arc::new(tunnel))
+    } else {
+      let socket = UdpSocket::bind("0.0.0.0:0")
+        .map_err(|e| VpnError::Connection(format!("Failed to create UDP socket: {e}")))?;
+      WgSocket::Direct(Arc::new(socket))
+    };
 
-    let handshake_attempts = Self::do_handshake(&mut tunn, &udp_socket, peer_addr)?;
+    let handshake_attempts = Self::do_handshake(&mut tunn, &uplink, peer_addr)?;
 
-    udp_socket
-      .set_nonblocking(true)
-      .map_err(|e| VpnError::Connection(format!("Failed to set non-blocking: {e}")))?;
+    uplink.set_nonblocking(true)?;
 
     let local_addrs = parse_cidr_addresses(&self.config.address)?;
 
     let tunn_arc = Arc::new(Mutex::new(tunn));
-    let udp_arc = Arc::new(udp_socket);
+    let udp_arc = Arc::new(uplink);
 
     let mut device = WgDevice {
       tunn: tunn_arc.clone(),

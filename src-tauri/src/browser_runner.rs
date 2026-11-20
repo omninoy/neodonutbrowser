@@ -466,10 +466,82 @@ impl BrowserRunner {
       let dns_server = crate::profile_dns::normalize_dns_server(profile.dns_server.clone())
         .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
       // Always start a local proxy for Wayfern (for traffic monitoring and geoip support)
-      let mut upstream_proxy = self
-        .resolve_launch_proxy(profile)
-        .await
-        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+      // A chain exit may be a WireGuard config ("vpn-<id>"): its worker's local
+      // SOCKS becomes the upstream exactly like a vpn_id profile's launch. A
+      // WireGuard relay rides along: the exit tunnel dials its endpoint through
+      // the relay worker's local SOCKS (the WG→WG chain detour).
+      let mut vpn_exit_start: Option<crate::vpn_worker_runner::VpnWorkerStart> = None;
+      let mut vpn_relay_early: Option<crate::vpn_worker_runner::VpnWorkerStart> = None;
+      let mut upstream_proxy = if let Some(vpn_id) = profile
+        .proxy_id
+        .as_deref()
+        .and_then(|id| id.strip_prefix("vpn-"))
+      {
+        // WG→WG chain: the exit tunnel dials its endpoint through the relay
+        // worker's local SOCKS (UDP detour), the way Throne fronts a group.
+        // Any non-WG relay in front of a WireGuard exit is not routable.
+        let detour = match profile.relay_proxy_id.as_deref() {
+          None => None,
+          Some(relay_id) if relay_id.starts_with("vpn-") => {
+            let relay_start = crate::vpn_worker_runner::start_vpn_worker_tracked(relay_id)
+              .await
+              .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+                crate::backend_error_with_detail("VPN_WORKER_START_FAILED", e).into()
+              })?;
+            let relay_port = relay_start.config.local_port.unwrap_or_default();
+            if relay_port == 0 {
+              if relay_start.created {
+                let _ = crate::vpn_worker_runner::stop_vpn_worker(&relay_start.config.id)
+                  .await
+                  .map(|_| ());
+              }
+              return Err(crate::backend_error("VPN_WORKER_START_FAILED").into());
+            }
+            // The relay worker lives exactly as long as the launch: on
+            // success it keeps serving the chained tunnel, on failure the
+            // guard stops it below.
+            vpn_relay_early = Some(relay_start);
+            Some(format!("127.0.0.1:{relay_port}"))
+          }
+          Some(relay_id) => {
+            log::warn!(
+              "Chain relay ignored for a WireGuard exit profile={} relay={relay_id}",
+              profile.id
+            );
+            None
+          }
+        };
+
+        let started =
+          crate::vpn_worker_runner::start_vpn_worker_tracked_route(vpn_id, detour.as_deref())
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+              crate::backend_error_with_detail("VPN_WORKER_START_FAILED", e).into()
+            })?;
+        let port = started.config.local_port.unwrap_or_default();
+        if port == 0 {
+          if started.created {
+            let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+              .await
+              .map(|_| ());
+          }
+          return Err(crate::backend_error("VPN_WORKER_START_FAILED").into());
+        }
+        vpn_exit_start = Some(started);
+        Some(crate::browser::ProxySettings {
+          proxy_type: "socks5".to_string(),
+          host: "127.0.0.1".to_string(),
+          port,
+          username: None,
+          password: None,
+          vless_uri: None,
+        })
+      } else {
+        self
+          .resolve_launch_proxy(profile)
+          .await
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?
+      };
       let geo_proxy_signature_settings = upstream_proxy.clone();
 
       struct XrayLaunchGuard {
@@ -489,7 +561,140 @@ impl BrowserRunner {
       }
       let mut xray_launch_guard = XrayLaunchGuard { worker_id: None };
 
-      if upstream_proxy
+      // A WireGuard worker started only to serve as a chain relay is stopped
+      // here when the launch fails; on success the worker keeps serving the
+      // running browser (the same lifetime a vpn_id profile's worker has).
+      struct VpnRelayGuard {
+        workers: Vec<crate::vpn_worker_runner::VpnWorkerStart>,
+        armed: bool,
+      }
+      impl VpnRelayGuard {
+        fn disarm(&mut self) {
+          self.armed = false;
+          self.workers.clear();
+        }
+      }
+      impl Drop for VpnRelayGuard {
+        fn drop(&mut self) {
+          if !self.armed {
+            return;
+          }
+          for started in self.workers.drain(..) {
+            if started.created {
+              let worker_id = started.config.id.clone();
+              tauri::async_runtime::spawn(async move {
+                let _adopt_guard = crate::vpn_worker_runner::lock_vpn_starts().await;
+                if let Err(error) = crate::vpn_worker_runner::stop_vpn_worker(&worker_id).await {
+                  log::warn!("VPN relay worker stop after failed launch err=\"{error}\"");
+                }
+              });
+            }
+          }
+        }
+      }
+      let mut vpn_relay_guard = VpnRelayGuard {
+        workers: Vec::new(),
+        armed: true,
+      };
+      // The WireGuard-exit worker rides the same failure guard: stopped when
+      // the launch fails, adopted by the browser on success. A WG relay worker
+      // started before it goes into the same guard.
+      if let Some(started) = vpn_exit_start.take() {
+        vpn_relay_guard.workers.push(started);
+      }
+      if let Some(started) = vpn_relay_early.take() {
+        vpn_relay_guard.workers.push(started);
+      }
+
+      // Resolve the chain relay once, whatever the exit speaks: a share-link
+      // hop, a WireGuard worker's local SOCKS ("vpn-<id>"), or an imported
+      // SOCKS5/HTTP hop. The exit then chains through it inside one Xray
+      // worker, because donut-proxy routes a single upstream.
+      let mut relay_route: Option<crate::xray_worker_runner::RelayRoute> = None;
+      if let Some(relay_id) = profile.relay_proxy_id.as_deref() {
+        if let Some(vpn_id) = relay_id.strip_prefix("vpn-") {
+          let started = crate::vpn_worker_runner::start_vpn_worker_tracked(vpn_id)
+            .await
+            .map_err(|e| {
+              crate::backend_error_with_detail("VPN_WORKER_START_FAILED", e.to_string())
+            })?;
+          let port = started.config.local_port.unwrap_or_default();
+          if port == 0 {
+            if started.created {
+              let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+                .await
+                .map(|_| ());
+            }
+            return Err(
+              crate::backend_error_with_detail(
+                "VPN_WORKER_START_FAILED",
+                "relay worker has no local SOCKS port",
+              )
+              .into(),
+            );
+          }
+          relay_route = Some(crate::xray_worker_runner::RelayRoute::Socks(
+            crate::xray_worker_storage::RelaySocksSpec {
+              host: "127.0.0.1".to_string(),
+              port,
+              kind: "socks".to_string(),
+              username: None,
+              password: None,
+            },
+          ));
+          vpn_relay_guard.workers.push(started);
+        } else {
+          let relay_id = relay_id.to_string();
+          match self
+            .resolve_proxy_with_refresh(Some(&relay_id), Some(&profile.id.to_string()))
+            .await
+            .ok()
+            .flatten()
+          {
+            Some(rp) if rp.vless_uri.is_some() => {
+              relay_route = Some(crate::xray_worker_runner::RelayRoute::Uri(
+                rp.vless_uri.unwrap(),
+              ));
+            }
+            Some(rp)
+              if matches!(
+                rp.proxy_type.as_str(),
+                "socks4" | "socks5" | "http" | "https"
+              ) =>
+            {
+              relay_route = Some(crate::xray_worker_runner::RelayRoute::Socks(
+                crate::xray_worker_storage::RelaySocksSpec {
+                  host: rp.host.clone(),
+                  port: rp.port,
+                  kind: if rp.proxy_type.eq_ignore_ascii_case("http")
+                    || rp.proxy_type.eq_ignore_ascii_case("https")
+                  {
+                    "http".to_string()
+                  } else {
+                    "socks".to_string()
+                  },
+                  username: rp.username.clone(),
+                  password: rp.password.clone(),
+                },
+              ));
+            }
+            Some(rp) => {
+              log::warn!(
+                "Chain relay type not routable relay={relay_id} type={} — relay ignored",
+                rp.proxy_type
+              );
+            }
+            None => {
+              log::warn!("Chain relay could not be resolved relay={relay_id} — relay ignored");
+            }
+          }
+        }
+      }
+
+      if vpn_exit_start.is_some() {
+        // WireGuard exit: everything below rides the worker's local SOCKS.
+        vpn_relay_guard.disarm();
+      } else if upstream_proxy
         .as_ref()
         .is_some_and(|proxy| crate::xray::is_xray_proxy_type(&proxy.proxy_type))
       {
@@ -497,20 +702,11 @@ impl BrowserRunner {
           .as_ref()
           .and_then(|proxy| proxy.vless_uri.as_deref())
           .ok_or_else(|| crate::backend_error("VLESS_CONFIG_INVALID"))?;
-        let relay_proxy = if let Some(relay_id) = &profile.relay_proxy_id {
-          self
-            .resolve_proxy_with_refresh(Some(relay_id), Some(&profile.id.to_string()))
-            .await
-            .ok()
-            .flatten()
-        } else {
-          None
-        };
-        let relay_uri = relay_proxy.as_ref().and_then(|p| p.vless_uri.as_deref());
-        let worker = crate::xray_worker_runner::start_xray_worker_with_relay(
+        let worker = crate::xray_worker_runner::start_xray_worker_for_owner_with_relay_route(
           Some(&profile.id.to_string()),
           vless_uri,
-          relay_uri,
+          relay_route.as_ref(),
+          std::process::id(),
         )
         .await
         .map_err(|error| -> Box<dyn std::error::Error + Send + Sync> {
@@ -518,6 +714,42 @@ impl BrowserRunner {
         })?;
         xray_launch_guard.worker_id = Some(worker.id.clone());
         upstream_proxy = Some(worker.local_proxy_settings());
+      } else if let Some(route) = relay_route.filter(|_| upstream_proxy.is_some()).as_ref() {
+        // An imported exit behind a relay: chain both hops inside one Xray
+        // worker, because donut-proxy routes a single upstream. SOCKS4 and
+        // TLS-to-proxy exits (https/httpstls) have no Xray outbound form, so
+        // those keep the exit alone with a warning.
+        let exit_settings = upstream_proxy.as_ref().expect("checked above");
+        let composite_exit_type = exit_settings.proxy_type.as_str();
+        if matches!(composite_exit_type, "socks5" | "http") {
+          let worker = crate::xray_worker_runner::start_composite_xray_worker_for_owner(
+            Some(&profile.id.to_string()),
+            crate::xray_worker_storage::RelaySocksSpec {
+              host: exit_settings.host.clone(),
+              port: exit_settings.port,
+              kind: if composite_exit_type == "http" {
+                "http".to_string()
+              } else {
+                "socks".to_string()
+              },
+              username: exit_settings.username.clone(),
+              password: exit_settings.password.clone(),
+            },
+            Some(route),
+            std::process::id(),
+          )
+          .await
+          .map_err(|error| -> Box<dyn std::error::Error + Send + Sync> {
+            error.to_string().into()
+          })?;
+          xray_launch_guard.worker_id = Some(worker.id.clone());
+          upstream_proxy = Some(worker.local_proxy_settings());
+        } else {
+          log::warn!(
+            "Chain relay ignored for a {composite_exit_type} exit profile={}",
+            profile.id
+          );
+        }
       }
 
       /// Stops a VPN worker this launch started, if the launch then fails.
@@ -972,6 +1204,7 @@ impl BrowserRunner {
       if let Some(guard) = vpn_launch_guard.as_mut() {
         guard.worker_id = None;
       }
+      vpn_relay_guard.disarm();
 
       let mut launched = format!(
         "Browser launched profile={} pid={process_id} browser=wayfern version={} proxy={} vpn={} proxy_worker={}",

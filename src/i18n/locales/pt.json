@@ -3456,7 +3456,8 @@
     "channel": {
       "stable": "Estável",
       "nightly": "Nightly",
-      "development": "Desenvolvimento"
+      "development": "Desenvolvimento",
+      "beta": "Beta"
     },
     "portable": "Portátil",
     "whatsNew": "Novidades desta versão",
@@ -5496,7 +5497,8 @@
       "invalidUrl": "A URL deve começar com http:// ou https://"
     },
     "sortByPing": "Por ping",
-    "timeout": "Tempo esgotado"
+    "timeout": "Tempo esgotado",
+    "ping": "Ping"
   },
   "proxyChain": {
     "enableToggle": "Ativar cadeia de proxies (Relay)",
@@ -5526,6 +5528,7 @@
         "hop2Required": "Selecione o segundo salto (Saída)",
         "sameHop": "Hop 1 e Hop 2 não podem ser o mesmo proxy"
       }
-    }
+    },
+    "pingBtn": "Testar toda a cadeia"
   }
 }

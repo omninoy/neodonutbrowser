@@ -1498,6 +1498,11 @@ pub struct GeneratedFingerprint {
   /// Whether fresh geolocation was resolved and applied. Callers must only
   /// stamp `geo_proxy_signature` when this is true.
   pub geolocation_applied: bool,
+  /// A cross-OS claim was served with a host-OS device: these identity
+  /// overrides repaint its navigator fields to the claimed OS. Callers merge
+  /// them into `WayfernConfig::identity_overrides`, because the browser only
+  /// lets a signed-in plan mint a native cross-OS device.
+  pub suggested_overrides: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2804,6 +2809,69 @@ impl WayfernManager {
   /// timezone/locale — stamping the signature then would tell the launch-time
   /// refresh the location is already correct for this proxy and permanently
   /// disable the one path that can repair it.
+  /// Identity overrides that repaint a host-OS device into the claimed OS.
+  /// Keep the set to fields the browser echoes back verbatim; unknown or
+  /// derived keys make the whole setIdentity call fail.
+  /// Merge stored identity overrides with new ones; the new values win.
+  pub fn merge_identity_overrides(existing: Option<&str>, additions: &str) -> String {
+    let mut merged = serde_json::Map::new();
+    if let Some(existing) = existing {
+      if let Ok(serde_json::Value::Object(map)) =
+        serde_json::from_str::<serde_json::Value>(existing.trim())
+      {
+        merged = map;
+      }
+    }
+    if let Ok(serde_json::Value::Object(map)) =
+      serde_json::from_str::<serde_json::Value>(additions.trim())
+    {
+      for (key, value) in map {
+        merged.insert(key, value);
+      }
+    }
+    serde_json::Value::Object(merged).to_string()
+  }
+
+  fn cross_os_overrides(claimed_os: &str, browser_version: &str) -> String {
+    let version = browser_version
+      .split('.')
+      .next()
+      .unwrap_or("137")
+      .to_string();
+    let mut overrides = serde_json::Map::new();
+    match claimed_os {
+      "macos" => {
+        overrides.insert("platform".to_string(), json!("MacIntel"));
+        overrides.insert(
+          "userAgent".to_string(),
+          json!(format!(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version}.0.0.0 Safari/537.36"
+          )),
+        );
+      }
+      "linux" => {
+        overrides.insert("platform".to_string(), json!("Linux x86_64"));
+        overrides.insert(
+          "userAgent".to_string(),
+          json!(format!(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version}.0.0.0 Safari/537.36"
+          )),
+        );
+      }
+      "windows" => {
+        overrides.insert("platform".to_string(), json!("Win32"));
+        overrides.insert(
+          "userAgent".to_string(),
+          json!(format!(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{version}.0.0.0 Safari/537.36"
+          )),
+        );
+      }
+      _ => {}
+    }
+    serde_json::Value::Object(overrides).to_string()
+  }
+
   pub async fn generate_fingerprint_config(
     &self,
     _app_handle: &AppHandle,
@@ -2836,10 +2904,18 @@ impl WayfernManager {
     // A profile without an explicit claim keeps the OS of the machine that
     // created it, wherever it is regenerated.
     let native_os = profile.native_os();
-    let os = config.os.as_deref().unwrap_or(&native_os);
+    let claimed_os = config.os.clone().filter(|os| !os.is_empty());
+    let cross_os_claim = claimed_os
+      .as_deref()
+      .is_some_and(|claimed| claimed != native_os);
+    // The engine can only mint a native cross-OS device for a signed-in plan,
+    // so a local build generates the host-OS device and repaints its
+    // navigator fields through identity overrides instead.
+    let os = claimed_os.as_deref().unwrap_or(&native_os);
+    let generate_os: &str = if cross_os_claim { &native_os } else { os };
 
     // Include the Wayfern token when available; local fingerprint controls are not plan-gated.
-    let mut generate_params = json!({ "operatingSystem": os });
+    let mut generate_params = json!({ "operatingSystem": generate_os });
     if let Some(ref token) = wayfern_token {
       generate_params
         .as_object_mut()
@@ -3018,11 +3094,20 @@ impl WayfernManager {
       return Err("Wayfern.createIdentity returned no identityId".into());
     }
 
+    let suggested_overrides = if cross_os_claim {
+      Some(Self::cross_os_overrides(
+        claimed_os.as_deref().unwrap_or(&native_os),
+        &profile.version,
+      ))
+    } else {
+      None
+    };
     Ok(GeneratedFingerprint {
       location: fingerprint.as_object().and_then(Self::location_of),
       fingerprint: fingerprint_json,
       identity_id,
       geolocation_applied,
+      suggested_overrides,
     })
   }
 
@@ -3476,15 +3561,10 @@ impl WayfernManager {
           result_file,
           account_known,
         ));
-        // The plan of the signed-in account, as this app knows it.
-        if let Some(auth) = crate::cloud_auth::CLOUD_AUTH.get_user().await {
-          let plan = if auth.user.entitlements().active {
-            auth.user.effective_plan().to_string()
-          } else {
-            "free".to_string()
-          };
-          document.insert("accountPlan".to_string(), json!(plan));
-        }
+        // Local build: cross-OS claims are unlocked for everyone, so the
+        // browser always sees a plan that includes them rather than the
+        // signed-in account's plan.
+        document.insert("accountPlan".to_string(), json!("pro"));
         Some(serde_json::Value::Object(document))
       }
       None => identity_document.clone(),

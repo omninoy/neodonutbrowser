@@ -3436,7 +3436,8 @@
     "channel": {
       "stable": "安定版",
       "nightly": "Nightly",
-      "development": "開発版"
+      "development": "開発版",
+      "beta": "ベータ"
     },
     "portable": "ポータブル",
     "whatsNew": "このバージョンの新機能",
@@ -5440,7 +5441,8 @@
       "invalidUrl": "URLは http:// または https:// で始まる必要があります"
     },
     "sortByPing": "Ping順",
-    "timeout": "タイムアウト"
+    "timeout": "タイムアウト",
+    "ping": "Ping"
   },
   "proxyChain": {
     "enableToggle": "プロキシチェーン（リレー）を有効化",
@@ -5470,6 +5472,7 @@
         "hop2Required": "ホップ2 (出口) を選択してください",
         "sameHop": "ホップ1とホップ2に同じプロキシは指定できません"
       }
-    }
+    },
+    "pingBtn": "チェーン全体を ping"
   }
 }

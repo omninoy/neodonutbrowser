@@ -160,6 +160,13 @@ pub fn export_share_link(config: &XrayConfig, name: Option<&str>) -> XrayResult<
       }
       Ok(finish_url(url, name))
     }
+    XrayOutbound::Socks { .. } | XrayOutbound::Http { .. } => {
+      // Programmatic chain hops never round-trip through share links.
+      Err(XrayError::InvalidField {
+        field: "outbound",
+        reason: "socks/http hops have no share link form",
+      })
+    }
   }
 }
 

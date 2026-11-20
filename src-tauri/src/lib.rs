@@ -2153,6 +2153,283 @@ async fn get_proxy_chains() -> Result<Vec<vpn::chain::ProxyChain>, String> {
   Ok(mgr.list_chains())
 }
 
+/// End-to-end chain probe: raises both hops exactly as a launch would, sends
+/// one real request through the full route and measures it. The stored
+/// latency is the route's, so a dead exit behind a live relay reports invalid.
+#[tauri::command]
+async fn ping_proxy_chain(
+  app: tauri::AppHandle,
+  chain_id: String,
+) -> Result<serde_json::Value, String> {
+  use std::time::{Duration, Instant};
+
+  const CHAIN_PING_TIMEOUT_SECS: u64 = 15;
+
+  let chain = {
+    let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+    mgr.get_chain(&chain_id)
+  }
+  .ok_or_else(|| "Chain not found".to_string())?;
+
+  // Hop mapping mirrors the profile save path: Hop 2 (Exit) lands in
+  // proxy_id, Hop 1 (Relay) in relay_proxy_id.
+  let exit_id = chain.hop2_proxy_id.clone();
+  let relay_id = (!chain.hop1_proxy_id.is_empty()).then(|| chain.hop1_proxy_id.clone());
+
+  let started = Instant::now();
+  let mut latency: Option<u64> = None;
+  let mut is_valid = false;
+  let mut error: Option<String> = None;
+
+  {
+    // The relay is resolved the same way the launch path does it. A WG relay
+    // in front of a WG exit builds no RelayRoute — the exit tunnel itself
+    // dials through the relay worker (the WG→WG detour).
+    let mut relay_vpn_start: Option<crate::vpn_worker_runner::VpnWorkerStart> = None;
+    let mut relay_route: Option<crate::xray_worker_runner::RelayRoute> = None;
+    if let Some(relay) = relay_id.filter(|_| !exit_id.starts_with("vpn-")) {
+      if let Some(vpn_id) = relay.strip_prefix("vpn-") {
+        let started = crate::vpn_worker_runner::start_vpn_worker_tracked(vpn_id)
+          .await
+          .map_err(|e| e.to_string());
+        match started {
+          Ok(started) => {
+            let port = started.config.local_port.unwrap_or_default();
+            if port == 0 {
+              if started.created {
+                let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+                  .await
+                  .map(|_| ());
+              }
+              error = Some("Relay VPN worker has no local SOCKS port".to_string());
+            } else {
+              relay_route = Some(crate::xray_worker_runner::RelayRoute::Socks(
+                crate::xray_worker_storage::RelaySocksSpec {
+                  host: "127.0.0.1".to_string(),
+                  port,
+                  kind: "socks".to_string(),
+                  username: None,
+                  password: None,
+                },
+              ));
+              relay_vpn_start = Some(started);
+            }
+          }
+          Err(e) => {
+            error = Some(format!("Relay VPN worker failed to start: {e}"));
+          }
+        }
+      } else {
+        match crate::proxy_manager::PROXY_MANAGER.get_proxy_settings_by_id(&relay) {
+          Some(rp) if rp.vless_uri.is_some() => {
+            relay_route = Some(crate::xray_worker_runner::RelayRoute::Uri(
+              rp.vless_uri.unwrap(),
+            ));
+          }
+          Some(rp) if matches!(rp.proxy_type.as_str(), "socks5" | "http" | "https") => {
+            relay_route = Some(crate::xray_worker_runner::RelayRoute::Socks(
+              crate::xray_worker_storage::RelaySocksSpec {
+                host: rp.host.clone(),
+                port: rp.port,
+                kind: if rp.proxy_type.eq_ignore_ascii_case("http")
+                  || rp.proxy_type.eq_ignore_ascii_case("https")
+                {
+                  "http".to_string()
+                } else {
+                  "socks".to_string()
+                },
+                username: rp.username.clone(),
+                password: rp.password.clone(),
+              },
+            ));
+          }
+          Some(rp) => {
+            error = Some(format!("Relay type '{}' cannot be chained", rp.proxy_type));
+          }
+          None => {
+            error = Some(format!("Relay proxy '{relay}' not found"));
+          }
+        }
+      }
+    }
+
+    if error.is_none() {
+      let probe: Result<u64, String> = if let Some(vpn_id) = exit_id.strip_prefix("vpn-") {
+        // WireGuard exit: its worker's local SOCKS is the whole route. A WG
+        // relay rides along: the exit tunnel dials through the relay worker.
+        (async {
+          let detour = relay_vpn_start
+            .as_ref()
+            .map(|s| format!("127.0.0.1:{}", s.config.local_port.unwrap_or_default()));
+          let started =
+            crate::vpn_worker_runner::start_vpn_worker_tracked_route(vpn_id, detour.as_deref())
+              .await
+              .map_err(|e| e.to_string())?;
+          let port = started.config.local_port.unwrap_or_default();
+          if port == 0 {
+            if started.created {
+              let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+                .await
+                .map(|_| ());
+            }
+            return Err("VPN worker has no local SOCKS port".to_string());
+          }
+          let socks_url = format!("socks5://127.0.0.1:{port}");
+          let probe_started = Instant::now();
+          let result = tokio::time::timeout(
+            Duration::from_secs(CHAIN_PING_TIMEOUT_SECS),
+            ip_utils::fetch_public_ip(Some(&socks_url)),
+          )
+          .await
+          .map_err(|_| "Chain ping timed out".to_string())
+          .and_then(|r| r.map_err(|e| e.to_string()));
+          if started.created {
+            let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+              .await
+              .map(|_| ());
+          }
+          result?;
+          Ok(probe_started.elapsed().as_millis() as u64)
+        })
+        .await
+      } else {
+        let exit_settings = crate::proxy_manager::PROXY_MANAGER
+          .get_proxy_settings_by_id(&exit_id)
+          .ok_or_else(|| format!("Proxy '{exit_id}' not found"));
+        let chain_id_for_log = chain_id.clone();
+        (async move {
+          let exit_settings = exit_settings?;
+          let worker = if crate::xray::is_xray_proxy_type(&exit_settings.proxy_type) {
+            crate::xray_worker_runner::start_xray_worker_for_owner_with_relay_route(
+              None,
+              exit_settings
+                .vless_uri
+                .as_deref()
+                .ok_or("Exit VLESS config is invalid")?,
+              relay_route.as_ref(),
+              std::process::id(),
+            )
+            .await
+            .map_err(|e| e.to_string())?
+          } else if matches!(exit_settings.proxy_type.as_str(), "socks5" | "http") {
+            crate::xray_worker_runner::start_composite_xray_worker_for_owner(
+              None,
+              crate::xray_worker_storage::RelaySocksSpec {
+                host: exit_settings.host.clone(),
+                port: exit_settings.port,
+                kind: if exit_settings.proxy_type == "http" {
+                  "http".to_string()
+                } else {
+                  "socks".to_string()
+                },
+                username: exit_settings.username.clone(),
+                password: exit_settings.password.clone(),
+              },
+              relay_route.as_ref(),
+              std::process::id(),
+            )
+            .await
+            .map_err(|e| e.to_string())?
+          } else {
+            // TLS-to-proxy and SOCKS4 exits have no Xray outbound form; the
+            // route falls back to the exit alone through a donut-proxy worker.
+            if relay_route.is_some() {
+              log::warn!(
+                "Chain ping ignores the relay for a '{}' exit chain={}",
+                exit_settings.proxy_type,
+                chain_id_for_log
+              );
+            }
+            let proxy = crate::proxy_runner::start_proxy_process(
+              Some(crate::proxy_manager::ProxyManager::build_proxy_url(
+                &exit_settings,
+              )),
+              None,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+            let local_url = format!(
+              "socks5://127.0.0.1:{}",
+              proxy.local_port.unwrap_or_default()
+            );
+            let probe_started = Instant::now();
+            let result = tokio::time::timeout(
+              Duration::from_secs(CHAIN_PING_TIMEOUT_SECS),
+              ip_utils::fetch_public_ip(Some(&local_url)),
+            )
+            .await
+            .map_err(|_| "Chain ping timed out".to_string())
+            .and_then(|r| r.map_err(|e| e.to_string()));
+            let _ = crate::proxy_runner::stop_proxy_process(&proxy.id).await;
+            result?;
+            return Ok(probe_started.elapsed().as_millis() as u64);
+          };
+          let socks = worker.local_proxy_settings();
+          let socks_url = format!(
+            "socks5://{}:{}@127.0.0.1:{}",
+            socks.username.as_deref().unwrap_or(""),
+            socks.password.as_deref().unwrap_or(""),
+            socks.port
+          );
+          let probe_started = Instant::now();
+          let result = tokio::time::timeout(
+            Duration::from_secs(CHAIN_PING_TIMEOUT_SECS),
+            ip_utils::fetch_public_ip(Some(&socks_url)),
+          )
+          .await
+          .map_err(|_| "Chain ping timed out".to_string())
+          .and_then(|r| r.map_err(|e| e.to_string()));
+          let _ = crate::xray_worker_runner::stop_xray_worker_now(&worker.id);
+          result?;
+          Ok(probe_started.elapsed().as_millis() as u64)
+        })
+        .await
+      };
+
+      match probe {
+        Ok(ms) => {
+          latency = Some(ms + started.elapsed().as_millis() as u64);
+          is_valid = true;
+        }
+        Err(e) => {
+          error = Some(e);
+        }
+      }
+    }
+
+    // Relay VPN workers created only for this probe do not outlive it.
+    if let Some(started) = relay_vpn_start {
+      if started.created {
+        let _ = crate::vpn_worker_runner::stop_vpn_worker(&started.config.id)
+          .await
+          .map(|_| ());
+      }
+    }
+  }
+
+  let updated = {
+    let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+    mgr.record_ping(&chain_id, latency, is_valid)
+  };
+  if let Ok(updated) = &updated {
+    let _ = app.emit("proxy-chains-changed", ());
+    log::info!(
+      "Chain ping done chain={} valid={} latency={:?} err=\"{}\"",
+      chain_id,
+      is_valid,
+      latency,
+      crate::log_redaction::Plain(error.as_deref().unwrap_or(""))
+    );
+    return Ok(serde_json::json!({
+      "chain": updated,
+      "latency_ms": latency,
+      "is_valid": is_valid,
+      "error": error,
+    }));
+  }
+  Err(updated.unwrap_err())
+}
+
 #[tauri::command]
 async fn add_proxy_chain(
   app: tauri::AppHandle,
@@ -2215,6 +2492,16 @@ pub async fn validate_profile_network(
     let settings = crate::proxy_manager::PROXY_MANAGER
       .get_proxy_settings_by_id(proxy_id)
       .ok_or_else(|| format!("Proxy '{proxy_id}' not found"))?;
+
+    // Subscription nodes are managed list entries; if found, allow profile creation immediately
+    if proxy_id.starts_with("subnode-") {
+      return Ok(());
+    }
+    // A WireGuard exit (a chain's Exit hop) starts its own worker at launch;
+    // a missing config fails there with a clear VPN error.
+    if proxy_id.starts_with("vpn-") {
+      return Ok(());
+    }
     match crate::proxy_manager::PROXY_MANAGER
       .check_proxy_validity(proxy_id, &settings)
       .await
@@ -4109,6 +4396,7 @@ pub fn run_with_builder(
       ping_vpn_subscription,
       ping_vpn_subscription_node,
       get_proxy_chains,
+      ping_proxy_chain,
       add_proxy_chain,
       update_proxy_chain,
       delete_proxy_chain,

@@ -9,14 +9,182 @@ use chrono::Utc;
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
+
+/// A WireGuard UDP socket dialed through a SOCKS5 UDP ASSOCIATE relay: the
+/// detour a WG→WG chain needs, where the second tunnel's handshake and data
+/// ride the first tunnel's worker instead of leaving the machine directly.
+///
+/// The TCP control connection is held open for the lifetime of the tunnel —
+/// the relay tears the association down the moment it closes.
+pub(crate) struct SocksUdpTunnel {
+  _tcp: std::net::TcpStream,
+  pub(crate) udp: UdpSocket,
+}
+
+impl SocksUdpTunnel {
+  /// Negotiate a UDP ASSOCIATE with `relay` and connect a datagram socket to
+  /// the relay endpoint the server hands back.
+  pub(crate) fn connect(relay: SocketAddr) -> std::io::Result<Self> {
+    let tcp = std::net::TcpStream::connect_timeout(&relay, Duration::from_secs(10))?;
+    tcp.set_nodelay(true)?;
+
+    // Greeting: one method, no auth.
+    std::io::Write::write_all(&mut &tcp, &[0x05, 0x01, 0x00])?;
+    let mut reply = [0u8; 2];
+    std::io::Read::read_exact(&mut &tcp, &mut reply)?;
+    if reply[0] != 0x05 || reply[1] != 0x00 {
+      return Err(std::io::Error::other(format!(
+        "SOCKS detour method refused: {reply:02x?}"
+      )));
+    }
+
+    // UDP ASSOCIATE (CMD=3) with a wildcard destination.
+    std::io::Write::write_all(&mut &tcp, &[0x05, 0x03, 0x00, 0x01, 0, 0, 0, 0, 0, 0])?;
+    let mut assoc = [0u8; 10];
+    std::io::Read::read_exact(&mut &tcp, &mut assoc)?;
+    if assoc[0] != 0x05 || assoc[1] != 0x00 || assoc[3] != 0x01 {
+      return Err(std::io::Error::other(format!(
+        "SOCKS detour associate refused: {assoc:02x?}"
+      )));
+    }
+    let bound = SocketAddr::from(([127, 0, 0, 1], u16::from_be_bytes([assoc[8], assoc[9]])));
+
+    let udp = UdpSocket::bind("0.0.0.0:0")?;
+    udp.connect(bound)?;
+    udp.set_nonblocking(false).ok();
+
+    Ok(Self { _tcp: tcp, udp })
+  }
+
+  /// RFC 1928 §7 datagram: RSV(2) FRAG(1) ATYP(1) ADDR PORT payload.
+  pub(crate) fn send_to(&self, data: &[u8], dst: SocketAddr) -> std::io::Result<()> {
+    let mut pkt = Vec::with_capacity(data.len() + 26);
+    pkt.extend_from_slice(&[0x00, 0x00, 0x00]);
+    match dst.ip() {
+      std::net::IpAddr::V4(v4) => {
+        pkt.push(0x01);
+        pkt.extend_from_slice(&v4.octets());
+      }
+      std::net::IpAddr::V6(v6) => {
+        pkt.push(0x04);
+        pkt.extend_from_slice(&v6.octets());
+      }
+    }
+    pkt.extend_from_slice(&dst.port().to_be_bytes());
+    pkt.extend_from_slice(data);
+    // A WG datagram past the relay MTU would silently vanish; fail loudly.
+    if pkt.len() > 65507 {
+      return Err(std::io::Error::other("Datagram too large for SOCKS relay"));
+    }
+    self.udp.send(&pkt).map(|_| ())
+  }
+
+  pub(crate) fn recv_from(&self, buf: &mut [u8]) -> std::io::Result<(usize, SocketAddr)> {
+    let mut pkt = vec![0u8; 65535];
+    let len = self.udp.recv(&mut pkt)?;
+    if len < 5 {
+      return Err(std::io::Error::other("SOCKS detour datagram truncated"));
+    }
+    if pkt[2] != 0x00 {
+      return Err(std::io::Error::other(
+        "SOCKS detour fragmented datagram dropped",
+      ));
+    }
+    let (addr, header_len): (SocketAddr, usize) = match pkt[3] {
+      0x01 => {
+        if len < 10 {
+          return Err(std::io::Error::other("SOCKS detour header truncated"));
+        }
+        (
+          SocketAddr::from((
+            [pkt[4], pkt[5], pkt[6], pkt[7]],
+            u16::from_be_bytes([pkt[8], pkt[9]]),
+          )),
+          10,
+        )
+      }
+      0x04 => {
+        if len < 22 {
+          return Err(std::io::Error::other("SOCKS detour header truncated"));
+        }
+        let mut octets = [0u8; 16];
+        octets.copy_from_slice(&pkt[4..20]);
+        (
+          SocketAddr::from((
+            std::net::Ipv6Addr::from(octets),
+            u16::from_be_bytes([pkt[20], pkt[21]]),
+          )),
+          22,
+        )
+      }
+      other => {
+        return Err(std::io::Error::other(format!(
+          "SOCKS detour unsupported address type {other}"
+        )));
+      }
+    };
+    if header_len > len {
+      return Err(std::io::Error::other("SOCKS detour header truncated"));
+    }
+    let payload = &pkt[header_len..len];
+    let n = payload.len().min(buf.len());
+    buf[..n].copy_from_slice(&payload[..n]);
+    Ok((n, addr))
+  }
+}
+
+/// The UDP uplink a WireGuard tunnel sends its encrypted packets through:
+/// straight out of the machine, or wrapped in a SOCKS5 UDP detour.
+enum WgUplink {
+  Direct(Arc<UdpSocket>),
+  Socks(Arc<SocksUdpTunnel>),
+}
+
+impl WgUplink {
+  fn send_to(&self, data: &[u8], peer: SocketAddr) -> Result<(), VpnError> {
+    match self {
+      Self::Direct(socket) => socket
+        .send_to(data, peer)
+        .map(|_| ())
+        .map_err(|e| VpnError::Connection(format!("Failed to send data: {e}"))),
+      Self::Socks(tunnel) => tunnel
+        .send_to(data, peer)
+        .map_err(|e| VpnError::Connection(format!("SOCKS detour send failed: {e}"))),
+    }
+  }
+
+  fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, SocketAddr), VpnError> {
+    match self {
+      Self::Direct(socket) => socket
+        .recv_from(buf)
+        .map_err(|e| VpnError::Connection(format!("Handshake timeout or error: {e}"))),
+      Self::Socks(tunnel) => tunnel
+        .recv_from(buf)
+        .map_err(|e| VpnError::Connection(format!("SOCKS detour recv failed: {e}"))),
+    }
+  }
+
+  fn set_read_timeout(&self, timeout: Option<Duration>) -> Result<(), VpnError> {
+    match self {
+      Self::Direct(socket) => socket
+        .set_read_timeout(timeout)
+        .map_err(|e| VpnError::Connection(format!("Failed to set timeout: {e}"))),
+      Self::Socks(tunnel) => tunnel
+        .udp
+        .set_read_timeout(timeout)
+        .map_err(|e| VpnError::Connection(format!("Failed to set timeout: {e}"))),
+    }
+  }
+}
 
 /// WireGuard tunnel implementation
 pub struct WireGuardTunnel {
   vpn_id: String,
   config: WireGuardConfig,
   tunnel: Option<Arc<Mutex<Box<Tunn>>>>,
-  socket: Option<Arc<UdpSocket>>,
+  uplink: Option<WgUplink>,
   connected: AtomicBool,
   connected_at: Option<i64>,
   bytes_sent: AtomicU64,
@@ -32,7 +200,7 @@ impl WireGuardTunnel {
       vpn_id,
       config,
       tunnel: None,
-      socket: None,
+      uplink: None,
       connected: AtomicBool::new(false),
       connected_at: None,
       bytes_sent: AtomicU64::new(0),
@@ -113,10 +281,10 @@ impl WireGuardTunnel {
       .as_ref()
       .ok_or_else(|| VpnError::Tunnel("Tunnel not initialized".to_string()))?;
 
-    let socket = self
-      .socket
+    let uplink = self
+      .uplink
       .as_ref()
-      .ok_or_else(|| VpnError::Tunnel("Socket not initialized".to_string()))?;
+      .ok_or_else(|| VpnError::Tunnel("Uplink not initialized".to_string()))?;
 
     let peer_addr = self
       .peer_addr
@@ -130,9 +298,7 @@ impl WireGuardTunnel {
 
     match result {
       TunnResult::WriteToNetwork(packet) => {
-        socket
-          .send_to(packet, peer_addr)
-          .map_err(|e| VpnError::Connection(format!("Failed to send handshake: {e}")))?;
+        uplink.send_to(packet, peer_addr)?;
 
         self
           .bytes_sent
@@ -147,13 +313,11 @@ impl WireGuardTunnel {
     }
 
     // Wait for handshake response (with timeout)
-    socket
-      .set_read_timeout(Some(std::time::Duration::from_secs(10)))
-      .map_err(|e| VpnError::Connection(format!("Failed to set timeout: {e}")))?;
+    uplink.set_read_timeout(Some(std::time::Duration::from_secs(10)))?;
 
     let mut recv_buf = vec![0u8; 2048];
 
-    match socket.recv_from(&mut recv_buf) {
+    match uplink.recv_from(&mut recv_buf) {
       Ok((len, _from)) => {
         self.bytes_received.fetch_add(len as u64, Ordering::Relaxed);
 
@@ -161,9 +325,7 @@ impl WireGuardTunnel {
 
         match result {
           TunnResult::WriteToNetwork(response) => {
-            socket
-              .send_to(response, peer_addr)
-              .map_err(|e| VpnError::Connection(format!("Failed to send response: {e}")))?;
+            uplink.send_to(response, peer_addr)?;
 
             self
               .bytes_sent
@@ -198,10 +360,10 @@ impl WireGuardTunnel {
       .as_ref()
       .ok_or_else(|| VpnError::Tunnel("Tunnel not initialized".to_string()))?;
 
-    let socket = self
-      .socket
+    let uplink = self
+      .uplink
       .as_ref()
-      .ok_or_else(|| VpnError::Tunnel("Socket not initialized".to_string()))?;
+      .ok_or_else(|| VpnError::Tunnel("Uplink not initialized".to_string()))?;
 
     let peer_addr = self
       .peer_addr
@@ -214,9 +376,7 @@ impl WireGuardTunnel {
 
     match result {
       TunnResult::WriteToNetwork(packet) => {
-        socket
-          .send_to(packet, peer_addr)
-          .map_err(|e| VpnError::Connection(format!("Failed to send data: {e}")))?;
+        uplink.send_to(packet, peer_addr)?;
 
         self
           .bytes_sent
@@ -238,16 +398,14 @@ impl WireGuardTunnel {
       .as_ref()
       .ok_or_else(|| VpnError::Tunnel("Tunnel not initialized".to_string()))?;
 
-    let socket = self
-      .socket
+    let uplink = self
+      .uplink
       .as_ref()
-      .ok_or_else(|| VpnError::Tunnel("Socket not initialized".to_string()))?;
+      .ok_or_else(|| VpnError::Tunnel("Uplink not initialized".to_string()))?;
 
     let mut recv_buf = vec![0u8; 2048];
 
-    let (len, _from) = socket
-      .recv_from(&mut recv_buf)
-      .map_err(|e| VpnError::Connection(format!("Receive failed: {e}")))?;
+    let (len, _from) = uplink.recv_from(&mut recv_buf)?;
 
     self.bytes_received.fetch_add(len as u64, Ordering::Relaxed);
 
@@ -279,15 +437,34 @@ impl VpnTunnel for WireGuardTunnel {
     // Resolve endpoint
     self.peer_addr = Some(self.resolve_endpoint()?);
 
-    // Create UDP socket
-    let socket = UdpSocket::bind("0.0.0.0:0")
-      .map_err(|e| VpnError::Connection(format!("Failed to create socket: {e}")))?;
+    // The UDP uplink: straight out of the machine, or through a SOCKS5 UDP
+    // detour when this tunnel is the second hop of a WG→WG chain.
+    let uplink = if let Some(detour) = self.config.dial_via_socks.clone() {
+      let relay = format!("{detour}")
+        .to_socket_addrs()
+        .map_err(|e| VpnError::Connection(format!("Bad SOCKS detour '{detour}': {e}")))?
+        .next()
+        .ok_or_else(|| VpnError::Connection(format!("SOCKS detour '{detour}' did not resolve")))?;
+      log::info!(
+        "WireGuard tunnel dialing endpoint via SOCKS detour vpn={} detour={relay} endpoint={}",
+        self.vpn_id,
+        self.peer_addr.as_ref().expect("resolved above")
+      );
+      let tunnel = SocksUdpTunnel::connect(relay)
+        .map_err(|e| VpnError::Connection(format!("SOCKS detour associate failed: {e}")))?;
+      WgUplink::Socks(Arc::new(tunnel))
+    } else {
+      let socket = UdpSocket::bind("0.0.0.0:0")
+        .map_err(|e| VpnError::Connection(format!("Failed to create socket: {e}")))?;
+      socket
+        .set_nonblocking(false)
+        .map_err(|e| VpnError::Connection(format!("Failed to set socket options: {e}")))?;
+      WgUplink::Direct(Arc::new(socket))
+    };
 
-    socket
-      .set_nonblocking(false)
-      .map_err(|e| VpnError::Connection(format!("Failed to set socket options: {e}")))?;
+    uplink.set_read_timeout(None)?;
 
-    self.socket = Some(Arc::new(socket));
+    self.uplink = Some(uplink);
 
     // Perform handshake
     self.handshake().await?;
@@ -307,7 +484,7 @@ impl VpnTunnel for WireGuardTunnel {
 
     self.connected.store(false, Ordering::Release);
     self.tunnel = None;
-    self.socket = None;
+    self.uplink = None;
     self.connected_at = None;
 
     log::info!("WireGuard tunnel disconnected vpn={}", self.vpn_id);
@@ -358,6 +535,7 @@ mod tests {
       allowed_ips: vec!["0.0.0.0/0".to_string()],
       persistent_keepalive: Some(25),
       preshared_key: None,
+      dial_via_socks: None,
     }
   }
 

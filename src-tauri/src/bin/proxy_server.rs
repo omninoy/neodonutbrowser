@@ -625,7 +625,8 @@ async fn main() {
 
       match config.vpn_type.as_str() {
         "wireguard" => {
-          let wg_config = match donutbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data) {
+          let mut wg_config = match donutbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data)
+          {
             Ok(c) => c,
             Err(e) => exit_with(
               "wireguard_config_invalid",
@@ -633,6 +634,7 @@ async fn main() {
             ),
           };
 
+          wg_config.dial_via_socks = config.dial_via_socks.clone();
           let server =
             donutbrowser_lib::vpn::socks5_server::WireGuardSocks5Server::new(wg_config, port);
           if let Err(e) = server

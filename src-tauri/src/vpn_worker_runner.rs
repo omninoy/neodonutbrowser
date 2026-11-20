@@ -220,6 +220,16 @@ pub async fn start_vpn_worker(vpn_id: &str) -> Result<VpnWorkerConfig, Box<dyn s
 pub async fn start_vpn_worker_tracked(
   vpn_id: &str,
 ) -> Result<VpnWorkerStart, Box<dyn std::error::Error>> {
+  start_vpn_worker_tracked_route(vpn_id, None).await
+}
+
+/// Same, but the tunnel's UDP endpoint is dialed through the SOCKS5 UDP relay
+/// at `dial_via_socks` ("127.0.0.1:port" — another VPN worker's local SOCKS).
+/// This is the WG→WG chain detour: hop 2's tunnel rides hop 1's worker.
+pub async fn start_vpn_worker_tracked_route(
+  vpn_id: &str,
+  dial_via_socks: Option<&str>,
+) -> Result<VpnWorkerStart, Box<dyn std::error::Error>> {
   let _start_guard = VPN_START_LOCK.lock().await;
   crate::proxy_runner::ensure_sidecar_version().await?;
 
@@ -238,7 +248,18 @@ pub async fn start_vpn_worker_tracked(
 
   // Check if a VPN worker for this vpn_id already exists and is running
   if let Some(existing) = find_vpn_worker_by_vpn_id(vpn_id) {
-    if vpn_worker_alive(&existing) {
+    if existing.dial_via_socks != dial_via_socks.map(str::to_string) {
+      // A different route (direct vs chained) needs a different tunnel.
+      // Replacing a live worker is only safe when no running browser routes
+      // through the old one.
+      if crate::vpn_worker_runner::vpn_id_in_use_by_running_browser(vpn_id) {
+        return Err(format!(
+          "VPN '{vpn_id}' is already running with a different chain route; stop the profiles using it first"
+        ).into());
+      }
+      let _ = stop_vpn_worker(&existing.id).await;
+      delete_vpn_worker_config(&existing.id);
+    } else if vpn_worker_alive(&existing) {
       if vpn_worker_accepting_connections(&existing).await {
         return Ok(VpnWorkerStart {
           config: existing,
@@ -294,12 +315,13 @@ pub async fn start_vpn_worker_tracked(
     listener.local_addr()?.port()
   };
 
-  let config = VpnWorkerConfig::new(
+  let mut config = VpnWorkerConfig::new(
     id.clone(),
     vpn_id.to_string(),
     vpn_type_str.to_string(),
     config_file_path,
   );
+  config.dial_via_socks = dial_via_socks.map(str::to_string);
   save_vpn_worker_config(&config)?;
 
   let config_json_path = vpn_worker_config_path(&id);
@@ -517,6 +539,7 @@ mod tests {
       local_url: None,
       pid,
       pid_start_time,
+      dial_via_socks: None,
     }
   }
 

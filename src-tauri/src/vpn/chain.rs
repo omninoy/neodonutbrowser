@@ -19,6 +19,15 @@ pub struct ProxyChain {
   pub hop2_proxy_id: String,
   #[serde(default)]
   pub created_at: u64,
+  /// Last end-to-end route probe. Latency is measured through both hops with
+  /// a real request, not per-hop, so a dead exit behind a live relay still
+  /// reports invalid.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub latency_ms: Option<u64>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub is_valid: Option<bool>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub last_checked_at: Option<u64>,
 }
 
 pub struct ProxyChainManager {
@@ -89,6 +98,9 @@ impl ProxyChainManager {
       hop1_proxy_id,
       hop2_proxy_id,
       created_at: now,
+      latency_ms: None,
+      is_valid: None,
+      last_checked_at: None,
     };
 
     let mut chains = self.list_chains();
@@ -112,6 +124,7 @@ impl ProxyChainManager {
       .ok_or_else(|| format!("Chain not found: {chain_id}"))?;
 
     let mut current = chains[idx].clone();
+    let hops_changed = hop1_proxy_id.is_some() || hop2_proxy_id.is_some();
 
     if let Some(n) = name {
       let t = n.trim().to_string();
@@ -134,10 +147,42 @@ impl ProxyChainManager {
       return Err("Hop 1 (Relay) and Hop 2 (Exit) must be different proxies".to_string());
     }
 
+    // New hops invalidate any stored route probe.
+    if hops_changed {
+      current.latency_ms = None;
+      current.is_valid = None;
+      current.last_checked_at = None;
+    }
+
     chains[idx] = current.clone();
     self.save_chains(&chains)?;
 
     Ok(current)
+  }
+
+  /// Store the result of an end-to-end route probe.
+  pub fn record_ping(
+    &self,
+    chain_id: &str,
+    latency_ms: Option<u64>,
+    is_valid: bool,
+  ) -> Result<ProxyChain, String> {
+    let mut chains = self.list_chains();
+    let idx = chains
+      .iter()
+      .position(|c| c.id == chain_id)
+      .ok_or_else(|| format!("Chain not found: {chain_id}"))?;
+    let now = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .map(|d| d.as_secs())
+      .unwrap_or(0);
+    let chain = &mut chains[idx];
+    chain.latency_ms = latency_ms;
+    chain.is_valid = Some(is_valid);
+    chain.last_checked_at = Some(now);
+    let updated = chain.clone();
+    self.save_chains(&chains)?;
+    Ok(updated)
   }
 
   pub fn delete_chain(&self, chain_id: &str) -> Result<(), String> {

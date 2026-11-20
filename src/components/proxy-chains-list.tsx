@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  LuActivity,
   LuArrowRight,
   LuGlobe,
   LuLink,
+  LuLoaderCircle,
   LuPencil,
   LuPlus,
   LuTrash2,
@@ -18,12 +20,13 @@ import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { extractCountryCode } from "@/lib/flag-utils";
 import { getCachedProxyResult } from "@/lib/proxy-check-store";
+import { cn } from "@/lib/utils";
 import type { ProxyChain } from "@/types/proxy-chain";
 import { ProxyChainDialog } from "./proxy-chain-dialog";
 
 export function ProxyChainsList() {
   const { t } = useTranslation();
-  const { chains, deleteChain } = useProxyChains();
+  const { chains, deleteChain, pingChain, pingingChainId } = useProxyChains();
   const { storedProxies } = useProxyEvents();
   const { nodes: subscriptionNodes } = useVpnSubscriptions();
 
@@ -49,11 +52,16 @@ export function ProxyChainsList() {
 
     for (const subNodes of Object.values(subscriptionNodes)) {
       for (const n of subNodes) {
-        map.set(n.id, {
+        const details = {
           name: n.name,
           countryCode: n.country_code,
           subtitle: `${n.protocol.toUpperCase()} · ${n.server}:${n.port}`,
-        });
+        };
+        // Chains store subscription nodes as `subnode-<node id>` (the same
+        // form profiles use), so key both spellings or the card lookup misses
+        // and renders the raw ID instead of the node's name.
+        map.set(n.id, details);
+        map.set(`subnode-${n.id}`, details);
       }
     }
 
@@ -62,26 +70,16 @@ export function ProxyChainsList() {
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold">
-            {t("proxyChains.title", "Цепочки прокси (Proxy Chains)")}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {t(
-              "proxyChains.subtitle",
-              "Маршрутизация трафика профиля через промежуточный узел (Relay) к конечному выходу (Exit).",
-            )}
-          </p>
-        </div>
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setShowCreateDialog(true)}
-        >
-          <LuPlus className="size-4" />
-          {t("proxyChains.createButton", "Создать цепочку")}
-        </Button>
+      <div>
+        <h3 className="text-sm font-semibold">
+          {t("proxyChains.title", "Цепочки прокси (Proxy Chains)")}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "proxyChains.subtitle",
+            "Маршрутизация трафика профиля через промежуточный узел (Relay) к конечному выходу (Exit).",
+          )}
+        </p>
       </div>
 
       {chains.length === 0 ? (
@@ -178,6 +176,36 @@ export function ProxyChainsList() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
+                  {typeof chain.latency_ms === "number" ? (
+                    <Badge
+                      variant="soft"
+                      className={cn(
+                        "text-[10px] px-1.5 py-0 font-mono shrink-0",
+                        chain.is_valid === false
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                      )}
+                    >
+                      {chain.latency_ms} ms
+                    </Badge>
+                  ) : null}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    disabled={pingingChainId === chain.id}
+                    onClick={() => void pingChain(chain.id)}
+                    title={t(
+                      "proxyChains.pingBtn",
+                      "Проверить цепочку целиком",
+                    )}
+                  >
+                    {pingingChainId === chain.id ? (
+                      <LuLoaderCircle className="size-3.5 animate-spin text-primary" />
+                    ) : (
+                      <LuActivity className="size-3.5" />
+                    )}
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"

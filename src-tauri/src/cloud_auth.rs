@@ -1326,21 +1326,16 @@ impl CloudAuthManager {
   /// Account is in a paid/active state. Used for the "any active plan" gates
   /// (sync token); per-feature access uses the capability helpers.
   pub async fn has_active_paid_subscription(&self) -> bool {
-    #[cfg(feature = "e2e")]
-    if crate::e2e_automation_enabled()
-      && std::env::var_os("WAYFERN_TEST_TOKEN").is_some_and(|token| !token.is_empty())
-    {
-      return true;
-    }
-
-    self.entitlements().await.map(|e| e.active).unwrap_or(false)
+    // Local build: subscription state is not plan-gated.
+    true
   }
 
   /// Reads the entitlement directly rather than going through
   /// `can_use_browser_automation`, whose e2e override would send the browser
   /// suite off to the live API for a token it already has as a test value.
   pub async fn is_entitled_to_wayfern_token(&self) -> bool {
-    self.entitlements().await.is_some_and(|e| e.active)
+    // Local build: the Wayfern token mint is not plan-gated.
+    true
   }
 
   /// Non-async version that uses try_lock, defaults to false if lock can't be acquired.
@@ -1363,11 +1358,8 @@ impl CloudAuthManager {
   /// their plan is sold on, and answered 402 while their scheduled runs kept
   /// working server-side.
   pub async fn can_use_cookie_bot(&self) -> bool {
-    self
-      .entitlements()
-      .await
-      .map(|e| e.cookie_bot)
-      .unwrap_or(false)
+    // Local build: the cookie bot is not plan-gated.
+    true
   }
 
   /// Local API, MCP automation, and bulk profile actions are available to all users.
@@ -1380,24 +1372,14 @@ impl CloudAuthManager {
     true
   }
 
-  /// Cloud profile sync / backup (async).
+  /// Cloud profile sync / backup (async). Local build: never plan-locked.
   pub async fn can_use_cloud_backup(&self) -> bool {
-    self
-      .entitlements()
-      .await
-      .map(|e| e.cloud_backup)
-      .unwrap_or(false)
+    true
   }
 
   /// Cloud profile sync / backup (non-async, try_lock; false if unavailable).
   pub fn can_use_cloud_backup_sync(&self) -> bool {
-    match self.state.try_lock() {
-      Ok(state) => state
-        .as_ref()
-        .map(|auth| auth.user.entitlements().cloud_backup)
-        .unwrap_or(false),
-      Err(_) => false,
-    }
+    true
   }
 
   /// Identity and positive per-hour cap for the shared REST/MCP automation

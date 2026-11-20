@@ -510,6 +510,17 @@ impl ProfileManager {
             } else {
               Some(generated.fingerprint)
             };
+            // A cross-OS claim was served with a host-OS device: merge the
+            // suggested navigator repaints into the stored overrides so every
+            // launch presents the claimed OS.
+            if let Some(suggested) = &generated.suggested_overrides {
+              config.identity_overrides = Some(
+                crate::wayfern_manager::WayfernManager::merge_identity_overrides(
+                  config.identity_overrides.as_deref(),
+                  suggested,
+                ),
+              );
+            }
             geolocation_applied = generated.geolocation_applied;
             fingerprint_source = "generated";
           }
@@ -1991,7 +2002,9 @@ impl ProfileManager {
 
     // Update proxy settings and clear VPN (mutual exclusion)
     profile.proxy_id = proxy_id.clone();
-    profile.vpn_id = None;
+    if proxy_id.is_some() {
+      profile.vpn_id = None;
+    }
     profile.updated_at = Some(crate::proxy_manager::now_secs());
 
     // Save the updated profile
@@ -2094,7 +2107,10 @@ impl ProfileManager {
 
     // Update VPN and clear proxy (mutual exclusion)
     profile.vpn_id = vpn_id.clone();
-    profile.proxy_id = None;
+    if vpn_id.is_some() {
+      profile.proxy_id = None;
+      profile.relay_proxy_id = None;
+    }
     profile.updated_at = Some(crate::proxy_manager::now_secs());
 
     self

@@ -17,6 +17,7 @@ export interface BrowserProfile {
   version: string;
   proxy_id?: string; // Reference to stored proxy
   vpn_id?: string; // Reference to stored VPN config
+  relay_proxy_id?: string; // Reference to relay proxy (Hop 1) for proxy chaining
   launch_hook?: string;
   process_id?: number;
   last_launch?: number;
@@ -1158,4 +1159,3 @@ export interface AiSettings {
   savedModels: Record<string, string>;
   savedBaseUrls: Record<string, string>;
 }
-

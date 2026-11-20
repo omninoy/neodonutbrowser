@@ -427,6 +427,18 @@ pub enum XrayOutbound {
     /// Salamander obfuscation password.
     obfs_password: Option<String>,
   },
+  /// A plain SOCKS5 hop: a WireGuard worker's local SOCKS used as a chain
+  /// relay, or an imported SOCKS5 exit routed behind a relay. Never parsed
+  /// from share links; constructed programmatically by the launch path.
+  Socks {
+    username: Option<String>,
+    password: Option<String>,
+  },
+  /// A plain HTTP CONNECT hop, same construction-only rule as `Socks`.
+  Http {
+    username: Option<String>,
+    password: Option<String>,
+  },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -443,6 +455,9 @@ impl XrayConfig {
       XrayOutbound::Vmess { .. } => XrayProtocol::Vmess,
       XrayOutbound::Trojan { .. } => XrayProtocol::Trojan,
       XrayOutbound::Hysteria2 { .. } => XrayProtocol::Hysteria2,
+      // Socks/Http outbounds are built programmatically for chain hops and
+      // never come from share links, so no caller sees this arm.
+      XrayOutbound::Socks { .. } | XrayOutbound::Http { .. } => XrayProtocol::Vless,
     }
   }
 
@@ -455,6 +470,12 @@ impl XrayConfig {
       });
     }
     match &self.outbound {
+      XrayOutbound::Socks { password, .. } | XrayOutbound::Http { password, .. } => {
+        if let Some(password) = password {
+          validate_secret(password, "password")?;
+        }
+        Ok(())
+      }
       XrayOutbound::Vless { id, flow, stream } => {
         validate_uuid(id)?;
         stream.validate()?;

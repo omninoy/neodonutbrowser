@@ -17,6 +17,11 @@ pub struct VpnWorkerConfig {
   /// because configs written before this field existed must still deserialize.
   #[serde(default)]
   pub pid_start_time: Option<u64>,
+  /// WG→WG chain detour: this worker's tunnel dials its UDP endpoint through
+  /// the SOCKS5 UDP relay at this address ("127.0.0.1:port") — the port of
+  /// another VPN worker. Set by the launch path, absent otherwise.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub dial_via_socks: Option<String>,
 }
 
 impl VpnWorkerConfig {
@@ -30,6 +35,7 @@ impl VpnWorkerConfig {
       local_url: None,
       pid: None,
       pid_start_time: None,
+      dial_via_socks: None,
     }
   }
 }

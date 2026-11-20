@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "./icons/logo";
 
 const WEBSITE_URL = "https://donutbrowser.com";
-const REPOSITORY_URL = "https://github.com/donutbrowser/donutbrowser";
+const REPOSITORY_URL = "https://github.com/omninoy/neodonutbrowser";
 const RELEASES_URL = `${REPOSITORY_URL}/releases`;
 /** A check older than this runs again when About opens. */
 const CHECK_TTL_MS = 10 * 60 * 1000;
@@ -71,7 +71,7 @@ interface SystemInfo {
   portable: boolean;
 }
 
-type BuildChannel = "stable" | "nightly" | "development";
+type BuildChannel = "stable" | "beta" | "nightly" | "development";
 
 /** The channel, the version people read, and its release notes, from the build's version. */
 function describeBuild(version: string) {
@@ -90,6 +90,17 @@ function describeBuild(version: string) {
     };
   }
   const label = version.replace(/^v/, "");
+  if (
+    label.includes("beta") ||
+    label.includes("alpha") ||
+    label.includes("rc")
+  ) {
+    return {
+      channel: "beta" as BuildChannel,
+      label,
+      notesUrl: `${RELEASES_URL}/tag/v${label}`,
+    };
+  }
   return {
     channel: "stable" as BuildChannel,
     label,

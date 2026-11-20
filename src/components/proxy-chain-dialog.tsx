@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LuArrowRight, LuGlobe, LuLink, LuLoaderCircle } from "react-icons/lu";
 import { FlagIcon } from "@/components/flag-icon";
+import { ProxyVpnSelector } from "@/components/proxy-vpn-selector";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,14 +30,6 @@ interface ProxyChainDialogProps {
   onSuccess?: (chain: ProxyChain) => void;
 }
 
-interface SelectableProxyOption {
-  id: string;
-  name: string;
-  countryCode?: string;
-  type: "proxy" | "subscription_node";
-  subtitle: string;
-}
-
 export function ProxyChainDialog({
   isOpen,
   onClose,
@@ -55,40 +48,6 @@ export function ProxyChainDialog({
   const [error, setError] = useState<string | null>(null);
 
   const isEdit = Boolean(chain);
-
-  // Flatten all available proxies and subscription nodes into selectable options
-  const options = useMemo<SelectableProxyOption[]>(() => {
-    const list: SelectableProxyOption[] = [];
-
-    // Standalone proxies
-    for (const p of storedProxies) {
-      if (p.is_cloud_managed || p.is_cloud_derived) continue;
-      const res = getCachedProxyResult(p.id);
-      const cc = res?.country_code ?? extractCountryCode(p.geo_country, p.name);
-      list.push({
-        id: p.id,
-        name: p.name,
-        countryCode: cc ?? undefined,
-        type: "proxy",
-        subtitle: `${p.proxy_settings.proxy_type.toUpperCase()} · ${p.proxy_settings.host}:${p.proxy_settings.port}`,
-      });
-    }
-
-    // Nodes from all subscriptions
-    for (const subNodes of Object.values(subscriptionNodes)) {
-      for (const n of subNodes) {
-        list.push({
-          id: n.id,
-          name: n.name,
-          countryCode: n.country_code,
-          type: "subscription_node",
-          subtitle: `${n.protocol.toUpperCase()} · ${n.server}:${n.port}`,
-        });
-      }
-    }
-
-    return list.sort((a, b) => a.name.localeCompare(b.name));
-  }, [storedProxies, subscriptionNodes]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -139,7 +98,6 @@ export function ProxyChainDialog({
       );
       return;
     }
-
     try {
       setIsSubmitting(true);
       setError(null);
@@ -162,8 +120,40 @@ export function ProxyChainDialog({
     }
   };
 
-  const selectedHop1 = options.find((o) => o.id === hop1Id);
-  const selectedHop2 = options.find((o) => o.id === hop2Id);
+  const getHopDetails = (id: string) => {
+    if (!id) return null;
+    if (id.startsWith("subnode-")) {
+      const nodeId = id.slice(8);
+      for (const nodes of Object.values(subscriptionNodes)) {
+        const found = nodes.find((n) => n.id === nodeId);
+        if (found) {
+          return {
+            name: found.name,
+            countryCode: found.country_code,
+            protocol: found.protocol,
+          };
+        }
+      }
+    }
+    const proxy = storedProxies.find((p) => p.id === id);
+    if (proxy) {
+      const res = getCachedProxyResult(proxy.id);
+      return {
+        name: proxy.name,
+        countryCode:
+          res?.country_code ??
+          extractCountryCode(proxy.geo_country, proxy.name) ??
+          undefined,
+        protocol: proxy.proxy_settings.proxy_type,
+      };
+    }
+    return {
+      name: id,
+    };
+  };
+
+  const selectedHop1 = getHopDetails(hop1Id);
+  const selectedHop2 = getHopDetails(hop2Id);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -210,26 +200,18 @@ export function ProxyChainDialog({
                 "Хоп 1: Входной узел (Entry / Relay)",
               )}
             </Label>
-            <select
-              id="chain-hop1"
+            <ProxyVpnSelector
               value={hop1Id}
-              onChange={(e) => setHop1Id(e.target.value)}
+              onSelect={(id) => setHop1Id(id ?? "")}
+              allowNone={false}
+              allowChains={false}
+              excludeId={hop2Id}
               disabled={isSubmitting}
-              className="w-full h-9 rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">
-                {t(
-                  "proxyChains.dialog.selectHop1Placeholder",
-                  "— Выберите промежуточный прокси —",
-                )}
-              </option>
-              {options.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.countryCode ? `[${opt.countryCode}] ` : ""}
-                  {opt.name} ({opt.subtitle})
-                </option>
-              ))}
-            </select>
+              placeholder={t(
+                "proxyChains.dialog.selectHop1Placeholder",
+                "Выберите промежуточный прокси / узел...",
+              )}
+            />
           </div>
 
           <div className="flex justify-center items-center py-0.5">
@@ -247,29 +229,21 @@ export function ProxyChainDialog({
                 "Хоп 2: Конечный узел (Exit Node)",
               )}
             </Label>
-            <select
-              id="chain-hop2"
+            <ProxyVpnSelector
               value={hop2Id}
-              onChange={(e) => setHop2Id(e.target.value)}
+              onSelect={(id) => setHop2Id(id ?? "")}
+              allowNone={false}
+              allowChains={false}
+              excludeId={hop1Id}
               disabled={isSubmitting}
-              className="w-full h-9 rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">
-                {t(
-                  "proxyChains.dialog.selectHop2Placeholder",
-                  "— Выберите выходной прокси —",
-                )}
-              </option>
-              {options.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.countryCode ? `[${opt.countryCode}] ` : ""}
-                  {opt.name} ({opt.subtitle})
-                </option>
-              ))}
-            </select>
+              placeholder={t(
+                "proxyChains.dialog.selectHop2Placeholder",
+                "Выберите конечный прокси / узел...",
+              )}
+            />
           </div>
 
-          {selectedHop1 && selectedHop2 && (
+          {selectedHop1 && selectedHop2 && hop1Id && hop2Id && (
             <div className="p-3 rounded-lg border bg-muted/20 flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5 min-w-0">
                 {selectedHop1.countryCode ? (
@@ -281,11 +255,13 @@ export function ProxyChainDialog({
                 ) : (
                   <LuGlobe className="size-3.5 text-muted-foreground" />
                 )}
-                <span className="font-medium truncate max-w-[120px]">
+                <span className="truncate font-medium">
                   {selectedHop1.name}
                 </span>
               </div>
-              <LuArrowRight className="size-4 shrink-0 text-primary mx-2" />
+
+              <LuArrowRight className="size-4 shrink-0 mx-2 text-primary" />
+
               <div className="flex items-center gap-1.5 min-w-0">
                 {selectedHop2.countryCode ? (
                   <FlagIcon
@@ -296,7 +272,7 @@ export function ProxyChainDialog({
                 ) : (
                   <LuGlobe className="size-3.5 text-muted-foreground" />
                 )}
-                <span className="font-medium truncate max-w-[120px]">
+                <span className="truncate font-medium">
                   {selectedHop2.name}
                 </span>
               </div>
@@ -313,12 +289,16 @@ export function ProxyChainDialog({
               {t("common.buttons.cancel", "Отмена")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <LuLoaderCircle className="size-4 animate-spin mr-2" />
+              {isSubmitting ? (
+                <>
+                  <LuLoaderCircle className="size-4 mr-2 animate-spin" />
+                  {t("common.buttons.saving", "Сохранение...")}
+                </>
+              ) : isEdit ? (
+                t("common.buttons.save", "Сохранить")
+              ) : (
+                t("common.buttons.create", "Создать")
               )}
-              {isEdit
-                ? t("common.buttons.save", "Сохранить")
-                : t("common.buttons.create", "Создать")}
             </Button>
           </DialogFooter>
         </form>

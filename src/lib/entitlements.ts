@@ -13,15 +13,17 @@ interface Capabilities {
   scheduledAutomation: boolean;
 }
 
+// Local build: every capability is served locally, so the entitlements
+// matrix always reads as fully unlocked regardless of any account state.
 const LOCAL_ONLY: Entitlements = {
-  active: false,
+  active: true,
   browserAutomation: true,
   crossOsFingerprints: true,
-  cloudBackup: false,
-  teamCollaboration: false,
+  cloudBackup: true,
+  teamCollaboration: true,
   cookieBot: true,
-  remoteInteractive: false,
-  remoteControl: false,
+  remoteInteractive: true,
+  remoteControl: true,
   scheduledAutomation: true,
   agent: true,
   profileLimit: 0,
@@ -32,9 +34,14 @@ const LOCAL_ONLY: Entitlements = {
 function withLocalCapabilities(entitlements: Entitlements): Entitlements {
   return {
     ...entitlements,
+    active: true,
     browserAutomation: true,
     crossOsFingerprints: true,
+    cloudBackup: true,
+    teamCollaboration: true,
     cookieBot: true,
+    remoteInteractive: true,
+    remoteControl: true,
     scheduledAutomation: true,
     agent: true,
     requestsPerHour: Math.max(

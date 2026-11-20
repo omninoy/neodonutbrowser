@@ -146,6 +146,28 @@ fn outbound_with_tag(config: &XrayConfig, tag: &str, proxy_tag: Option<&str>) ->
         "streamSettings": stream
       })
     }
+    XrayOutbound::Socks { username, password } => {
+      let mut server = json!({ "address": config.address, "port": config.port });
+      if let (Some(user), Some(pass)) = (username, password) {
+        server["users"] = json!([{ "user": user, "pass": pass }]);
+      }
+      json!({
+        "tag": tag,
+        "protocol": "socks",
+        "settings": { "servers": [server] }
+      })
+    }
+    XrayOutbound::Http { username, password } => {
+      let mut server = json!({ "address": config.address, "port": config.port });
+      if let (Some(user), Some(pass)) = (username, password) {
+        server["users"] = json!([{ "user": user, "pass": pass }]);
+      }
+      json!({
+        "tag": tag,
+        "protocol": "http",
+        "settings": { "servers": [server] }
+      })
+    }
   };
 
   if let Some(p_tag) = proxy_tag {

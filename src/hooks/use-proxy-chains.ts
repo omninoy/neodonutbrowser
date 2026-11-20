@@ -108,11 +108,42 @@ export function useProxyChains() {
     }
   }, []);
 
+  const [pingingChainId, setPingingChainId] = useState<string | null>(null);
+
+  const pingChain = useCallback(async (id: string) => {
+    setPingingChainId(id);
+    try {
+      const result = await invoke<{
+        chain: ProxyChain;
+        latency_ms: number | null;
+        is_valid: boolean;
+        error: string | null;
+      }>("ping_proxy_chain", { chainId: id });
+      try {
+        await emit("proxy-chains-changed", {});
+      } catch {}
+      await proxyChainList.refresh();
+      if (result.is_valid) {
+        showSuccessToast(`Цепочка доступна: ${result.latency_ms} ms`);
+      } else {
+        showErrorToast(result.error || "Цепочка недоступна");
+      }
+      return result;
+    } catch (error) {
+      showErrorToast(String(error));
+      throw error;
+    } finally {
+      setPingingChainId(null);
+    }
+  }, []);
+
   return {
     chains,
     loading,
     addChain,
     updateChain,
     deleteChain,
+    pingChain,
+    pingingChainId,
   };
 }

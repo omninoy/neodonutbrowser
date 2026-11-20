@@ -1557,8 +1557,44 @@ impl ProxyManager {
       .is_some_and(|p| p.is_cloud_managed || p.is_cloud_derived)
   }
 
-  // Get proxy settings for a stored proxy ID
+  // Get proxy settings for a stored proxy ID or subscription node ID
   pub fn get_proxy_settings_by_id(&self, proxy_id: &str) -> Option<ProxySettings> {
+    if let Some(node_id) = proxy_id.strip_prefix("subnode-") {
+      let sub_mgr = crate::vpn::subscription::VpnSubscriptionManager::new();
+      if let Some(node) = sub_mgr.list_nodes().into_iter().find(|n| n.id == node_id) {
+        if crate::xray::is_xray_proxy_type(&node.protocol) {
+          return Some(ProxySettings {
+            proxy_type: node.protocol,
+            host: node.server,
+            port: node.port,
+            username: None,
+            password: None,
+            vless_uri: Some(node.raw_uri),
+          });
+        } else if let Some(parsed) = Self::try_parse_url_format(&node.raw_uri) {
+          if let ProxyParseResult::Parsed(p) = parsed {
+            return Some(ProxySettings {
+              proxy_type: p.proxy_type,
+              host: p.host,
+              port: p.port,
+              username: p.username,
+              password: p.password,
+              vless_uri: p.vless_uri,
+            });
+          }
+        }
+        return Some(ProxySettings {
+          proxy_type: node.protocol,
+          host: node.server,
+          port: node.port,
+          username: None,
+          password: None,
+          vless_uri: Some(node.raw_uri),
+        });
+      }
+      return None;
+    }
+
     let stored_proxies = self.stored_proxies.lock().unwrap();
     stored_proxies
       .get(proxy_id)

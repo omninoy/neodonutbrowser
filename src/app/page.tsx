@@ -88,6 +88,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useProfileEvents } from "@/hooks/use-profile-events";
 import { useProfileStatuses } from "@/hooks/use-profile-statuses";
 import { useProfileTableFilters } from "@/hooks/use-profile-table-filters";
+import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useSiteStorageNotices } from "@/hooks/use-site-storage-notices";
 import { useSyncSessions } from "@/hooks/use-sync-session";
@@ -96,6 +97,7 @@ import { confirmLeave, hasUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { useUpdateNotifications } from "@/hooks/use-update-notifications";
 import { useVersionUpdater } from "@/hooks/use-version-updater";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
+import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { useWayfernTerms } from "@/hooks/use-wayfern-terms";
 import { showProfileWindow } from "@/lib/agent-console";
 import {
@@ -278,6 +280,8 @@ export default function Home() {
   } = useProxyEvents();
 
   const { vpnConfigs } = useVpnEvents();
+  const { chains } = useProxyChains();
+  const { nodes: subNodesMap } = useVpnSubscriptions();
 
   // Extension groups feed both the table's Ext column and the search filter's
   // `ext:` lookup, so the list is loaded here and handed down rather than
@@ -324,11 +328,7 @@ export default function Home() {
     isLoading: termsLoading,
     checkTerms,
   } = useWayfernTerms();
-  const {
-    trialStatus,
-    hasAcknowledged: trialAcknowledged,
-    checkTrialStatus,
-  } = useCommercialTrial();
+  const { checkTrialStatus } = useCommercialTrial();
 
   // Cloud auth for cross-OS unlock
   const {
@@ -337,13 +337,8 @@ export default function Home() {
     isLoading: cloudAuthLoading,
   } = useCloudAuth();
   const crossOsUnlocked = getEntitlements(cloudUser).crossOsFingerprints;
-  // Shown once when the commercial trial runs out; modal, so it goes first.
-  const commercialTrialModalOpen =
-    !termsLoading &&
-    termsAccepted === true &&
-    trialStatus?.type === "Expired" &&
-    !trialAcknowledged &&
-    !crossOsUnlocked;
+  // Local build: no commercial trial to advertise, the modal never opens.
+  const commercialTrialModalOpen = false;
   // Bulk run/stop is a paid (browser automation) feature, matching the
   // /v1/profiles/batch/run API gate. Free/solo users see the bulk Run/Stop
   // actions disabled with a Pro badge.
@@ -3075,26 +3070,35 @@ export default function Home() {
   // `profiles`, because the alternative — a .find() per row per term — is
   // O(profiles x entities) on every single keystroke.
   const proxyCountries = useProxyCountries(storedProxies);
-  const searchContext = useMemo<ProfileSearchContext>(
-    () => ({
+  const searchContext = useMemo<ProfileSearchContext>(() => {
+    const allSubNodes = Object.values(subNodesMap).flat();
+    return {
       groupNames: new Map(groupsData.map((g) => [g.id, g.name])),
-      proxyNames: new Map(storedProxies.map((p) => [p.id, p.name])),
+      proxyNames: new Map([
+        ...storedProxies.map((p): [string, string] => [p.id, p.name]),
+        ...chains.map((c): [string, string] => [c.id, `Цепочка — ${c.name}`]),
+        ...allSubNodes.map((n): [string, string] => [
+          `subnode-${n.id}`,
+          `VPN — ${n.name}`,
+        ]),
+      ]),
       proxyCountries,
       vpnNames: new Map(vpnConfigs.map((v) => [v.id, v.name])),
       extensionGroupNames: new Map(extensionGroups.map((e) => [e.id, e.name])),
       statusNames: new Map(profileStatuses.map((s) => [s.id, s.name])),
       runningProfiles,
-    }),
-    [
-      groupsData,
-      storedProxies,
-      vpnConfigs,
-      extensionGroups,
-      profileStatuses,
-      runningProfiles,
-      proxyCountries,
-    ],
-  );
+    };
+  }, [
+    groupsData,
+    storedProxies,
+    chains,
+    subNodesMap,
+    vpnConfigs,
+    extensionGroups,
+    profileStatuses,
+    runningProfiles,
+    proxyCountries,
+  ]);
 
   const profilesInGroup = useMemo(
     () =>

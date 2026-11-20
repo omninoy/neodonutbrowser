@@ -1,7 +1,7 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { open as openDialog, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { hideOthers } from "aria-hidden";
@@ -116,7 +116,9 @@ import { LaunchArgumentsEditor } from "@/components/wayfern-config-form";
 import { WindowDragArea } from "@/components/window-drag-area";
 import { useInputModality } from "@/hooks/use-input-modality";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
+import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { confirmLeave, useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { translateBackendError } from "@/lib/backend-errors";
 import { getProfileIcon, getProfileNativeOs } from "@/lib/browser-utils";
 import { DNS_BLOCKLIST_LEVELS } from "@/lib/dns-blocklist-levels";
@@ -135,6 +137,7 @@ import type {
   VpnConfig,
   WayfernConfig,
 } from "@/types";
+import { ProxyVpnSelector } from "./proxy-vpn-selector";
 
 interface ProfileInfoDialogProps {
   isOpen: boolean;
@@ -767,6 +770,13 @@ function ProfileInfoContents({
     };
   }, [isOpen, profile?.extension_group_id, profile?.id]);
 
+  const { chains } = useProxyChains();
+  const { nodes: subNodesMap } = useVpnSubscriptions();
+  const allSubNodes = React.useMemo(
+    () => Object.values(subNodesMap).flat(),
+    [subNodesMap],
+  );
+
   React.useEffect(() => {
     if (!isOpen) {
       setCopied(false);
@@ -779,17 +789,38 @@ function ProfileInfoContents({
   const isWayfern = profile.browser === "wayfern";
   const isDeleteDisabled = isRunning;
 
+  const matchingChain =
+    profile.relay_proxy_id || profile.proxy_id?.startsWith("chain-")
+      ? (chains.find(
+          (c) =>
+            (profile.relay_proxy_id &&
+              c.hop1_proxy_id === profile.relay_proxy_id &&
+              c.hop2_proxy_id === profile.proxy_id) ||
+            c.id === profile.proxy_id,
+        ) ?? null)
+      : null;
+
+  const subNode = profile.proxy_id?.startsWith("subnode-")
+    ? allSubNodes.find((n) => n.id === profile.proxy_id?.slice(8))
+    : null;
+
   const proxyName = profile.proxy_id
-    ? storedProxies.find((p) => p.id === profile.proxy_id)?.name
+    ? (storedProxies.find((p) => p.id === profile.proxy_id)?.name ?? null)
     : null;
   const vpnName = profile.vpn_id
-    ? vpnConfigs.find((v) => v.id === profile.vpn_id)?.name
+    ? (vpnConfigs.find((v) => v.id === profile.vpn_id)?.name ?? null)
     : null;
-  const networkLabel = vpnName
-    ? t("profileInfo.network.vpnLabel", { name: vpnName })
-    : proxyName
-      ? t("profileInfo.network.proxyLabel", { name: proxyName })
-      : t("profileInfo.values.none");
+  const networkLabel = matchingChain
+    ? `Цепочка: ${matchingChain.name}`
+    : profile.relay_proxy_id
+      ? "Цепочка"
+      : subNode
+        ? `VPN: ${subNode.name}`
+        : vpnName
+          ? t("profileInfo.network.vpnLabel", { name: vpnName })
+          : proxyName
+            ? t("profileInfo.network.proxyLabel", { name: proxyName })
+            : t("profileInfo.values.none");
 
   const syncStatus = syncStatuses[profile.id];
   const syncMode = profile.sync_mode ?? "Disabled";
@@ -2043,13 +2074,13 @@ function SyncSectionInline({
 function NetworkSectionInline({
   profile,
   storedProxies,
-  vpnConfigs,
+  vpnConfigs: _vpnConfigs,
   isDisabled,
   t,
 }: {
   profile: BrowserProfile;
   storedProxies: StoredProxy[];
-  vpnConfigs: VpnConfig[];
+  vpnConfigs?: VpnConfig[];
   isDisabled: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
@@ -2118,39 +2149,78 @@ function NetworkSectionInline({
     label: t("profileInfo.fields.dns"),
   });
 
-  const onProxyChange = async (value: string) => {
-    const nextId = value === "__none__" ? null : value;
-    setIsSaving(true);
-    setError(null);
-    try {
-      await invoke("update_profile_proxy", {
-        profileId: profile.id,
-        proxyId: nextId,
-      });
-      // Clearing the proxy implicitly clears any VPN binding too on the
-      // backend, but we mirror it locally for an immediate visual.
-      setProxyId(nextId);
-      if (nextId !== null) setVpnId(null);
-      flash();
-    } catch (e) {
-      setError(translateBackendError(t as never, e));
-    } finally {
-      setIsSaving(false);
+  const { chains } = useProxyChains();
+  const currentRouteValue = React.useMemo(() => {
+    if (profile.relay_proxy_id || proxyId?.startsWith("chain-")) {
+      const c = chains.find(
+        (chain) =>
+          (profile.relay_proxy_id &&
+            chain.hop1_proxy_id === profile.relay_proxy_id &&
+            chain.hop2_proxy_id === proxyId) ||
+          chain.id === proxyId,
+      );
+      if (c) return c.id;
     }
-  };
+    if (vpnId) return `vpn-${vpnId}`;
+    return proxyId ?? undefined;
+  }, [profile.relay_proxy_id, proxyId, vpnId, chains]);
 
-  const onVpnChange = async (value: string) => {
-    const nextId = value === "__none__" ? null : value;
+  const onRouteSave = async (selectedId: string | undefined) => {
     setIsSaving(true);
     setError(null);
     try {
-      await invoke("update_profile_vpn", {
-        profileId: profile.id,
-        vpnId: nextId,
-      });
-      setVpnId(nextId);
-      if (nextId !== null) setProxyId(null);
+      if (!selectedId || selectedId === "__none__") {
+        await invoke("update_profile_proxy", {
+          profileId: profile.id,
+          proxyId: null,
+        });
+        await invoke("update_profile_relay_proxy", {
+          profileId: profile.id,
+          relayProxyId: null,
+        });
+        await invoke("update_profile_vpn", {
+          profileId: profile.id,
+          vpnId: null,
+        });
+        setProxyId(null);
+        setVpnId(null);
+      } else if (selectedId.startsWith("chain-")) {
+        const chain = chains.find((c) => c.id === selectedId);
+        if (chain) {
+          await invoke("update_profile_proxy", {
+            profileId: profile.id,
+            proxyId: chain.hop2_proxy_id,
+          });
+          await invoke("update_profile_relay_proxy", {
+            profileId: profile.id,
+            relayProxyId: chain.hop1_proxy_id,
+          });
+          setProxyId(chain.hop2_proxy_id);
+          setVpnId(null);
+        }
+      } else if (selectedId.startsWith("vpn-")) {
+        const nextVpnId = selectedId.slice(4);
+        await invoke("update_profile_vpn", {
+          profileId: profile.id,
+          vpnId: nextVpnId,
+        });
+        setProxyId(null);
+        setVpnId(nextVpnId);
+      } else {
+        // subnode-... or stored proxy
+        await invoke("update_profile_proxy", {
+          profileId: profile.id,
+          proxyId: selectedId,
+        });
+        await invoke("update_profile_relay_proxy", {
+          profileId: profile.id,
+          relayProxyId: null,
+        });
+        setProxyId(selectedId);
+        setVpnId(null);
+      }
       flash();
+      await emit("profile-updated");
     } catch (e) {
       setError(translateBackendError(t as never, e));
     } finally {
@@ -2173,30 +2243,17 @@ function NetworkSectionInline({
         <span className="w-12 shrink-0 text-xs font-medium text-muted-foreground">
           {t("profileInfo.fields.proxy")}
         </span>
-        <Select
-          value={proxyId ?? "__none__"}
-          disabled={isDisabled || isSaving}
-          onValueChange={(v) => {
-            void onProxyChange(v);
-          }}
-        >
-          <SelectTrigger
-            aria-label={t("profileInfo.fields.proxy")}
-            className="h-8 min-w-0 flex-1 text-xs"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">
-              {t("profileInfo.values.none")}
-            </SelectItem>
-            {storedProxies.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1 min-w-0">
+          <ProxyVpnSelector
+            value={currentRouteValue}
+            allowNone={true}
+            allowChains={true}
+            disabled={isDisabled || isSaving}
+            onSelect={(newId) => {
+              void onRouteSave(newId);
+            }}
+          />
+        </div>
         {rotatableProxy && (
           <Button
             type="button"
@@ -2212,36 +2269,6 @@ function NetworkSectionInline({
             {t("proxies.rotation.action")}
           </Button>
         )}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="w-12 shrink-0 text-xs font-medium text-muted-foreground">
-          {t("profileInfo.fields.vpn")}
-        </span>
-        <Select
-          value={vpnId ?? "__none__"}
-          disabled={isDisabled || isSaving}
-          onValueChange={(v) => {
-            void onVpnChange(v);
-          }}
-        >
-          <SelectTrigger
-            aria-label={t("profileInfo.fields.vpn")}
-            className="h-8 min-w-0 flex-1 text-xs"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">
-              {t("profileInfo.values.none")}
-            </SelectItem>
-            {vpnConfigs.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <form

@@ -16,6 +16,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  LuActivity,
   LuCheck,
   LuChevronDown,
   LuChevronRight,
@@ -215,7 +216,15 @@ export function CreateProfileDialog({
     "proxies",
   );
   const { chains } = useProxyChains();
-  const { nodes: subscriptionNodes } = useVpnSubscriptions();
+  const {
+    subscriptions,
+    nodes: subscriptionNodes,
+    pingSingleNode,
+  } = useVpnSubscriptions();
+  const [expandedSubIds, setExpandedSubIds] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [pingingNodeId, setPingingNodeId] = useState<string | null>(null);
   const [morePopoverOpen, setMorePopoverOpen] = useState(false);
   // Where the new profiles go: the group the list shows, until changed.
   const [destinationGroupId, setDestinationGroupId] = useState<string | null>(
@@ -1355,68 +1364,201 @@ export function CreateProfileDialog({
                           </CommandGroup>
                         )}
 
-                        {/* Subscription Nodes */}
-                        {allSubNodes.length > 0 && (
-                          <CommandGroup
-                            heading={t(
-                              "vpnSubscriptions.tabs.subscriptions",
-                              "Серверы подписок",
-                            )}
-                          >
-                            {allSubNodes.map((node) => {
-                              const countryCode =
-                                node.country_code ??
-                                extractCountryCode(undefined, node.name);
-                              return (
-                                <CommandItem
-                                  key={node.id}
-                                  value={`subnode-${node.id}`}
-                                  keywords={[
-                                    node.name,
-                                    node.protocol,
-                                    countryCode ?? "",
-                                  ]}
-                                  onSelect={() => {
-                                    setSelectedProxyId(`subnode-${node.id}`);
-                                    setProxyPopoverOpen(false);
-                                  }}
-                                  className="flex items-center gap-2"
-                                >
-                                  <LuCheck
-                                    className={cn(
-                                      "size-4 shrink-0",
-                                      selectedProxyId === `subnode-${node.id}`
-                                        ? "opacity-100"
-                                        : "opacity-0",
-                                    )}
-                                    aria-hidden="true"
-                                  />
-                                  {countryCode ? (
-                                    <FlagIcon
-                                      countryCode={countryCode}
-                                      className="h-3 shrink-0 rounded-[2px]"
-                                    />
+                        {/* Subscriptions as collapsible accordion blocks */}
+                        {subscriptions.map((sub) => {
+                          const subNodes = subscriptionNodes[sub.id] || [];
+                          const isExpanded = Boolean(expandedSubIds[sub.id]);
+
+                          const uniqueCountries = Array.from(
+                            new Set(
+                              subNodes
+                                .map(
+                                  (n) =>
+                                    n.country_code ||
+                                    extractCountryCode(undefined, n.name),
+                                )
+                                .filter(Boolean) as string[],
+                            ),
+                          );
+
+                          // Always statically sort by ping from lowest to highest
+                          const sortedNodes = [...subNodes].sort((a, b) => {
+                            const latA =
+                              a.is_valid && typeof a.latency_ms === "number"
+                                ? a.latency_ms
+                                : null;
+                            const latB =
+                              b.is_valid && typeof b.latency_ms === "number"
+                                ? b.latency_ms
+                                : null;
+                            if (latA !== null && latB !== null) {
+                              return latA - latB;
+                            }
+                            if (latA !== null && latB === null) return -1;
+                            if (latA === null && latB !== null) return 1;
+                            return a.name.localeCompare(b.name);
+                          });
+
+                          return (
+                            <div
+                              key={sub.id}
+                              className="my-1 border-b border-border/40 pb-1 last:border-b-0"
+                            >
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    (e.currentTarget as HTMLElement).click();
+                                  }
+                                }}
+                                className="flex items-center justify-between px-2.5 py-1.5 hover:bg-muted/40 cursor-pointer rounded-md mx-1 select-none text-xs font-medium border border-border/40 bg-muted/20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedSubIds((prev) => ({
+                                    ...prev,
+                                    [sub.id]: !prev[sub.id],
+                                  }));
+                                }}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  {isExpanded ? (
+                                    <LuChevronDown className="size-3.5 text-primary shrink-0" />
                                   ) : (
-                                    <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
+                                    <LuChevronRight className="size-3.5 text-muted-foreground shrink-0" />
                                   )}
-                                  <span className="truncate">{node.name}</span>
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-[10px] uppercase font-mono px-1 py-0"
-                                  >
-                                    {node.protocol}
-                                  </Badge>
-                                  {node.latency_ms !== null &&
-                                    node.latency_ms !== undefined && (
-                                      <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
-                                        {node.latency_ms} ms
-                                      </span>
-                                    )}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        )}
+                                  <span className="truncate font-medium">
+                                    {sub.name}
+                                  </span>
+                                  <div className="flex items-center gap-0.5 ml-1 overflow-hidden shrink-0">
+                                    {uniqueCountries.slice(0, 4).map((code) => (
+                                      <FlagIcon
+                                        key={code}
+                                        countryCode={code}
+                                        className="h-2.5 rounded-[1px]"
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1 py-0 text-muted-foreground shrink-0 ml-1"
+                                >
+                                  {subNodes.length}
+                                </Badge>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="mt-1 space-y-0.5 pl-2 pr-1">
+                                  {sortedNodes.map((node) => {
+                                    const countryCode =
+                                      node.country_code ??
+                                      extractCountryCode(undefined, node.name);
+                                    const isPinging = pingingNodeId === node.id;
+                                    const isSelected =
+                                      selectedProxyId === `subnode-${node.id}`;
+
+                                    return (
+                                      <CommandItem
+                                        key={node.id}
+                                        value={`subnode-${node.id}`}
+                                        keywords={[
+                                          node.name,
+                                          node.protocol,
+                                          sub.name,
+                                          countryCode ?? "",
+                                        ]}
+                                        onSelect={() => {
+                                          setSelectedProxyId(
+                                            `subnode-${node.id}`,
+                                          );
+                                          setProxyPopoverOpen(false);
+                                        }}
+                                        className="flex items-center gap-2 pl-3 pr-2 py-1 text-xs"
+                                      >
+                                        <LuCheck
+                                          className={cn(
+                                            "size-3.5 shrink-0",
+                                            isSelected
+                                              ? "opacity-100 text-primary"
+                                              : "opacity-0",
+                                          )}
+                                          aria-hidden="true"
+                                        />
+                                        {countryCode ? (
+                                          <FlagIcon
+                                            countryCode={countryCode}
+                                            className="h-3 shrink-0 rounded-[2px]"
+                                          />
+                                        ) : (
+                                          <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
+                                        )}
+                                        <span className="truncate flex-1">
+                                          {node.name}
+                                        </span>
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-[9px] uppercase font-mono px-1 py-0 shrink-0"
+                                        >
+                                          {node.protocol}
+                                        </Badge>
+                                        {node.latency_ms !== null &&
+                                        node.latency_ms !== undefined ? (
+                                          <span
+                                            className={cn(
+                                              "shrink-0 font-mono text-[11px]",
+                                              node.is_valid
+                                                ? "text-emerald-500 font-medium"
+                                                : "text-destructive",
+                                            )}
+                                          >
+                                            {node.latency_ms} ms
+                                          </span>
+                                        ) : (
+                                          <span className="shrink-0 font-mono text-[11px] text-muted-foreground/50">
+                                            —
+                                          </span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          title={t(
+                                            "vpnSubscriptions.ping",
+                                            "Проверить пинг",
+                                          )}
+                                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 cursor-pointer transition-colors"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            try {
+                                              setPingingNodeId(node.id);
+                                              await pingSingleNode(
+                                                node.id,
+                                                node.subscription_id,
+                                              );
+                                            } catch (err) {
+                                              console.error("Ping error:", err);
+                                            } finally {
+                                              setPingingNodeId(null);
+                                            }
+                                          }}
+                                        >
+                                          <LuActivity
+                                            className={cn(
+                                              "size-3.5",
+                                              isPinging &&
+                                                "animate-spin text-primary",
+                                            )}
+                                          />
+                                        </button>
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
 
                         {sortedVpns.length === 0 &&
                           allSubNodes.length === 0 && (

@@ -196,14 +196,20 @@ export function CookieBotPage({
     hasLoadedRuns.current = true;
     void loadRuns(first);
 
-    if (liveCount === 0) return;
+    // Local runs never appear in `liveSessions` (that stream is remote-only),
+    // so a pending/running row in the last page keeps the poll alive too —
+    // otherwise a finished local run stays "Running" until the page reloads.
+    const hasActiveRun = runs.some(
+      (run) => run.status === "pending" || run.status === "running",
+    );
+    if (liveCount === 0 && !hasActiveRun) return;
     const id = window.setInterval(() => {
       void loadRuns(false);
     }, LIVE_POLL_MS);
     return () => {
       window.clearInterval(id);
     };
-  }, [isOpen, unlocked, liveCount, loadRuns]);
+  }, [isOpen, unlocked, liveCount, loadRuns, runs]);
 
   const enrolledIds = useMemo(
     () => new Set(Object.keys(schedulesByProfile)),

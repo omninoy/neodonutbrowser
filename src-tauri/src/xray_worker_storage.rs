@@ -15,6 +15,14 @@ pub struct XrayWorkerConfig {
   pub vless_uri: String,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub relay_uri: Option<String>,
+  /// A relay hop that is not a share link: a WireGuard worker's local SOCKS
+  /// or an imported SOCKS5/HTTP proxy chained ahead of the exit.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub relay_socks: Option<RelaySocksSpec>,
+  /// A programmatic exit hop (imported SOCKS5/HTTP) chained behind a relay;
+  /// empty `vless_uri` plus this field means a composite worker.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub exit_socks: Option<RelaySocksSpec>,
   pub local_port: u16,
   pub username: String,
   pub password: String,
@@ -34,6 +42,19 @@ pub struct XrayWorkerConfig {
   pub browser_pid_start_time: Option<u64>,
 }
 
+/// A programmatic (non-share-link) relay hop routed in front of the exit.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RelaySocksSpec {
+  pub host: String,
+  pub port: u16,
+  /// "socks" dials SOCKS5, "http" dials an HTTP CONNECT proxy.
+  pub kind: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub username: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub password: Option<String>,
+}
+
 impl XrayWorkerConfig {
   pub fn new(
     id: String,
@@ -48,6 +69,8 @@ impl XrayWorkerConfig {
       profile_id,
       vless_uri,
       relay_uri: None,
+      relay_socks: None,
+      exit_socks: None,
       local_port,
       username,
       password,

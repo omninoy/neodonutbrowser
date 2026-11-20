@@ -30,6 +30,7 @@ import {
   LuCircleAlert,
   LuCookie,
   LuInfo,
+  LuLink,
   LuLock,
   LuMoon,
   LuPin,
@@ -152,10 +153,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getCachedVpnResult } from "@/components/vpn-check-button";
 import { useBrowserState } from "@/hooks/use-browser-state";
 import { useCloudAuth } from "@/hooks/use-cloud-auth";
 import { cookieBotScopeFor, useCookieBot } from "@/hooks/use-cookie-bot";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
+import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { type ProxyHealth, useProxyHealth } from "@/hooks/use-proxy-health";
 import { useRemoteHandoff } from "@/hooks/use-remote-handoff";
@@ -166,6 +169,7 @@ import { useTableKeyboard } from "@/hooks/use-table-tools";
 import { useTeamLocks } from "@/hooks/use-team-locks";
 import { confirmLeave } from "@/hooks/use-unsaved-changes";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
+import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { showProfileWindow } from "@/lib/agent-console";
 import { parseBackendError, translateBackendError } from "@/lib/backend-errors";
 import {
@@ -187,7 +191,7 @@ import {
   dnsBlocklistLabelKey,
 } from "@/lib/dns-blocklist-levels";
 import { canUseCookieBot } from "@/lib/entitlements";
-import { formatRelativeTime } from "@/lib/flag-utils";
+import { extractCountryCode, formatRelativeTime } from "@/lib/flag-utils";
 import { formatBytes } from "@/lib/format-bytes";
 import {
   MOTION_EASE_IN,
@@ -196,6 +200,7 @@ import {
   MOTION_SPRING_POSITION,
 } from "@/lib/motion";
 import { isMacOS } from "@/lib/platform";
+import { getCachedProxyResult } from "@/lib/proxy-check-store";
 import { formatDuration, formatTimeAgo } from "@/lib/relative-time";
 import type { RemoteHandoffState } from "@/lib/remote-sessions";
 import { isKey } from "@/lib/shortcuts";
@@ -217,6 +222,8 @@ import type {
   SyncSessionInfo,
   VpnConfig,
 } from "@/types";
+import type { ProxyChain } from "@/types/proxy-chain";
+import type { VpnSubscriptionNode } from "@/types/vpn-subscription";
 import {
   ACTION_BAR_BUTTON_CLASS,
   DataTableActionBar,
@@ -224,8 +231,10 @@ import {
   DataTableActionBarSelection,
   tableSelectionCounts,
 } from "./data-table-action-bar";
+import { FlagIcon } from "./flag-icon";
 import MultipleSelector, { type Option } from "./multiple-selector";
 import { ProxyCheckButton } from "./proxy-check-button";
+import { ProxyVpnSelectorContent } from "./proxy-vpn-selector";
 import { TrafficDetailsDialog } from "./traffic-details-dialog";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
@@ -296,13 +305,20 @@ interface TableMeta {
   openProxySelectorFor: string | null;
   setOpenProxySelectorFor: React.Dispatch<React.SetStateAction<string | null>>;
   proxyOverrides: Record<string, string | null>;
+  relayProxyOverrides: Record<string, string | null>;
   storedProxies: StoredProxy[];
+  chains: ProxyChain[];
+  allSubNodes: VpnSubscriptionNode[];
   /** The proxies a row's picker lists: the user's own, not cloud ones. */
   pickableProxies: StoredProxy[];
   handleProxySelection: (
     profileId: string,
     proxyId: string | null,
   ) => void | Promise<void>;
+  handleRouteSelection: (
+    profileId: string,
+    routeId: string | undefined,
+  ) => Promise<void>;
 
   // VPN selector state
   vpnConfigs: VpnConfig[];
@@ -1446,114 +1462,6 @@ const OverflowTooltipText = React.memo<{
 
 OverflowTooltipText.displayName = "OverflowTooltipText";
 
-/**
- * A row's proxy and VPN list. Its own component so the list is built only
- * while the popover shows, not on every render of every row.
- */
-function ProxyPicker({
-  profileId,
-  meta,
-  selectedId,
-  proxyId,
-  vpnId,
-}: {
-  profileId: string;
-  meta: TableMeta;
-  /** The assigned proxy or VPN, or null. */
-  selectedId: string | null;
-  /** The assigned proxy when no VPN overrides it. */
-  proxyId: string | null;
-  vpnId: string | null;
-}) {
-  const { t } = meta;
-  return (
-    <Command>
-      <CommandInput
-        placeholder={
-          meta.canCreateLocationProxy
-            ? t("createProfile.proxy.searchWithCountries")
-            : t("createProfile.proxy.search")
-        }
-        onFocus={() => {
-          if (meta.canCreateLocationProxy) void meta.loadCountries();
-        }}
-      />
-      <CommandList>
-        <CommandEmpty>{t("createProfile.proxy.notFound")}</CommandEmpty>
-        <CommandGroup>
-          <CommandItem
-            value="__none__"
-            onSelect={() => void meta.handleProxySelection(profileId, null)}
-          >
-            <LuCheck
-              className={cn(
-                "mr-2 size-4",
-                selectedId === null ? "opacity-100" : "opacity-0",
-              )}
-            />
-            {t("common.labels.none")}
-          </CommandItem>
-          {meta.pickableProxies.map((proxy) => (
-            <CommandItem
-              key={proxy.id}
-              value={proxy.name}
-              onSelect={() =>
-                void meta.handleProxySelection(profileId, proxy.id)
-              }
-            >
-              <LuCheck
-                className={cn(
-                  "mr-2 size-4",
-                  proxyId === proxy.id ? "opacity-100" : "opacity-0",
-                )}
-              />
-              {proxy.name}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-        {meta.vpnConfigs.length > 0 && (
-          <CommandGroup heading={t("profileTable.vpnsHeading")}>
-            {meta.vpnConfigs.map((vpn) => (
-              <CommandItem
-                key={vpn.id}
-                value={`vpn-${vpn.name}`}
-                onSelect={() => void meta.handleVpnSelection(profileId, vpn.id)}
-              >
-                <LuCheck
-                  className={cn(
-                    "mr-2 size-4",
-                    vpnId === vpn.id ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <LuShieldCheck
-                  aria-hidden="true"
-                  className="mr-1.5 size-3.5 shrink-0 text-muted-foreground"
-                />
-                {vpn.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-        {meta.canCreateLocationProxy && meta.creatableCountries.length > 0 && (
-          <CommandGroup heading={t("profileTable.createByCountryHeading")}>
-            {meta.creatableCountries.map((country) => (
-              <CommandItem
-                key={`country-${country.code}`}
-                value={`create-${country.name}`}
-                onSelect={() =>
-                  void meta.handleCreateCountryProxy(profileId, country)
-                }
-              >
-                <span className="mr-2 size-4" />+ {country.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        )}
-      </CommandList>
-    </Command>
-  );
-}
-
 // Must be rendered inside a <Popover>; the tooltip shows the full assignment
 // name only when it is truncated in the cell.
 const ProxyCellTrigger = React.memo<{
@@ -1561,59 +1469,83 @@ const ProxyCellTrigger = React.memo<{
   displayName: string;
   hasAssignment: boolean;
   isVpn: boolean;
+  isChain?: boolean;
+  countryCode?: string;
   isDisabled: boolean;
-}>(({ profileName, displayName, hasAssignment, isVpn, isDisabled }) => {
-  const { t } = useTranslation();
-  const textRef = React.useRef<HTMLSpanElement | null>(null);
-  const [isOverflowing, setIsOverflowing] = React.useState(false);
+}>(
+  ({
+    profileName,
+    displayName,
+    hasAssignment,
+    isVpn,
+    isChain,
+    countryCode,
+    isDisabled,
+  }) => {
+    const { t } = useTranslation();
+    const textRef = React.useRef<HTMLSpanElement | null>(null);
+    const [isOverflowing, setIsOverflowing] = React.useState(false);
 
-  return (
-    <Tooltip
-      onOpenChange={(open) => {
-        if (!open) return;
-        const el = textRef.current;
-        if (el) setIsOverflowing(el.scrollWidth > el.clientWidth);
-      }}
-    >
-      <TooltipTrigger asChild>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            disabled={isDisabled}
-            aria-label={t("profileTable.aria.proxy", {
-              name: profileName,
-              value: displayName,
-            })}
-            className={cn(
-              "flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-md border-none bg-transparent px-2 py-1 text-left transition-colors duration-100",
-              FOCUS_RING,
-              isDisabled
-                ? "cursor-not-allowed opacity-60"
-                : "cursor-pointer hover:bg-foreground/8",
-            )}
-          >
-            {isVpn && (
-              <LuShieldCheck
-                aria-hidden="true"
-                className="size-3.5 shrink-0 text-muted-foreground"
-              />
-            )}
-            {hasAssignment ? (
-              <span ref={textRef} className="min-w-0 truncate text-sm">
-                {displayName}
-              </span>
-            ) : (
-              <EmptyCellValue label={displayName} />
-            )}
-          </button>
-        </PopoverTrigger>
-      </TooltipTrigger>
-      {hasAssignment && isOverflowing && (
-        <TooltipContent>{displayName}</TooltipContent>
-      )}
-    </Tooltip>
-  );
-});
+    return (
+      <Tooltip
+        onOpenChange={(open) => {
+          if (!open) return;
+          const el = textRef.current;
+          if (el) setIsOverflowing(el.scrollWidth > el.clientWidth);
+        }}
+      >
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              disabled={isDisabled}
+              aria-label={t("profileTable.aria.proxy", {
+                name: profileName,
+                value: displayName,
+              })}
+              className={cn(
+                "flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-md border-none bg-transparent px-2 py-1 text-left transition-colors duration-100",
+                FOCUS_RING,
+                isDisabled
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer hover:bg-foreground/8",
+              )}
+            >
+              {hasAssignment ? (
+                <>
+                  {isChain ? (
+                    <LuLink
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 text-primary"
+                    />
+                  ) : countryCode ? (
+                    <FlagIcon
+                      countryCode={countryCode}
+                      className="h-2.5 shrink-0 rounded-[2px]"
+                    />
+                  ) : isVpn ? (
+                    <LuShieldCheck
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                    />
+                  ) : null}
+                  <span ref={textRef} className="min-w-0 truncate text-sm">
+                    {displayName}
+                  </span>
+                </>
+              ) : (
+                <EmptyCellValue label={displayName} />
+              )}
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        {hasAssignment && isOverflowing && (
+          <TooltipContent>{displayName}</TooltipContent>
+        )}
+      </Tooltip>
+    );
+  },
+);
 
 ProxyCellTrigger.displayName = "ProxyCellTrigger";
 
@@ -2445,9 +2377,17 @@ export function ProfilesDataTable({
   const [proxyOverrides, setProxyOverrides] = React.useState<
     Record<string, string | null>
   >({});
+  const [relayProxyOverrides, setRelayProxyOverrides] = React.useState<
+    Record<string, string | null>
+  >({});
   const [vpnOverrides, setVpnOverrides] = React.useState<
     Record<string, string | null>
   >({});
+  const { chains } = useProxyChains();
+  const { nodes: subNodesMap } = useVpnSubscriptions();
+  const allSubNodes = React.useMemo(() => {
+    return Object.values(subNodesMap).flat();
+  }, [subNodesMap]);
   const [tagsOverrides, setTagsOverrides] = React.useState<
     Record<string, string[]>
   >({});
@@ -2547,6 +2487,82 @@ export function ProfilesDataTable({
         invoke("update_profile_vpn", { profileId, vpnId }),
       ),
     [applyRouteChange],
+  );
+
+  const handleRouteSelection = React.useCallback(
+    async (profileId: string, routeId: string | undefined) => {
+      const profile = allProfiles.find((item) => item.id === profileId);
+      const before = {
+        proxy: Object.hasOwn(proxyOverrides, profileId)
+          ? proxyOverrides[profileId]
+          : (profile?.proxy_id ?? null),
+        relay: Object.hasOwn(relayProxyOverrides, profileId)
+          ? relayProxyOverrides[profileId]
+          : (profile?.relay_proxy_id ?? null),
+        vpn: Object.hasOwn(vpnOverrides, profileId)
+          ? vpnOverrides[profileId]
+          : (profile?.vpn_id ?? null),
+      };
+
+      let nextProxyId: string | null = null;
+      let nextRelayProxyId: string | null = null;
+      let nextVpnId: string | null = null;
+
+      if (!routeId || routeId === "__none__") {
+        // Clear all
+      } else if (routeId.startsWith("chain-")) {
+        const chain = chains.find((c) => c.id === routeId);
+        if (chain) {
+          nextProxyId = chain.hop2_proxy_id;
+          nextRelayProxyId = chain.hop1_proxy_id;
+        }
+      } else if (routeId.startsWith("vpn-")) {
+        nextVpnId = routeId.slice(4);
+      } else {
+        // Stored proxy or subnode-...
+        nextProxyId = routeId;
+      }
+
+      setProxyOverrides((prev) => ({ ...prev, [profileId]: nextProxyId }));
+      setRelayProxyOverrides((prev) => ({
+        ...prev,
+        [profileId]: nextRelayProxyId,
+      }));
+      setVpnOverrides((prev) => ({ ...prev, [profileId]: nextVpnId }));
+      setOpenProxySelectorFor(null);
+
+      try {
+        if (nextVpnId) {
+          await invoke("update_profile_vpn", { profileId, vpnId: nextVpnId });
+        } else if (nextProxyId) {
+          await invoke("update_profile_proxy", {
+            profileId,
+            proxyId: nextProxyId,
+          });
+          await invoke("update_profile_relay_proxy", {
+            profileId,
+            relayProxyId: nextRelayProxyId,
+          });
+        } else {
+          await invoke("update_profile_proxy", { profileId, proxyId: null });
+          await invoke("update_profile_relay_proxy", {
+            profileId,
+            relayProxyId: null,
+          });
+          await invoke("update_profile_vpn", { profileId, vpnId: null });
+        }
+        await emit("profile-updated");
+      } catch (error) {
+        setProxyOverrides((prev) => ({ ...prev, [profileId]: before.proxy }));
+        setRelayProxyOverrides((prev) => ({
+          ...prev,
+          [profileId]: before.relay,
+        }));
+        setVpnOverrides((prev) => ({ ...prev, [profileId]: before.vpn }));
+        showErrorToast(translateBackendError(t as never, error));
+      }
+    },
+    [allProfiles, proxyOverrides, relayProxyOverrides, vpnOverrides, chains, t],
   );
 
   const handleCreateCountryProxy = React.useCallback(
@@ -3111,9 +3127,13 @@ export function ProfilesDataTable({
       openProxySelectorFor,
       setOpenProxySelectorFor,
       proxyOverrides,
+      relayProxyOverrides,
       storedProxies,
+      chains,
+      allSubNodes,
       pickableProxies,
       handleProxySelection,
+      handleRouteSelection,
 
       // VPN selector state
       vpnConfigs,
@@ -3222,9 +3242,13 @@ export function ProfilesDataTable({
       openNoteEditorFor,
       openProxySelectorFor,
       proxyOverrides,
+      relayProxyOverrides,
       storedProxies,
+      chains,
+      allSubNodes,
       pickableProxies,
       handleProxySelection,
+      handleRouteSelection,
       vpnConfigs,
       vpnOverrides,
       handleVpnSelection,
@@ -3768,27 +3792,110 @@ export function ProfilesDataTable({
           const effectiveProxyId = hasProxyOverride
             ? meta.proxyOverrides[profile.id]
             : (profile.proxy_id ?? null);
-          const effectiveProxy = effectiveProxyId
-            ? (meta.storedProxies.find((p) => p.id === effectiveProxyId) ??
-              null)
-            : null;
+
+          const hasRelayOverride = Object.hasOwn(
+            meta.relayProxyOverrides,
+            profile.id,
+          );
+          const effectiveRelayProxyId = hasRelayOverride
+            ? meta.relayProxyOverrides[profile.id]
+            : (profile.relay_proxy_id ?? null);
 
           const hasVpnOverride = Object.hasOwn(meta.vpnOverrides, profile.id);
           const effectiveVpnId = hasVpnOverride
             ? meta.vpnOverrides[profile.id]
             : (profile.vpn_id ?? null);
-          const effectiveVpn = effectiveVpnId
-            ? (meta.vpnConfigs.find((v) => v.id === effectiveVpnId) ?? null)
-            : null;
 
-          const hasAssignment = Boolean(effectiveProxy || effectiveVpn);
-          const displayName = effectiveVpn
-            ? effectiveVpn.name
-            : effectiveProxy
-              ? effectiveProxy.name
-              : meta.t("profiles.table.none");
+          // 1. Check Chain
+          const matchingChain =
+            effectiveRelayProxyId || effectiveProxyId?.startsWith("chain-")
+              ? (meta.chains.find(
+                  (c) =>
+                    (effectiveRelayProxyId &&
+                      c.hop1_proxy_id === effectiveRelayProxyId &&
+                      c.hop2_proxy_id === effectiveProxyId) ||
+                    c.id === effectiveProxyId,
+                ) ?? null)
+              : null;
+
+          // 2. Check VPN Config (WireGuard)
+          const effectiveVpn =
+            effectiveVpnId && !matchingChain
+              ? (meta.vpnConfigs.find((v) => v.id === effectiveVpnId) ?? null)
+              : null;
+
+          // 3. Check Subscription Node
+          const effectiveSubNode =
+            effectiveProxyId?.startsWith("subnode-") && !matchingChain
+              ? (meta.allSubNodes.find(
+                  (n) => n.id === effectiveProxyId.slice(8),
+                ) ?? null)
+              : null;
+
+          // 4. Check Stored Proxy
+          const effectiveProxy =
+            effectiveProxyId && !matchingChain && !effectiveSubNode
+              ? (meta.storedProxies.find((p) => p.id === effectiveProxyId) ??
+                null)
+              : null;
+
+          const isChain = Boolean(matchingChain || effectiveRelayProxyId);
+          const isVpn = Boolean(effectiveVpn);
+
+          const hasAssignment = Boolean(
+            matchingChain ||
+              effectiveRelayProxyId ||
+              effectiveVpn ||
+              effectiveSubNode ||
+              effectiveProxy,
+          );
+
+          let displayName = meta.t("profiles.table.none");
+          let countryCode: string | undefined;
+
+          if (matchingChain) {
+            displayName = `Цепочка — ${matchingChain.name}`;
+            const hop2Id = matchingChain.hop2_proxy_id;
+            if (hop2Id.startsWith("subnode-")) {
+              const n = meta.allSubNodes.find((x) => x.id === hop2Id.slice(8));
+              countryCode =
+                (n?.country_code ?? extractCountryCode(undefined, n?.name)) ||
+                undefined;
+            } else if (hop2Id.startsWith("vpn-")) {
+              const v = meta.vpnConfigs.find((x) => x.id === hop2Id.slice(4));
+              countryCode = extractCountryCode(undefined, v?.name) || undefined;
+            } else {
+              const p = meta.storedProxies.find((x) => x.id === hop2Id);
+              countryCode =
+                (p
+                  ? (getCachedProxyResult(p.id)?.country_code ??
+                    extractCountryCode(p.geo_country, p.name))
+                  : undefined) || undefined;
+            }
+          } else if (effectiveRelayProxyId) {
+            displayName = "Цепочка";
+          } else if (effectiveVpn) {
+            displayName = `WG — ${effectiveVpn.name}`;
+            countryCode =
+              (getCachedVpnResult(effectiveVpn.id)?.country_code ??
+                extractCountryCode(undefined, effectiveVpn.name)) ||
+              undefined;
+          } else if (effectiveSubNode) {
+            displayName = `VPN — ${effectiveSubNode.name}`;
+            countryCode =
+              (effectiveSubNode.country_code ??
+                extractCountryCode(undefined, effectiveSubNode.name)) ||
+              undefined;
+          } else if (effectiveProxy) {
+            displayName = effectiveProxy.name;
+          }
+
           const isSelectorOpen = meta.openProxySelectorFor === profile.id;
-          const selectedId = effectiveVpnId ?? effectiveProxyId ?? null;
+          const selectedId = matchingChain
+            ? matchingChain.id
+            : effectiveVpnId
+              ? `vpn-${effectiveVpnId}`
+              : (effectiveProxyId ?? null);
 
           // A running row shows its live traffic; the route name moves into
           // the tooltip.
@@ -3818,29 +3925,51 @@ export function ProfilesDataTable({
                   profileName={profile.name}
                   displayName={displayName}
                   hasAssignment={hasAssignment}
-                  isVpn={Boolean(effectiveVpn)}
+                  isVpn={isVpn}
+                  isChain={isChain}
+                  countryCode={countryCode || undefined}
                   isDisabled={isDisabled}
                 />
 
                 {!isDisabled && (
                   <PopoverContent
-                    className="w-[240px] p-0"
+                    className="w-88 p-0"
                     align="end"
                     sideOffset={8}
                   >
-                    <ProxyPicker
-                      profileId={profile.id}
-                      meta={meta}
-                      selectedId={selectedId}
-                      proxyId={effectiveVpn ? null : effectiveProxyId}
-                      vpnId={effectiveVpnId}
+                    <ProxyVpnSelectorContent
+                      value={selectedId || undefined}
+                      allowNone={true}
+                      allowChains={true}
+                      onSelect={(newId) => {
+                        void meta.handleRouteSelection(profile.id, newId);
+                      }}
+                      onClose={() => {
+                        meta.setOpenProxySelectorFor(null);
+                      }}
                     />
                   </PopoverContent>
                 )}
               </Popover>
-              {effectiveProxy && !effectiveVpn && !isDisabled && (
-                <ProxyCheckButton proxy={effectiveProxy} />
-              )}
+              {effectiveProxy &&
+                !effectiveVpn &&
+                !isDisabled &&
+                !matchingChain && <ProxyCheckButton proxy={effectiveProxy} />}
+              {effectiveSubNode &&
+                !isDisabled &&
+                effectiveSubNode.latency_ms !== null &&
+                effectiveSubNode.latency_ms !== undefined && (
+                  <span
+                    className={cn(
+                      "shrink-0 font-mono text-[11px] px-1.5 py-0.5 rounded bg-muted/50 border border-border/40",
+                      effectiveSubNode.is_valid
+                        ? "text-emerald-500 font-medium"
+                        : "text-destructive",
+                    )}
+                  >
+                    {effectiveSubNode.latency_ms} ms
+                  </span>
+                )}
             </div>
           );
         },
@@ -4006,7 +4135,11 @@ export function ProfilesDataTable({
     for (const profile of profiles) {
       const vpn = profile.vpn_id ? vpnNames.get(profile.vpn_id) : undefined;
       if (vpn) tunnels.push(vpn);
-      else if (profile.proxy_id)
+      else if (profile.relay_proxy_id) routes.push("Цепочка");
+      else if (profile.proxy_id?.startsWith("subnode-")) {
+        const n = allSubNodes.find((x) => x.id === profile.proxy_id?.slice(8));
+        routes.push(n?.name ?? "VPN");
+      } else if (profile.proxy_id)
         routes.push(proxyNames.get(profile.proxy_id) ?? "");
     }
     const column = (texts: string[], labelKey: string, chrome: number) =>
@@ -4060,6 +4193,7 @@ export function ProfilesDataTable({
     vpnConfigs,
     extensionGroups,
     profileStatuses,
+    allSubNodes,
   ]);
   const columnFit = React.useMemo(() => {
     if (containerWidth <= 0) return null;

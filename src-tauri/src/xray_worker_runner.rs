@@ -2,7 +2,9 @@ use crate::proxy_runner::find_sidecar_executable;
 #[cfg(unix)]
 use crate::proxy_storage::is_process_running;
 use crate::proxy_storage::{process_identity_matches, resolve_process_start_time};
+use crate::xray::ParsedShareLink;
 use crate::xray::{build_client_config_json_with_relay, parse_share_link, XrayClientRuntime};
+use crate::xray_worker_storage::RelaySocksSpec;
 use crate::xray_worker_storage::{
   create_xray_worker_log, delete_xray_worker_config, generate_xray_worker_id,
   get_xray_worker_config, get_xray_worker_config_from_path, list_xray_worker_configs,
@@ -207,10 +209,73 @@ pub async fn start_xray_worker_for_owner_with_relay(
   relay_uri: Option<&str>,
   owner_pid: u32,
 ) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
+  let relay_route = relay_uri.map(|uri| RelayRoute::Uri(uri.to_string()));
+  start_xray_worker_for_owner_with_relay_route(
+    profile_id,
+    vless_uri,
+    relay_route.as_ref(),
+    owner_pid,
+  )
+  .await
+}
+
+/// A relay hop that is not expressed as a share link: a WireGuard worker's
+/// local SOCKS port or an imported SOCKS5/HTTP exit chained ahead of the
+/// real exit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RelayRoute {
+  Uri(String),
+  Socks(RelaySocksSpec),
+}
+
+/// Whether a stored worker's relay matches the requested route, so an
+/// identical relaunch can adopt the live worker instead of respawning it.
+fn existing_route_matches(config: &XrayWorkerConfig, route: Option<&RelayRoute>) -> bool {
+  match route {
+    None => config.relay_uri.is_none() && config.relay_socks.is_none(),
+    Some(RelayRoute::Uri(uri)) => {
+      config.relay_uri.as_deref() == Some(uri.as_str()) && config.relay_socks.is_none()
+    }
+    Some(RelayRoute::Socks(spec)) => {
+      config.relay_uri.is_none() && config.relay_socks.as_ref() == Some(spec)
+    }
+  }
+}
+
+pub async fn start_xray_worker_for_owner_with_relay_route(
+  profile_id: Option<&str>,
+  vless_uri: &str,
+  relay_route: Option<&RelayRoute>,
+  owner_pid: u32,
+) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
+  start_xray_worker_route_inner(profile_id, vless_uri, relay_route, None, owner_pid).await
+}
+
+/// A composite worker: an imported SOCKS5/HTTP exit chained behind a relay
+/// hop inside one Xray process, because donut-proxy routes a single upstream.
+pub async fn start_composite_xray_worker_for_owner(
+  profile_id: Option<&str>,
+  exit_spec: RelaySocksSpec,
+  relay_route: Option<&RelayRoute>,
+  owner_pid: u32,
+) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
+  start_xray_worker_route_inner(profile_id, "", relay_route, Some(exit_spec), owner_pid).await
+}
+
+async fn start_xray_worker_route_inner(
+  profile_id: Option<&str>,
+  vless_uri: &str,
+  relay_route: Option<&RelayRoute>,
+  exit_spec: Option<RelaySocksSpec>,
+  owner_pid: u32,
+) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
   let _start_guard = XRAY_START_LOCK.lock().await;
-  parse_share_link(vless_uri)
-    .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
-  if let Some(relay) = relay_uri {
+  if !vless_uri.is_empty() {
+    parse_share_link(vless_uri).map_err(|error| -> Box<dyn std::error::Error> {
+      crate::vless_config_error(&error).into()
+    })?;
+  }
+  if let Some(RelayRoute::Uri(relay)) = relay_route {
     parse_share_link(relay).map_err(|error| -> Box<dyn std::error::Error> {
       crate::vless_config_error(&error).into()
     })?;
@@ -239,7 +304,8 @@ pub async fn start_xray_worker_for_owner_with_relay(
     for mut existing in workers {
       let candidate = reusable.is_none()
         && existing.vless_uri == vless_uri
-        && existing.relay_uri.as_deref() == relay_uri
+        && existing.exit_socks == exit_spec
+        && existing_route_matches(&existing, relay_route)
         && existing
           .pid
           .is_some_and(|pid| process_identity_matches(pid, existing.pid_start_time))
@@ -264,7 +330,8 @@ pub async fn start_xray_worker_for_owner_with_relay(
     match spawn_xray_worker(
       profile_id,
       vless_uri,
-      relay_uri,
+      relay_route,
+      exit_spec.clone(),
       owner_pid,
       owner_start_time,
     )
@@ -287,7 +354,8 @@ pub async fn start_xray_worker_for_owner_with_relay(
 async fn spawn_xray_worker(
   profile_id: Option<&str>,
   vless_uri: &str,
-  relay_uri: Option<&str>,
+  relay_route: Option<&RelayRoute>,
+  exit_spec: Option<RelaySocksSpec>,
   owner_pid: u32,
   owner_start_time: u64,
 ) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
@@ -317,7 +385,15 @@ async fn spawn_xray_worker(
     username,
     password,
   );
-  config.relay_uri = relay_uri.map(str::to_string);
+  config.relay_uri = match relay_route {
+    Some(RelayRoute::Uri(uri)) => Some(uri.to_string()),
+    _ => None,
+  };
+  config.relay_socks = match relay_route {
+    Some(RelayRoute::Socks(spec)) => Some(spec.clone()),
+    _ => None,
+  };
+  config.exit_socks = exit_spec;
   config.browser_pid = Some(owner_pid);
   config.browser_pid_start_time = Some(owner_start_time);
   save_xray_worker_config(&config)
@@ -606,14 +682,63 @@ pub async fn run_xray_worker(config_path: &Path) -> Result<(), Box<dyn std::erro
   );
   save_xray_worker_config_to_path(&config, config_path)
     .map_err(|error| structured_error_with_detail("XRAY_START_FAILED", error))?;
-  let parsed = parse_share_link(&config.vless_uri)
-    .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
+  // Two worker shapes share this runner: a share-link exit (vless_uri) and a
+  // composite worker (empty vless_uri, exit_socks) that chains an imported
+  // SOCKS5/HTTP exit behind a relay inside one Xray process.
+  let parsed = if config.vless_uri.is_empty() {
+    let spec = config.exit_socks.as_ref().ok_or_else(|| {
+      structured_error_with_detail(
+        "XRAY_START_FAILED",
+        "worker config has neither a share link nor an exit hop",
+      )
+    })?;
+    crate::xray::ParsedShareLink {
+      name: None,
+      config: crate::xray::XrayConfig {
+        address: spec.host.clone(),
+        port: spec.port,
+        outbound: match spec.kind.as_str() {
+          "http" => crate::xray::XrayOutbound::Http {
+            username: spec.username.clone(),
+            password: spec.password.clone(),
+          },
+          _ => crate::xray::XrayOutbound::Socks {
+            username: spec.username.clone(),
+            password: spec.password.clone(),
+          },
+        },
+      },
+    }
+  } else {
+    parse_share_link(&config.vless_uri)
+      .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?
+  };
   let parsed_relay = if let Some(relay_uri) = &config.relay_uri {
     Some(
       parse_share_link(relay_uri).map_err(|error| -> Box<dyn std::error::Error> {
         crate::vless_config_error(&error).into()
       })?,
     )
+  } else if let Some(spec) = &config.relay_socks {
+    // A programmatic relay hop: the WireGuard worker's local SOCKS or an
+    // imported proxy chained ahead of the share-link exit.
+    Some(ParsedShareLink {
+      name: None,
+      config: crate::xray::XrayConfig {
+        address: spec.host.clone(),
+        port: spec.port,
+        outbound: match spec.kind.as_str() {
+          "http" => crate::xray::XrayOutbound::Http {
+            username: spec.username.clone(),
+            password: spec.password.clone(),
+          },
+          _ => crate::xray::XrayOutbound::Socks {
+            username: spec.username.clone(),
+            password: spec.password.clone(),
+          },
+        },
+      },
+    })
   } else {
     None
   };

@@ -715,7 +715,13 @@ impl VpnSubscriptionManager {
     Ok(())
   }
 
-  /// Measure TCP ping for all nodes of a specific subscription.
+  /// Measure latency for all nodes of a specific subscription.
+  ///
+  /// Two phases: a TCP reachability sweep first (fast), then a protocol-level
+  /// probe for the reachable Xray-carried nodes. TCP alone is misleading for
+  /// VLESS/VMess/Trojan/Hysteria2 — a dead REALITY node still accepts the
+  /// connection and then swallows every tunneled byte, which used to paint the
+  /// node green while profiles launched on it kept timing out.
   pub async fn ping_subscription_nodes(
     &self,
     sub_id: &str,
@@ -737,39 +743,27 @@ impl VpnSubscriptionManager {
       sub_id
     );
 
-    // Run parallel ping with bounded concurrency (up to 12 workers)
-    let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(12));
-    let mut tasks = Vec::new();
+    // Phase 1: bounded TCP sweep — drops closed ports before the expensive
+    // per-node Xray workers spin up.
+    let tcp_results = run_tcp_ping(&sub_nodes, 16).await;
 
-    for node in &sub_nodes {
-      let sem = semaphore.clone();
-      let server = node.server.clone();
-      let port = node.port;
-      let node_id = node.id.clone();
+    // Phase 2: protocol probe for reachable Xray-carried nodes, deduplicated
+    // by raw URI — subscriptions ship many copies of the same server.
+    let protocol_targets: Vec<VpnSubscriptionNode> = sub_nodes
+      .iter()
+      .filter(|n| {
+        tcp_results
+          .get(&n.id)
+          .is_some_and(|(_, valid)| *valid == Some(true))
+          && crate::xray::is_xray_proxy_type(&n.protocol)
+      })
+      .cloned()
+      .collect();
+    let protocol_results = run_protocol_ping(&protocol_targets, 8).await;
 
-      tasks.push(tokio::spawn(async move {
-        let _permit = sem.acquire().await;
-        let start = Instant::now();
-        let timeout = Duration::from_millis(3000);
-
-        let target = format!("{}:{}", server, port);
-        let result = tokio::time::timeout(timeout, tokio::net::TcpStream::connect(&target)).await;
-
-        let elapsed = start.elapsed().as_millis() as u64;
-        let (latency, is_valid) = match result {
-          Ok(Ok(_)) => (Some(elapsed), Some(true)),
-          _ => (None, Some(false)),
-        };
-
-        (node_id, latency, is_valid)
-      }));
-    }
-
-    let mut ping_results = HashMap::new();
-    for task in tasks {
-      if let Ok((node_id, latency, is_valid)) = task.await {
-        ping_results.insert(node_id, (latency, is_valid));
-      }
+    let mut ping_results = tcp_results;
+    for (node_id, (latency, is_valid)) in protocol_results {
+      ping_results.insert(node_id, (latency, is_valid));
     }
 
     let now = chrono::Utc::now().timestamp() as u64;
@@ -796,6 +790,10 @@ impl VpnSubscriptionManager {
   }
 
   /// Ping an individual node by its ID.
+  ///
+  /// Runs the same protocol-level probe the bulk ping uses, so a single-node
+  /// check answers the question the user is actually asking: will traffic
+  /// through this node work?
   pub async fn ping_single_node(&self, node_id: &str) -> Result<VpnSubscriptionNode, String> {
     let mut all_nodes = self.list_nodes();
     let idx = all_nodes
@@ -803,18 +801,12 @@ impl VpnSubscriptionManager {
       .position(|n| n.id == node_id)
       .ok_or_else(|| "Node not found".to_string())?;
 
-    let server = all_nodes[idx].server.clone();
-    let port = all_nodes[idx].port;
-    let target = format!("{}:{}", server, port);
-
-    let start = Instant::now();
-    let timeout = Duration::from_millis(3000);
-    let result = tokio::time::timeout(timeout, tokio::net::TcpStream::connect(&target)).await;
-    let elapsed = start.elapsed().as_millis() as u64;
-
-    let (latency, is_valid) = match result {
-      Ok(Ok(_)) => (Some(elapsed), Some(true)),
-      _ => (None, Some(false)),
+    let node = all_nodes[idx].clone();
+    let (latency, is_valid) = if crate::xray::is_xray_proxy_type(&node.protocol) {
+      let mut results = run_protocol_ping(std::slice::from_ref(&node), 1).await;
+      results.remove(&node.id).unwrap_or((None, Some(false)))
+    } else {
+      tcp_ping(&node).await
     };
 
     all_nodes[idx].latency_ms = latency;
@@ -826,6 +818,149 @@ impl VpnSubscriptionManager {
 
     Ok(updated)
   }
+}
+
+/// Probe URL for protocol-level node checks: a bare 204 every exit can
+/// answer without cookies, redirects or a large body.
+const PROTOCOL_PROBE_URL: &str = "http://www.gstatic.com/generate_204";
+
+/// TCP reachability probe: fast, but wrong about TLS/REALITY nodes whose
+/// ports are open while the tunnel underneath is dead.
+async fn tcp_ping(node: &VpnSubscriptionNode) -> (Option<u64>, Option<bool>) {
+  let target = format!("{}:{}", node.server, node.port);
+  let start = Instant::now();
+  let result = tokio::time::timeout(
+    Duration::from_millis(3000),
+    tokio::net::TcpStream::connect(&target),
+  )
+  .await;
+  let elapsed = start.elapsed().as_millis() as u64;
+  match result {
+    Ok(Ok(_)) => (Some(elapsed), Some(true)),
+    _ => (None, Some(false)),
+  }
+}
+
+/// Run `tcp_ping` over every node with bounded concurrency.
+async fn run_tcp_ping(
+  nodes: &[VpnSubscriptionNode],
+  concurrency: usize,
+) -> HashMap<String, (Option<u64>, Option<bool>)> {
+  let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrency));
+  let mut tasks = Vec::new();
+
+  for node in nodes {
+    let sem = semaphore.clone();
+    let node = node.clone();
+    tasks.push(tokio::spawn(async move {
+      let _permit = sem.acquire().await;
+      let (latency, is_valid) = tcp_ping(&node).await;
+      (node.id, latency, is_valid)
+    }));
+  }
+
+  let mut results = HashMap::new();
+  for task in tasks {
+    if let Ok((node_id, latency, is_valid)) = task.await {
+      results.insert(node_id, (latency, is_valid));
+    }
+  }
+  results
+}
+
+/// Protocol-level probe: dial the node through a real Xray worker and fetch a
+/// bare 204 through it. Measures the tunneled round-trip, so a node whose TCP
+/// port is open but whose VLESS/REALITY handshake dies reports as unreachable
+/// instead of advertising the green latency that sent profiles into
+/// ERR_TIMED_OUT.
+///
+/// Results are deduplicated by raw URI: subscriptions ship many copies of the
+/// same server, and one worker answers for all of them.
+async fn run_protocol_ping(
+  nodes: &[VpnSubscriptionNode],
+  concurrency: usize,
+) -> HashMap<String, (Option<u64>, Option<bool>)> {
+  if nodes.is_empty() {
+    return HashMap::new();
+  }
+
+  // uri -> shared result, node_id list per uri
+  let mut by_uri: HashMap<String, Vec<String>> = HashMap::new();
+  for node in nodes {
+    by_uri
+      .entry(node.raw_uri.clone())
+      .or_default()
+      .push(node.id.clone());
+  }
+
+  let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(concurrency));
+  let mut tasks = Vec::new();
+
+  for (uri, node_ids) in by_uri {
+    let sem = semaphore.clone();
+    tasks.push(tokio::spawn(async move {
+      let _permit = sem.acquire().await;
+      let result = protocol_ping(&uri).await;
+      (node_ids, result)
+    }));
+  }
+
+  let mut results = HashMap::new();
+  for task in tasks {
+    if let Ok((node_ids, result)) = task.await {
+      for node_id in node_ids {
+        results.insert(node_id, result);
+      }
+    }
+  }
+  results
+}
+
+/// Probe one share link through a disposable Xray worker.
+async fn protocol_ping(uri: &str) -> (Option<u64>, Option<bool>) {
+  let worker = match crate::xray_worker_runner::start_xray_worker(None, uri).await {
+    Ok(worker) => worker,
+    Err(error) => {
+      log::debug!("Node protocol check worker start failed err=\"{error}\"");
+      return (None, Some(false));
+    }
+  };
+
+  let probe = async {
+    let proxy_url =
+      crate::proxy_manager::ProxyManager::build_probe_proxy_url(&worker.local_proxy_settings());
+    let client = reqwest::Client::builder()
+      .proxy(reqwest::Proxy::all(&proxy_url).map_err(|error| error.to_string())?)
+      .timeout(Duration::from_secs(8))
+      .build()
+      .map_err(|error| error.to_string())?;
+    let started = Instant::now();
+    let response = client
+      .head(PROTOCOL_PROBE_URL)
+      .send()
+      .await
+      .map_err(|error| error.to_string())?;
+    let elapsed = started.elapsed().as_millis() as u64;
+    let status_ok = response.status().is_success();
+    if status_ok {
+      Ok::<u64, String>(elapsed)
+    } else {
+      Err(format!("probe status {}", response.status()))
+    }
+  };
+
+  let result = match probe.await {
+    Ok(elapsed) => (Some(elapsed), Some(true)),
+    Err(error) => {
+      log::debug!("Node protocol check probe failed err=\"{error}\"");
+      (None, Some(false))
+    }
+  };
+
+  if let Err(error) = crate::xray_worker_runner::stop_xray_worker_now(&worker.id) {
+    log::debug!("Node protocol check worker stop failed err=\"{error}\"");
+  }
+  result
 }
 
 pub static VPN_SUBSCRIPTION_MANAGER: LazyLock<TokioMutex<VpnSubscriptionManager>> =

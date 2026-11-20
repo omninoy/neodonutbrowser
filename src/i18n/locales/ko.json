@@ -3436,7 +3436,8 @@
     "channel": {
       "stable": "안정판",
       "nightly": "Nightly",
-      "development": "개발판"
+      "development": "개발판",
+      "beta": "베타"
     },
     "portable": "포터블",
     "whatsNew": "이 버전의 새로운 기능",
@@ -5440,7 +5441,8 @@
       "invalidUrl": "URL은 http:// 또는 https://로 시작해야 합니다"
     },
     "sortByPing": "핑순 정렬",
-    "timeout": "시간 초과"
+    "timeout": "시간 초과",
+    "ping": "Ping"
   },
   "proxyChain": {
     "enableToggle": "프록시 체인(릴레이) 활성화",
@@ -5470,6 +5472,7 @@
         "hop2Required": "두 번째 홉(출구)을 선택하세요",
         "sameHop": "Hop 1과 Hop 2는 같은 프록시일 수 없습니다"
       }
-    }
+    },
+    "pingBtn": "체인 전체 ping"
   }
 }

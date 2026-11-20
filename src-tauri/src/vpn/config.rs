@@ -75,6 +75,12 @@ pub struct WireGuardConfig {
   pub allowed_ips: Vec<String>,
   pub persistent_keepalive: Option<u16>,
   pub preshared_key: Option<String>,
+  /// Chain detour: the tunnel's UDP endpoint is dialed through this SOCKS5
+  /// worker ("127.0.0.1:port") via UDP ASSOCIATE instead of straight out of
+  /// the machine. Set programmatically for WG→WG chains (hop 2 rides hop 1's
+  /// worker), never parsed from a .conf file.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub dial_via_socks: Option<String>,
 }
 
 /// Result of importing a VPN configuration
@@ -215,6 +221,7 @@ pub fn parse_wireguard_config(content: &str) -> Result<WireGuardConfig, VpnError
     allowed_ips,
     persistent_keepalive,
     preshared_key,
+    dial_via_socks: None,
   })
 }
 

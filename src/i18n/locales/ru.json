@@ -3476,7 +3476,8 @@
     "channel": {
       "stable": "Стабильная",
       "nightly": "Nightly",
-      "development": "Разработка"
+      "development": "Разработка",
+      "beta": "Бета"
     },
     "portable": "Портативная",
     "whatsNew": "Что нового в этой версии",
@@ -5556,7 +5557,8 @@
       "invalidUrl": "URL должен начинаться с http:// или https://"
     },
     "sortByPing": "По пингу",
-    "timeout": "Таймаут"
+    "timeout": "Таймаут",
+    "ping": "Ping"
   },
   "proxyChain": {
     "enableToggle": "Использовать цепочку прокси (Relay)",
@@ -5586,6 +5588,7 @@
         "hop2Required": "Выберите второй узел (Hop 2)",
         "sameHop": "Hop 1 и Hop 2 не могут быть одним и тем же прокси"
       }
-    }
+    },
+    "pingBtn": "Проверить цепочку целиком"
   }
 }

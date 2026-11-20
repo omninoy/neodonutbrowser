@@ -283,10 +283,14 @@ impl AppAutoUpdater {
     let settings = crate::settings_manager::SettingsManager::instance()
       .load_settings()
       .ok();
-    let include_beta = settings
-      .as_ref()
-      .map(|s| s.include_beta_updates)
-      .unwrap_or(true);
+    let is_beta_build = current_version.contains("-beta")
+      || current_version.contains("-rc")
+      || current_version.contains("-alpha");
+    let include_beta = is_beta_build
+      || settings
+        .as_ref()
+        .map(|s| s.include_beta_updates)
+        .unwrap_or(true);
 
     let channel = if Self::is_nightly_build() {
       "nightly"
@@ -343,13 +347,17 @@ impl AppAutoUpdater {
     current_version: String,
   ) -> (Option<AppUpdateInfo>, String, String) {
     let is_nightly = Self::is_nightly_build();
+    let is_beta_build = current_version.contains("-beta")
+      || current_version.contains("-rc")
+      || current_version.contains("-alpha");
     let settings = crate::settings_manager::SettingsManager::instance()
       .load_settings()
       .ok();
-    let include_beta = settings
-      .as_ref()
-      .map(|s| s.include_beta_updates)
-      .unwrap_or(true);
+    let include_beta = is_beta_build
+      || settings
+        .as_ref()
+        .map(|s| s.include_beta_updates)
+        .unwrap_or(true);
 
     let mut filtered_releases: Vec<&AppRelease> = if is_nightly {
       releases
@@ -496,17 +504,12 @@ impl AppAutoUpdater {
     Ok(releases)
   }
 
-  /// The latest stable release alone, or the newest releases
-  /// for a beta or nightly build, whose tags GitHub does not mark as latest.
+  /// Fetch newest releases from GitHub releases endpoint.
   async fn fetch_github_releases(
     &self,
-    nightly_or_beta: bool,
+    _nightly_or_beta: bool,
   ) -> Result<Vec<AppRelease>, Box<dyn std::error::Error + Send + Sync>> {
-    let url = if nightly_or_beta {
-      format!("{GITHUB_REPO_API}/releases?per_page=15")
-    } else {
-      format!("{GITHUB_REPO_API}/releases/latest")
-    };
+    let url = format!("{GITHUB_REPO_API}/releases?per_page=15");
     let response = self
       .client
       .get()
@@ -519,11 +522,7 @@ impl AppAutoUpdater {
     if !response.status().is_success() {
       return Err(format!("GitHub API request failed: {}", response.status()).into());
     }
-    if nightly_or_beta {
-      Ok(response.json().await?)
-    } else {
-      Ok(vec![response.json().await?])
-    }
+    Ok(response.json().await?)
   }
 
   #[allow(dead_code)]
@@ -549,6 +548,11 @@ impl AppAutoUpdater {
 
   /// Determine if an update should be performed
   fn should_update(&self, current_version: &str, new_version: &str, is_nightly: bool) -> bool {
+    // Never update dev builds
+    if current_version.starts_with("dev-") {
+      return false;
+    }
+
     if is_nightly {
       // For nightly builds, always update if there's a newer nightly
       if let (Some(current_hash), Some(new_hash)) = (
@@ -560,18 +564,13 @@ impl AppAutoUpdater {
       }
 
       // If current version doesn't have nightly prefix but we're in nightly mode,
-      // this could be a dev build or stable build upgrading to nightly
+      // this could be a stable build upgrading to nightly
       if !current_version.starts_with("nightly-") {
         return true;
       }
     } else {
-      let clean_current = if current_version.starts_with("dev-") {
-        current_version.trim_start_matches("dev-")
-      } else {
-        current_version
-      };
       // For stable or beta builds, use semantic versioning comparison
-      return self.is_version_newer(new_version, clean_current);
+      return self.is_version_newer(new_version, current_version);
     }
 
     false
