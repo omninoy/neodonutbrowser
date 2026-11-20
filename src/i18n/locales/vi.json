@@ -5438,12 +5438,38 @@
       "nameRequired": "Tên gói đăng ký là bắt buộc",
       "urlRequired": "URL gói đăng ký là bắt buộc",
       "invalidUrl": "URL phải bắt đầu bằng http:// hoặc https://"
-    }
+    },
+    "sortByPing": "Theo ping",
+    "timeout": "Hết thời gian"
   },
   "proxyChain": {
     "enableToggle": "Bật chuỗi proxy (Relay)",
     "enableHint": "Định tuyến kết nối qua proxy trung gian trước khi đến proxy đích",
     "relayHop1": "Proxy trung gian (Hop 1)",
     "selectRelay": "Chọn proxy trung gian..."
+  },
+  "proxyChains": {
+    "tab": "Chuỗi",
+    "title": "Chuỗi Proxy",
+    "subtitle": "Định tuyến lưu lượng qua proxy trung gian trước khi tới proxy đích.",
+    "createButton": "Tạo chuỗi",
+    "emptyTitle": "Chưa có chuỗi proxy nào",
+    "emptyDescription": "Tạo chuỗi kết nối hai proxy (Hop 1 Relay → Hop 2 Exit).",
+    "dialog": {
+      "titleAdd": "Tạo chuỗi proxy",
+      "titleEdit": "Chỉnh sửa chuỗi proxy",
+      "description": "Lưu lượng sẽ đi từ Hop 1 (Relay) qua Hop 2 (Exit) trước khi ra ngoài.",
+      "nameLabel": "Tên chuỗi",
+      "hop1Label": "Hop 1 (Relay)",
+      "selectHop1Placeholder": "Chọn proxy / node trung gian...",
+      "hop2Label": "Hop 2 (Exit)",
+      "selectHop2Placeholder": "Chọn proxy / node lối ra...",
+      "errors": {
+        "nameRequired": "Vui lòng nhập tên chuỗi",
+        "hop1Required": "Vui lòng chọn trạm trung gian (Relay)",
+        "hop2Required": "Vui lòng chọn trạm lối ra (Exit)",
+        "sameHop": "Hop 1 và Hop 2 không thể là cùng một proxy"
+      }
+    }
   }
 }

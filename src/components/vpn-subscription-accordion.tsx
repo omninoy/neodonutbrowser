@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LuActivity,
+  LuArrowUpDown,
   LuCheck,
   LuChevronDown,
   LuChevronRight,
@@ -18,6 +19,7 @@ import {
   LuTrash2,
 } from "react-icons/lu";
 import { toast } from "sonner";
+import { FlagIcon } from "@/components/flag-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,31 +30,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
+import { extractCountryCode } from "@/lib/flag-utils";
+import { cn } from "@/lib/utils";
 import type {
   VpnSubscription,
   VpnSubscriptionNode,
 } from "@/types/vpn-subscription";
 import { VpnSubscriptionDialog } from "./vpn-subscription-dialog";
 
-export function getCountryFlag(code?: string): string {
-  if (code?.length !== 2) return "🌐";
-  try {
-    const upper = code.toUpperCase();
-    const codePoints = [...upper].map((c) => 127397 + c.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  } catch {
-    return "🌐";
-  }
-}
-
 interface VpnSubscriptionAccordionProps {
   onSelectNode?: (node: VpnSubscriptionNode) => void;
+  subscriptionManager?: ReturnType<typeof useVpnSubscriptions>;
 }
 
 export function VpnSubscriptionAccordion({
   onSelectNode,
+  subscriptionManager,
 }: VpnSubscriptionAccordionProps) {
   const { t } = useTranslation();
+  const defaultManager = useVpnSubscriptions();
   const {
     subscriptions,
     nodes,
@@ -63,13 +59,14 @@ export function VpnSubscriptionAccordion({
     deleteSubscription,
     pingSubscription,
     pingSingleNode,
-  } = useVpnSubscriptions();
+  } = subscriptionManager ?? defaultManager;
 
   const [expandedSubId, setExpandedSubId] = useState<string | null>(null);
   const [editingSub, setEditingSub] = useState<VpnSubscription | null>(null);
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>(
     {},
   );
+  const [sortByPing, setSortByPing] = useState<Record<string, boolean>>({});
   const [pingingNodeId, setPingingNodeId] = useState<string | null>(null);
   const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
 
@@ -140,8 +137,20 @@ export function VpnSubscriptionAccordion({
         const isRefreshing = refreshingSubId === sub.id;
         const isPinging = pingingSubId === sub.id;
         const searchQuery = (searchQueries[sub.id] || "").toLowerCase().trim();
+        const isSortPing = Boolean(sortByPing[sub.id]);
 
-        const filteredNodes = subNodes.filter((node) => {
+        // Extract unique country codes for subscription card header
+        const uniqueCountries = Array.from(
+          new Set(
+            subNodes
+              .map(
+                (n) => n.country_code || extractCountryCode(undefined, n.name),
+              )
+              .filter(Boolean) as string[],
+          ),
+        );
+
+        let displayNodes = subNodes.filter((node) => {
           if (!searchQuery) return true;
           return (
             node.name.toLowerCase().includes(searchQuery) ||
@@ -151,12 +160,30 @@ export function VpnSubscriptionAccordion({
           );
         });
 
+        if (isSortPing) {
+          displayNodes = [...displayNodes].sort((a, b) => {
+            if (
+              a.is_valid &&
+              b.is_valid &&
+              typeof a.latency_ms === "number" &&
+              typeof b.latency_ms === "number"
+            ) {
+              return a.latency_ms - b.latency_ms;
+            }
+            if (a.is_valid && !b.is_valid) return -1;
+            if (!a.is_valid && b.is_valid) return 1;
+            if (a.latency_ms !== null && b.latency_ms === null) return -1;
+            if (a.latency_ms === null && b.latency_ms !== null) return 1;
+            return 0;
+          });
+        }
+
         const availableCount = subNodes.filter((n) => n.is_valid).length;
 
         return (
           <div
             key={sub.id}
-            className="border rounded-xl bg-card overflow-hidden transition-all shadow-sm"
+            className="border rounded-xl bg-card overflow-hidden transition-all shadow-xs"
           >
             {/* Subscription Accordion Header */}
             <div className="flex items-center justify-between p-3.5 hover:bg-muted/30 transition-colors">
@@ -172,6 +199,22 @@ export function VpnSubscriptionAccordion({
                     <LuChevronRight className="w-4 h-4" />
                   )}
                 </span>
+
+                {/* Country Flags left of subscription name */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {uniqueCountries.slice(0, 3).map((code) => (
+                    <FlagIcon
+                      key={code}
+                      countryCode={code}
+                      squared
+                      className="size-4 shrink-0 rounded-[2px]"
+                    />
+                  ))}
+                  {uniqueCountries.length === 0 && (
+                    <LuGlobe className="size-4 shrink-0 text-muted-foreground/60" />
+                  )}
+                </div>
+
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm truncate">
@@ -251,7 +294,7 @@ export function VpnSubscriptionAccordion({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2.5 text-xs gap-1.5"
+                  className="h-8 px-2.5 text-xs gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10"
                   onClick={() => updateSubscription(sub.id)}
                   disabled={isRefreshing}
                   title={t(
@@ -260,7 +303,10 @@ export function VpnSubscriptionAccordion({
                   )}
                 >
                   <LuRefreshCw
-                    className={`w-3.5 h-3.5 text-emerald-500 ${isRefreshing ? "animate-spin" : ""}`}
+                    className={cn(
+                      "w-3.5 h-3.5",
+                      isRefreshing && "animate-spin text-primary",
+                    )}
                   />
                   <span className="hidden sm:inline">
                     {t("vpnSubscriptions.updateBtn", "Обновить")}
@@ -269,18 +315,22 @@ export function VpnSubscriptionAccordion({
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-8 w-8">
-                      <LuEllipsis className="w-4 h-4 text-muted-foreground" />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-8 text-muted-foreground hover:text-foreground"
+                    >
+                      <LuEllipsis className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="text-xs">
+                  <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setEditingSub(sub)}>
                       <LuPencil className="w-3.5 h-3.5 mr-2" />
                       {t("common.buttons.edit", "Редактировать")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => deleteSubscription(sub.id)}
                       className="text-destructive focus:text-destructive"
+                      onClick={() => deleteSubscription(sub.id)}
                     >
                       <LuTrash2 className="w-3.5 h-3.5 mr-2" />
                       {t("common.buttons.delete", "Удалить")}
@@ -290,10 +340,10 @@ export function VpnSubscriptionAccordion({
               </div>
             </div>
 
-            {/* Expanded Nodes List */}
+            {/* Expanded Accordion Body (Nodes List) */}
             {isExpanded && (
-              <div className="border-t bg-muted/10 p-3 space-y-3">
-                {/* Search Bar inside this subscription */}
+              <div className="border-t bg-muted/15 p-3 space-y-3">
+                {/* Search & Sort by Ping Header */}
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <LuSearch className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -312,12 +362,34 @@ export function VpnSubscriptionAccordion({
                       className="h-8 pl-8 text-xs bg-background"
                     />
                   </div>
-                  <div className="text-[11px] text-muted-foreground shrink-0">
-                    {filteredNodes.length} / {subNodes.length}
+                  <Button
+                    size="sm"
+                    variant={isSortPing ? "secondary" : "outline"}
+                    className={cn(
+                      "h-8 px-2.5 text-xs gap-1.5 shrink-0 transition-colors",
+                      isSortPing &&
+                        "bg-primary/10 text-primary border-primary/30",
+                    )}
+                    onClick={() =>
+                      setSortByPing((prev) => ({
+                        ...prev,
+                        [sub.id]: !prev[sub.id],
+                      }))
+                    }
+                    title={t(
+                      "vpnSubscriptions.sortByPing",
+                      "Сортировать по пингу",
+                    )}
+                  >
+                    <LuArrowUpDown className="size-3.5" />
+                    <span>{t("vpnSubscriptions.sortByPing", "По пингу")}</span>
+                  </Button>
+                  <div className="text-[11px] text-muted-foreground shrink-0 font-mono">
+                    {displayNodes.length} / {subNodes.length}
                   </div>
                 </div>
 
-                {filteredNodes.length === 0 ? (
+                {displayNodes.length === 0 ? (
                   <div className="text-center py-6 text-xs text-muted-foreground">
                     {searchQuery
                       ? t(
@@ -331,10 +403,12 @@ export function VpnSubscriptionAccordion({
                   </div>
                 ) : (
                   <div className="border rounded-lg bg-background overflow-hidden divide-y text-xs">
-                    {filteredNodes.map((node) => {
+                    {displayNodes.map((node) => {
                       const isNodePinging = pingingNodeId === node.id;
                       const isCopied = copiedNodeId === node.id;
-                      const flag = getCountryFlag(node.country_code);
+                      const countryCode =
+                        node.country_code ||
+                        extractCountryCode(undefined, node.name);
 
                       let latencyColor = "text-muted-foreground border-muted";
                       if (node.is_valid && node.latency_ms !== undefined) {
@@ -359,12 +433,16 @@ export function VpnSubscriptionAccordion({
                           className="flex items-center justify-between p-2.5 hover:bg-muted/40 transition-colors gap-2"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <span
-                              className="text-base select-none shrink-0"
-                              title={node.country_code}
-                            >
-                              {flag}
-                            </span>
+                            {/* Graphic SVG Flag to the left of node name */}
+                            {countryCode ? (
+                              <FlagIcon
+                                countryCode={countryCode}
+                                squared
+                                className="size-4 shrink-0 rounded-[2px]"
+                              />
+                            ) : (
+                              <LuGlobe className="size-4 shrink-0 text-muted-foreground/60" />
+                            )}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-medium truncate">
@@ -377,30 +455,32 @@ export function VpnSubscriptionAccordion({
                                   {node.protocol}
                                 </Badge>
                               </div>
-                              <div className="text-[11px] text-muted-foreground truncate font-mono">
+                              <div className="text-[11px] text-muted-foreground font-mono truncate">
                                 {node.server}:{node.port}
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Latency badge */}
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] font-mono px-1.5 py-0.5 border ${latencyColor}`}
+                          {/* Ping latency & actions */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={cn(
+                                "text-[11px] font-mono px-2 py-0.5 rounded border select-none",
+                                latencyColor,
+                              )}
                             >
-                              {node.latency_ms !== undefined && node.is_valid
+                              {node.latency_ms !== undefined &&
+                              node.latency_ms !== null
                                 ? `${node.latency_ms} ms`
                                 : node.is_valid === false
-                                  ? "Timeout"
+                                  ? t("vpnSubscriptions.timeout", "Timeout")
                                   : "—"}
-                            </Badge>
+                            </span>
 
-                            {/* Ping individual node */}
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              className="size-7 text-muted-foreground hover:text-foreground"
                               onClick={() => handlePingNode(node)}
                               disabled={isNodePinging}
                               title={t(
@@ -409,17 +489,16 @@ export function VpnSubscriptionAccordion({
                               )}
                             >
                               {isNodePinging ? (
-                                <LuLoaderCircle className="w-3.5 h-3.5 animate-spin text-primary" />
+                                <LuLoaderCircle className="size-3.5 animate-spin text-primary" />
                               ) : (
-                                <LuActivity className="w-3.5 h-3.5" />
+                                <LuActivity className="size-3.5" />
                               )}
                             </Button>
 
-                            {/* Copy URI */}
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              className="size-7 text-muted-foreground hover:text-foreground"
                               onClick={() => handleCopyUri(node)}
                               title={t(
                                 "vpnSubscriptions.copyUri",
@@ -427,21 +506,20 @@ export function VpnSubscriptionAccordion({
                               )}
                             >
                               {isCopied ? (
-                                <LuCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                <LuCheck className="size-3.5 text-emerald-500" />
                               ) : (
-                                <LuCopy className="w-3.5 h-3.5" />
+                                <LuCopy className="size-3.5" />
                               )}
                             </Button>
 
-                            {/* Optional connect / use button */}
                             {onSelectNode && (
                               <Button
                                 size="sm"
-                                variant="secondary"
-                                className="h-7 px-2 text-xs"
+                                variant="outline"
+                                className="h-7 text-xs ml-1"
                                 onClick={() => onSelectNode(node)}
                               >
-                                {t("vpnSubscriptions.useNode", "Выбрать")}
+                                {t("common.buttons.select", "Выбрать")}
                               </Button>
                             )}
                           </div>
@@ -456,14 +534,11 @@ export function VpnSubscriptionAccordion({
         );
       })}
 
-      {/* Edit Subscription Modal */}
-      {editingSub && (
-        <VpnSubscriptionDialog
-          isOpen={Boolean(editingSub)}
-          onClose={() => setEditingSub(null)}
-          subscription={editingSub}
-        />
-      )}
+      <VpnSubscriptionDialog
+        isOpen={editingSub !== null}
+        onClose={() => setEditingSub(null)}
+        subscription={editingSub}
+      />
     </div>
   );
 }

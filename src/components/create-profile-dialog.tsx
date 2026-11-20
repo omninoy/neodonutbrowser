@@ -50,7 +50,6 @@ import {
   AnimatedDisclosureChevron,
   AnimatedDisclosureContent,
 } from "@/components/ui/animated-disclosure";
-import { AnimatedSwitch } from "@/components/ui/animated-switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -103,9 +102,11 @@ import { useBrowserDownload } from "@/hooks/use-browser-download";
 import { useGroupEvents } from "@/hooks/use-group-events";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
 import { useProfileTemplates } from "@/hooks/use-profile-templates";
+import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useEntityTrash } from "@/hooks/use-trash-events";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
+import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { translateBackendError } from "@/lib/backend-errors";
 import { getOSDisplayName, getOSIcon } from "@/lib/browser-utils";
 import { DNS_BLOCKLIST_LEVELS } from "@/lib/dns-blocklist-levels";
@@ -210,9 +211,11 @@ export function CreateProfileDialog({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedProxyId, setSelectedProxyId] = useState<string>();
   const [proxyPopoverOpen, setProxyPopoverOpen] = useState(false);
-  const [isProxyChain, setIsProxyChain] = useState(false);
-  const [selectedRelayProxyId, setSelectedRelayProxyId] = useState<string>();
-  const [relayPopoverOpen, setRelayPopoverOpen] = useState(false);
+  const [proxyPopoverTab, setProxyPopoverTab] = useState<"proxies" | "vpn">(
+    "proxies",
+  );
+  const { chains } = useProxyChains();
+  const { nodes: subscriptionNodes } = useVpnSubscriptions();
   const [morePopoverOpen, setMorePopoverOpen] = useState(false);
   // Where the new profiles go: the group the list shows, until changed.
   const [destinationGroupId, setDestinationGroupId] = useState<string | null>(
@@ -482,8 +485,17 @@ export function CreateProfileDialog({
     closeABrowser ||
     batchRefused ||
     !dnsServerValid;
+  const allSubNodes = useMemo(() => {
+    return Object.values(subscriptionNodes).flat();
+  }, [subscriptionNodes]);
   const selectedVpn = selectedProxyId?.startsWith("vpn-")
     ? vpnConfigs.find((vpn) => vpn.id === selectedProxyId.slice(4))
+    : undefined;
+  const selectedChain = selectedProxyId?.startsWith("chain-")
+    ? chains.find((c) => c.id === selectedProxyId)
+    : undefined;
+  const selectedSubNode = selectedProxyId?.startsWith("subnode-")
+    ? allSubNodes.find((n) => n.id === selectedProxyId.slice(8))
     : undefined;
   const selectedProxy = storedProxies.find(
     (proxy) => proxy.id === selectedProxyId,
@@ -497,10 +509,17 @@ export function CreateProfileDialog({
     : selectedVpn
       ? (getCachedVpnResult(selectedVpn.id)?.country_code ??
         extractCountryCode(undefined, selectedVpn.name))
-      : undefined;
-  const proxyLabel = selectedVpn
-    ? `WG — ${selectedVpn.name}`
-    : (selectedProxy?.name ?? t("createProfile.proxy.noProxy"));
+      : selectedSubNode
+        ? (selectedSubNode.country_code ??
+          extractCountryCode(undefined, selectedSubNode.name))
+        : undefined;
+  const proxyLabel = selectedChain
+    ? `Цепочка — ${selectedChain.name}`
+    : selectedVpn
+      ? `WG — ${selectedVpn.name}`
+      : selectedSubNode
+        ? `VPN — ${selectedSubNode.name}`
+        : (selectedProxy?.name ?? t("createProfile.proxy.noProxy"));
   const destinationGroup = groups.find(
     (group) => group.id === destinationGroupId,
   );
@@ -731,14 +750,27 @@ export function CreateProfileDialog({
     }
     setIsCreating(true);
     const isVpnSelection = selectedProxyId?.startsWith("vpn-") ?? false;
+    const isChainSelection = selectedProxyId?.startsWith("chain-") ?? false;
+
+    let effectiveProxyId: string | undefined = selectedProxyId;
+    let effectiveRelayProxyId: string | undefined;
+
+    if (isChainSelection) {
+      const chosenChain = chains.find((c) => c.id === selectedProxyId);
+      if (chosenChain) {
+        effectiveProxyId = chosenChain.hop2_proxy_id;
+        effectiveRelayProxyId = chosenChain.hop1_proxy_id;
+      }
+    }
+
     try {
       await onCreateProfile({
         name: profileName.trim(),
         browserStr: "wayfern",
         version: creatableVersion,
         releaseType: "stable",
-        proxyId: isVpnSelection ? undefined : selectedProxyId,
-        relayProxyId: isProxyChain ? selectedRelayProxyId : undefined,
+        proxyId: isVpnSelection ? undefined : effectiveProxyId,
+        relayProxyId: effectiveRelayProxyId,
         vpnId: isVpnSelection ? selectedProxyId?.slice(4) : undefined,
         wayfernConfig,
         groupId: groupIdForCreate,
@@ -1070,278 +1102,337 @@ export function CreateProfileDialog({
                   />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="start" sideOffset={6}>
+              <PopoverContent className="w-84 p-0" align="start" sideOffset={6}>
+                {/* Two Tabs: Прокси & VPN */}
+                <div className="flex border-b p-1.5 gap-1 bg-muted/20">
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex-1 py-1 px-2.5 text-xs font-medium rounded-md transition-all text-center",
+                      proxyPopoverTab === "proxies"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => setProxyPopoverTab("proxies")}
+                  >
+                    {t("proxies.management.tabProxies", "Прокси")}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex-1 py-1 px-2.5 text-xs font-medium rounded-md transition-all text-center",
+                      proxyPopoverTab === "vpn"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => setProxyPopoverTab("vpn")}
+                  >
+                    {t("proxies.management.tabVpns", "VPN")}
+                  </button>
+                </div>
+
                 <Command>
                   <CommandInput placeholder={t("createProfile.proxy.search")} />
                   <CommandList id={proxyListboxId}>
                     <CommandEmpty>
                       {t("createProfile.proxy.notFound")}
                     </CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="__none__"
-                        keywords={[
-                          t("common.labels.none"),
-                          t("createProfile.proxy.noProxy"),
-                        ]}
-                        onSelect={() => {
-                          setSelectedProxyId(undefined);
-                          setProxyPopoverOpen(false);
-                        }}
-                      >
-                        <LuCheck
-                          className={cn(
-                            "size-4 shrink-0",
-                            !selectedProxyId ? "opacity-100" : "opacity-0",
-                          )}
-                          aria-hidden="true"
-                        />
-                        {t("common.labels.none")}
-                      </CommandItem>
-                      {sortedProxies.map((proxy) => {
-                        const res = getCachedProxyResult(proxy.id);
-                        const countryCode =
-                          res?.country_code ??
-                          extractCountryCode(proxy.geo_country, proxy.name);
-                        const latency =
-                          res?.is_valid && typeof res.latency_ms === "number"
-                            ? res.latency_ms
-                            : null;
-                        return (
+
+                    {proxyPopoverTab === "proxies" ? (
+                      <>
+                        <CommandGroup>
                           <CommandItem
-                            key={proxy.id}
-                            value={proxy.id}
-                            keywords={[proxy.name, countryCode ?? ""]}
+                            value="__none__"
+                            keywords={[
+                              t("common.labels.none"),
+                              t("createProfile.proxy.noProxy"),
+                            ]}
                             onSelect={() => {
-                              setSelectedProxyId(proxy.id);
+                              setSelectedProxyId(undefined);
                               setProxyPopoverOpen(false);
                             }}
-                            className="flex items-center gap-2"
                           >
                             <LuCheck
                               className={cn(
                                 "size-4 shrink-0",
-                                selectedProxyId === proxy.id
-                                  ? "opacity-100"
-                                  : "opacity-0",
+                                !selectedProxyId ? "opacity-100" : "opacity-0",
                               )}
                               aria-hidden="true"
                             />
-                            {countryCode ? (
-                              <FlagIcon
-                                countryCode={countryCode}
-                                className="h-3 shrink-0 rounded-[2px]"
-                              />
-                            ) : (
-                              <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
-                            )}
-                            <span className="truncate">{proxy.name}</span>
-                            {latency !== null && (
-                              <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
-                                {latency} ms
-                              </span>
-                            )}
+                            {t("common.labels.none")}
                           </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                    {sortedVpns.length > 0 && (
-                      <CommandGroup heading={t("proxies.management.tabVpns")}>
-                        {sortedVpns.map((vpn) => {
-                          const res = getCachedVpnResult(vpn.id);
-                          const countryCode =
-                            res?.country_code ??
-                            extractCountryCode(undefined, vpn.name);
-                          const latency =
-                            res?.is_valid && typeof res.latency_ms === "number"
-                              ? res.latency_ms
-                              : null;
-                          return (
-                            <CommandItem
-                              key={vpn.id}
-                              value={`vpn-${vpn.id}`}
-                              keywords={[
-                                vpn.name,
-                                "VPN",
-                                "WireGuard",
-                                countryCode ?? "",
-                              ]}
-                              onSelect={() => {
-                                setSelectedProxyId(`vpn-${vpn.id}`);
-                                setProxyPopoverOpen(false);
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <LuCheck
-                                className={cn(
-                                  "size-4 shrink-0",
-                                  selectedProxyId === `vpn-${vpn.id}`
-                                    ? "opacity-100"
-                                    : "opacity-0",
-                                )}
-                                aria-hidden="true"
-                              />
-                              {countryCode ? (
-                                <FlagIcon
-                                  countryCode={countryCode}
-                                  className="h-3 shrink-0 rounded-[2px]"
+                        </CommandGroup>
+
+                        {/* Proxy Chains */}
+                        {chains.length > 0 && (
+                          <CommandGroup
+                            heading={t(
+                              "proxyChains.title",
+                              "Цепочки прокси (Chains)",
+                            )}
+                          >
+                            {chains.map((chain) => (
+                              <CommandItem
+                                key={chain.id}
+                                value={chain.id}
+                                keywords={[
+                                  chain.name,
+                                  "цепь",
+                                  "цепочка",
+                                  "chain",
+                                  "relay",
+                                ]}
+                                onSelect={() => {
+                                  setSelectedProxyId(chain.id);
+                                  setProxyPopoverOpen(false);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <LuCheck
+                                  className={cn(
+                                    "size-4 shrink-0",
+                                    selectedProxyId === chain.id
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                  aria-hidden="true"
                                 />
-                              ) : (
-                                <Badge
-                                  variant="soft"
-                                  className="px-1 py-0 text-[11px] leading-tight"
-                                >
-                                  WG
-                                </Badge>
-                              )}
-                              <span className="truncate">{vpn.name}</span>
-                              {latency !== null && (
-                                <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
-                                  {latency} ms
+                                <LuLink className="size-3.5 shrink-0 text-primary" />
+                                <span className="truncate font-medium">
+                                  {chain.name}
                                 </span>
-                              )}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    )}
-                    <CommandSeparator
-                      alwaysRender
-                      className="my-1 bg-foreground/8"
-                    />
-                    <CommandGroup forceMount>
-                      <CommandItem
-                        value="__add_proxy__"
-                        forceMount
-                        onSelect={() => {
-                          setProxyPopoverOpen(false);
-                          setShowProxyForm(true);
-                        }}
-                      >
-                        <LuPlus
-                          className="size-4 shrink-0"
-                          aria-hidden="true"
+                                <Badge
+                                  variant="secondary"
+                                  className="ml-auto text-[10px] px-1.5 py-0 font-mono"
+                                >
+                                  Chain
+                                </Badge>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+
+                        {/* Standalone Proxies */}
+                        <CommandGroup
+                          heading={t("proxies.management.tabProxies", "Прокси")}
+                        >
+                          {sortedProxies.map((proxy) => {
+                            const res = getCachedProxyResult(proxy.id);
+                            const countryCode =
+                              res?.country_code ??
+                              extractCountryCode(proxy.geo_country, proxy.name);
+                            const latency =
+                              res?.is_valid &&
+                              typeof res.latency_ms === "number"
+                                ? res.latency_ms
+                                : null;
+                            return (
+                              <CommandItem
+                                key={proxy.id}
+                                value={proxy.id}
+                                keywords={[proxy.name, countryCode ?? ""]}
+                                onSelect={() => {
+                                  setSelectedProxyId(proxy.id);
+                                  setProxyPopoverOpen(false);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <LuCheck
+                                  className={cn(
+                                    "size-4 shrink-0",
+                                    selectedProxyId === proxy.id
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                  aria-hidden="true"
+                                />
+                                {countryCode ? (
+                                  <FlagIcon
+                                    countryCode={countryCode}
+                                    className="h-3 shrink-0 rounded-[2px]"
+                                  />
+                                ) : (
+                                  <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
+                                )}
+                                <span className="truncate">{proxy.name}</span>
+                                {latency !== null && (
+                                  <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                                    {latency} ms
+                                  </span>
+                                )}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                        <CommandSeparator
+                          alwaysRender
+                          className="my-1 bg-foreground/8"
                         />
-                        {t("createProfile.proxy.addProxy")}
-                      </CommandItem>
-                    </CommandGroup>
+                        <CommandGroup forceMount>
+                          <CommandItem
+                            value="__add_proxy__"
+                            forceMount
+                            onSelect={() => {
+                              setProxyPopoverOpen(false);
+                              setShowProxyForm(true);
+                            }}
+                          >
+                            <LuPlus
+                              className="size-4 shrink-0"
+                              aria-hidden="true"
+                            />
+                            {t("createProfile.proxy.addProxy")}
+                          </CommandItem>
+                        </CommandGroup>
+                      </>
+                    ) : (
+                      <>
+                        {/* WireGuard VPNs */}
+                        {sortedVpns.length > 0 && (
+                          <CommandGroup
+                            heading={t(
+                              "vpnSubscriptions.tabs.wireguard",
+                              "WireGuard",
+                            )}
+                          >
+                            {sortedVpns.map((vpn) => {
+                              const res = getCachedVpnResult(vpn.id);
+                              const countryCode =
+                                res?.country_code ??
+                                extractCountryCode(undefined, vpn.name);
+                              const latency =
+                                res?.is_valid &&
+                                typeof res.latency_ms === "number"
+                                  ? res.latency_ms
+                                  : null;
+                              return (
+                                <CommandItem
+                                  key={vpn.id}
+                                  value={`vpn-${vpn.id}`}
+                                  keywords={[
+                                    vpn.name,
+                                    "VPN",
+                                    "WireGuard",
+                                    countryCode ?? "",
+                                  ]}
+                                  onSelect={() => {
+                                    setSelectedProxyId(`vpn-${vpn.id}`);
+                                    setProxyPopoverOpen(false);
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <LuCheck
+                                    className={cn(
+                                      "size-4 shrink-0",
+                                      selectedProxyId === `vpn-${vpn.id}`
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                  {countryCode ? (
+                                    <FlagIcon
+                                      countryCode={countryCode}
+                                      className="h-3 shrink-0 rounded-[2px]"
+                                    />
+                                  ) : (
+                                    <Badge
+                                      variant="soft"
+                                      className="px-1 py-0 text-[11px] leading-tight"
+                                    >
+                                      WG
+                                    </Badge>
+                                  )}
+                                  <span className="truncate">{vpn.name}</span>
+                                  {latency !== null && (
+                                    <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                                      {latency} ms
+                                    </span>
+                                  )}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        )}
+
+                        {/* Subscription Nodes */}
+                        {allSubNodes.length > 0 && (
+                          <CommandGroup
+                            heading={t(
+                              "vpnSubscriptions.tabs.subscriptions",
+                              "Серверы подписок",
+                            )}
+                          >
+                            {allSubNodes.map((node) => {
+                              const countryCode =
+                                node.country_code ??
+                                extractCountryCode(undefined, node.name);
+                              return (
+                                <CommandItem
+                                  key={node.id}
+                                  value={`subnode-${node.id}`}
+                                  keywords={[
+                                    node.name,
+                                    node.protocol,
+                                    countryCode ?? "",
+                                  ]}
+                                  onSelect={() => {
+                                    setSelectedProxyId(`subnode-${node.id}`);
+                                    setProxyPopoverOpen(false);
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <LuCheck
+                                    className={cn(
+                                      "size-4 shrink-0",
+                                      selectedProxyId === `subnode-${node.id}`
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                  {countryCode ? (
+                                    <FlagIcon
+                                      countryCode={countryCode}
+                                      className="h-3 shrink-0 rounded-[2px]"
+                                    />
+                                  ) : (
+                                    <LuGlobe className="size-3.5 shrink-0 text-muted-foreground/60" />
+                                  )}
+                                  <span className="truncate">{node.name}</span>
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] uppercase font-mono px-1 py-0"
+                                  >
+                                    {node.protocol}
+                                  </Badge>
+                                  {node.latency_ms !== null &&
+                                    node.latency_ms !== undefined && (
+                                      <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                                        {node.latency_ms} ms
+                                      </span>
+                                    )}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        )}
+
+                        {sortedVpns.length === 0 &&
+                          allSubNodes.length === 0 && (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              {t(
+                                "vpnSubscriptions.noNodesInSub",
+                                "Нет доступных VPN или серверов подписок",
+                              )}
+                            </div>
+                          )}
+                      </>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
-
-            {selectedProxyId && (
-              <div className="flex flex-col gap-2 p-3 mt-1 rounded-lg border bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label
-                      htmlFor="enable-proxy-chain"
-                      className="text-xs font-medium cursor-pointer"
-                    >
-                      {t(
-                        "proxyChain.enableToggle",
-                        "Цепочка прокси (Proxy Chain)",
-                      )}
-                    </Label>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t(
-                        "proxyChain.enableHint",
-                        "Маршрутизировать трафик через промежуточный узел (Hop 1 -> Hop 2)",
-                      )}
-                    </p>
-                  </div>
-                  <AnimatedSwitch
-                    id="enable-proxy-chain"
-                    checked={isProxyChain}
-                    onCheckedChange={setIsProxyChain}
-                    disabled={isCreating}
-                  />
-                </div>
-
-                {isProxyChain && (
-                  <div className="pt-2 border-t space-y-1.5">
-                    <Label className="text-[11px] font-medium text-muted-foreground">
-                      {t(
-                        "proxyChain.relayHop1",
-                        "Входной узел (Hop 1 / Relay)",
-                      )}
-                    </Label>
-                    <Popover
-                      open={relayPopoverOpen}
-                      onOpenChange={setRelayPopoverOpen}
-                    >
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className={cn(
-                            optionPill(!!selectedRelayProxyId),
-                            "w-full justify-between text-xs h-9",
-                          )}
-                          disabled={isCreating}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <LuLink className="size-3.5 text-muted-foreground" />
-                            <span className="truncate">
-                              {sortedProxies.find(
-                                (p) => p.id === selectedRelayProxyId,
-                              )?.name ??
-                                t(
-                                  "proxyChain.selectRelay",
-                                  "Выберите промежуточный прокси",
-                                )}
-                            </span>
-                          </div>
-                          <LuChevronDown className="size-3.5 opacity-60" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-80 p-0"
-                        align="start"
-                        sideOffset={6}
-                      >
-                        <Command>
-                          <CommandInput
-                            placeholder={t("createProfile.proxy.search")}
-                          />
-                          <CommandList>
-                            <CommandEmpty>
-                              {t("createProfile.proxy.notFound")}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {sortedProxies
-                                .filter((p) => p.id !== selectedProxyId)
-                                .map((proxy) => (
-                                  <CommandItem
-                                    key={proxy.id}
-                                    value={proxy.id}
-                                    onSelect={() => {
-                                      setSelectedRelayProxyId(proxy.id);
-                                      setRelayPopoverOpen(false);
-                                    }}
-                                    className="flex items-center gap-2 text-xs"
-                                  >
-                                    <LuCheck
-                                      className={cn(
-                                        "size-3.5 shrink-0",
-                                        selectedRelayProxyId === proxy.id
-                                          ? "opacity-100"
-                                          : "opacity-0",
-                                      )}
-                                    />
-                                    <span className="truncate">
-                                      {proxy.name}
-                                    </span>
-                                  </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
-              </div>
-            )}
 
             <OptionToggle
               id="enable-password"

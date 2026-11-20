@@ -5438,12 +5438,38 @@
       "nameRequired": "サブスクリプション名は必須です",
       "urlRequired": "サブスクリプションURLは必須です",
       "invalidUrl": "URLは http:// または https:// で始まる必要があります"
-    }
+    },
+    "sortByPing": "Ping順",
+    "timeout": "タイムアウト"
   },
   "proxyChain": {
     "enableToggle": "プロキシチェーン（リレー）を有効化",
     "enableHint": "出口プロキシに到達する前に中継プロキシ経由でルーティングします",
     "relayHop1": "中継プロキシ（ホップ1）",
     "selectRelay": "中継プロキシを選択..."
+  },
+  "proxyChains": {
+    "tab": "チェーン",
+    "title": "プロキシチェーン",
+    "subtitle": "中継プロキシを経由して出口プロキシへトラフィックをルーティングします。",
+    "createButton": "チェーン作成",
+    "emptyTitle": "プロキシチェーンはまだありません",
+    "emptyDescription": "2つのプロキシを接続するチェーンを作成します (ホップ1 中継 → ホップ2 出口)。",
+    "dialog": {
+      "titleAdd": "プロキシチェーン作成",
+      "titleEdit": "プロキシチェーン編集",
+      "description": "トラフィックはホップ1（中継）からホップ2（出口）を経由して送信されます。",
+      "nameLabel": "チェーン名",
+      "hop1Label": "ホップ1 (中継)",
+      "selectHop1Placeholder": "中継プロキシ / ノードを選択...",
+      "hop2Label": "ホップ2 (出口)",
+      "selectHop2Placeholder": "出口プロキシ / ノードを選択...",
+      "errors": {
+        "nameRequired": "チェーン名を入力してください",
+        "hop1Required": "ホップ1 (中継) を選択してください",
+        "hop2Required": "ホップ2 (出口) を選択してください",
+        "sameHop": "ホップ1とホップ2に同じプロキシは指定できません"
+      }
+    }
   }
 }

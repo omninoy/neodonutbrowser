@@ -5554,12 +5554,38 @@
       "nameRequired": "Укажите название подписки",
       "urlRequired": "Укажите URL подписки",
       "invalidUrl": "URL должен начинаться с http:// или https://"
-    }
+    },
+    "sortByPing": "По пингу",
+    "timeout": "Таймаут"
   },
   "proxyChain": {
     "enableToggle": "Использовать цепочку прокси (Relay)",
     "enableHint": "Маршрутизировать трафик через промежуточный прокси перед выходом",
     "relayHop1": "Промежуточный прокси (Хоп 1)",
     "selectRelay": "Выберите промежуточный прокси..."
+  },
+  "proxyChains": {
+    "tab": "Цепочки",
+    "title": "Цепочки прокси (Proxy Chains)",
+    "subtitle": "Маршрутизация трафика профиля через промежуточный прокси к выходу.",
+    "createButton": "Создать цепочку",
+    "emptyTitle": "Цепочек прокси пока нет",
+    "emptyDescription": "Создайте цепочку, объединив два любых прокси (Hop 1 Relay → Hop 2 Exit).",
+    "dialog": {
+      "titleAdd": "Создать цепочку прокси",
+      "titleEdit": "Редактировать цепочку",
+      "description": "Трафик пойдет через узел Hop 1 (Relay) к узлу Hop 2 (Exit) перед выходом в сеть.",
+      "nameLabel": "Название цепочки",
+      "hop1Label": "Hop 1 (Relay — промежуточный узел)",
+      "selectHop1Placeholder": "Выберите промежуточный прокси / узел...",
+      "hop2Label": "Hop 2 (Exit — точка выхода)",
+      "selectHop2Placeholder": "Выберите конечный прокси / узел...",
+      "errors": {
+        "nameRequired": "Укажите название цепочки",
+        "hop1Required": "Выберите первый узел (Hop 1)",
+        "hop2Required": "Выберите второй узел (Hop 2)",
+        "sameHop": "Hop 1 и Hop 2 не могут быть одним и тем же прокси"
+      }
+    }
   }
 }

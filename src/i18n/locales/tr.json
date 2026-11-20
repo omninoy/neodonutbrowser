@@ -5438,12 +5438,38 @@
       "nameRequired": "Abonelik adı gereklidir",
       "urlRequired": "Abonelik URL'si gereklidir",
       "invalidUrl": "URL http:// veya https:// ile başlamalıdır"
-    }
+    },
+    "sortByPing": "Pinge Göre",
+    "timeout": "Zaman Aşımı"
   },
   "proxyChain": {
     "enableToggle": "Proxy Zincirini Etkinleştir (Relay)",
     "enableHint": "Çıkış proxy'sine ulaşmadan önce bağlantıyı bir geçiş proxy'si üzerinden yönlendir",
     "relayHop1": "Geçiş Proxy'si (Hop 1)",
     "selectRelay": "Geçiş proxy'si seçin..."
+  },
+  "proxyChains": {
+    "tab": "Zincirler",
+    "title": "Proxy Zincirleri",
+    "subtitle": "Profil trafiğini aktarma proxy'si üzerinden çıkış proxy'sine yönlendirin.",
+    "createButton": "Zincir Oluştur",
+    "emptyTitle": "Henüz proxy zinciri yok",
+    "emptyDescription": "İki proxy'yi birleştiren bir zincir oluşturun (Hop 1 Aktarma → Hop 2 Çıkış).",
+    "dialog": {
+      "titleAdd": "Proxy Zinciri Oluştur",
+      "titleEdit": "Proxy Zincirini Düzenle",
+      "description": "Trafik Hop 1 (Aktarma) ve ardından Hop 2 (Çıkış) üzerinden yönlendirilecektir.",
+      "nameLabel": "Zincir Adı",
+      "hop1Label": "Hop 1 (Aktarma)",
+      "selectHop1Placeholder": "Ara proxy / düğüm seçin...",
+      "hop2Label": "Hop 2 (Çıkış)",
+      "selectHop2Placeholder": "Çıkış proxy'si / düğümü seçin...",
+      "errors": {
+        "nameRequired": "Lütfen bir zincir adı girin",
+        "hop1Required": "Lütfen ilk adımı (Aktarma) seçin",
+        "hop2Required": "Lütfen ikinci adımı (Çıkış) seçin",
+        "sameHop": "Hop 1 ve Hop 2 aynı proxy olamaz"
+      }
+    }
   }
 }

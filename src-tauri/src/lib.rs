@@ -2083,18 +2083,22 @@ async fn get_vpn_subscription_nodes(
 
 #[tauri::command]
 async fn add_vpn_subscription(
+  app: tauri::AppHandle,
   name: String,
   url: String,
   auto_update: Option<bool>,
 ) -> Result<vpn::subscription::VpnSubscription, String> {
   let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
-  mgr
+  let sub = mgr
     .add_subscription(name, url, auto_update.unwrap_or(true))
-    .await
+    .await?;
+  let _ = app.emit("vpn-subscriptions-changed", ());
+  Ok(sub)
 }
 
 #[tauri::command]
 async fn update_vpn_subscription(
+  app: tauri::AppHandle,
   subscription_id: String,
   name: Option<String>,
   url: Option<String>,
@@ -2102,7 +2106,7 @@ async fn update_vpn_subscription(
   fetch_now: Option<bool>,
 ) -> Result<vpn::subscription::VpnSubscription, String> {
   let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
-  mgr
+  let sub = mgr
     .update_subscription(
       &subscription_id,
       name,
@@ -2110,13 +2114,20 @@ async fn update_vpn_subscription(
       auto_update,
       fetch_now.unwrap_or(false),
     )
-    .await
+    .await?;
+  let _ = app.emit("vpn-subscriptions-changed", ());
+  Ok(sub)
 }
 
 #[tauri::command]
-async fn delete_vpn_subscription(subscription_id: String) -> Result<(), String> {
+async fn delete_vpn_subscription(
+  app: tauri::AppHandle,
+  subscription_id: String,
+) -> Result<(), String> {
   let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
-  mgr.delete_subscription(&subscription_id)
+  mgr.delete_subscription(&subscription_id)?;
+  let _ = app.emit("vpn-subscriptions-changed", ());
+  Ok(())
 }
 
 #[tauri::command]
@@ -2133,6 +2144,48 @@ async fn ping_vpn_subscription_node(
 ) -> Result<vpn::subscription::VpnSubscriptionNode, String> {
   let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
   mgr.ping_single_node(&node_id).await
+}
+
+// Proxy Chain Commands
+#[tauri::command]
+async fn get_proxy_chains() -> Result<Vec<vpn::chain::ProxyChain>, String> {
+  let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+  Ok(mgr.list_chains())
+}
+
+#[tauri::command]
+async fn add_proxy_chain(
+  app: tauri::AppHandle,
+  name: String,
+  hop1_proxy_id: String,
+  hop2_proxy_id: String,
+) -> Result<vpn::chain::ProxyChain, String> {
+  let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+  let chain = mgr.add_chain(name, hop1_proxy_id, hop2_proxy_id)?;
+  let _ = app.emit("proxy-chains-changed", ());
+  Ok(chain)
+}
+
+#[tauri::command]
+async fn update_proxy_chain(
+  app: tauri::AppHandle,
+  chain_id: String,
+  name: Option<String>,
+  hop1_proxy_id: Option<String>,
+  hop2_proxy_id: Option<String>,
+) -> Result<vpn::chain::ProxyChain, String> {
+  let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+  let chain = mgr.update_chain(&chain_id, name, hop1_proxy_id, hop2_proxy_id)?;
+  let _ = app.emit("proxy-chains-changed", ());
+  Ok(chain)
+}
+
+#[tauri::command]
+async fn delete_proxy_chain(app: tauri::AppHandle, chain_id: String) -> Result<(), String> {
+  let mgr = vpn::chain::PROXY_CHAIN_MANAGER.lock().await;
+  mgr.delete_chain(&chain_id)?;
+  let _ = app.emit("proxy-chains-changed", ());
+  Ok(())
 }
 
 /// Validate that a profile's selected proxy or VPN actually works before the
@@ -4055,6 +4108,10 @@ pub fn run_with_builder(
       delete_vpn_subscription,
       ping_vpn_subscription,
       ping_vpn_subscription_node,
+      get_proxy_chains,
+      add_proxy_chain,
+      update_proxy_chain,
+      delete_proxy_chain,
       // Cloud auth commands
       cloud_auth::cloud_exchange_device_code,
       cloud_auth::cloud_get_user,

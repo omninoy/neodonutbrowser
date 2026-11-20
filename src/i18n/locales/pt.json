@@ -5494,12 +5494,38 @@
       "nameRequired": "O nome da assinatura é obrigatório",
       "urlRequired": "A URL da assinatura é obrigatória",
       "invalidUrl": "A URL deve começar com http:// ou https://"
-    }
+    },
+    "sortByPing": "Por ping",
+    "timeout": "Tempo esgotado"
   },
   "proxyChain": {
     "enableToggle": "Ativar cadeia de proxies (Relay)",
     "enableHint": "Roteie a conexão por meio de um proxy relay antes de alcançar o proxy de saída",
     "relayHop1": "Proxy de retransmissão (Salto 1)",
     "selectRelay": "Selecionar proxy de retransmissão..."
+  },
+  "proxyChains": {
+    "tab": "Cadeias",
+    "title": "Cadeias de Proxy",
+    "subtitle": "Roteie o tráfego do perfil através de um proxy relay antes do proxy de saída.",
+    "createButton": "Criar Cadeia",
+    "emptyTitle": "Nenhuma cadeia de proxy ainda",
+    "emptyDescription": "Crie uma cadeia conectando dois proxies (Hop 1 Relay → Hop 2 Saída).",
+    "dialog": {
+      "titleAdd": "Criar Cadeia de Proxy",
+      "titleEdit": "Editar Cadeia de Proxy",
+      "description": "O tráfego passará pelo Hop 1 (Relay) e pelo Hop 2 (Saída).",
+      "nameLabel": "Nome da Cadeia",
+      "hop1Label": "Hop 1 (Relay)",
+      "selectHop1Placeholder": "Selecione o proxy intermediário...",
+      "hop2Label": "Hop 2 (Saída)",
+      "selectHop2Placeholder": "Selecione o proxy de saída...",
+      "errors": {
+        "nameRequired": "Digite um nome para a cadeia",
+        "hop1Required": "Selecione o primeiro salto (Relay)",
+        "hop2Required": "Selecione o segundo salto (Saída)",
+        "sameHop": "Hop 1 e Hop 2 não podem ser o mesmo proxy"
+      }
+    }
   }
 }

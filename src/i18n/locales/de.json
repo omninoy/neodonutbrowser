@@ -5438,12 +5438,38 @@
       "nameRequired": "Abonnementname ist erforderlich",
       "urlRequired": "Abonnement-URL ist erforderlich",
       "invalidUrl": "URL muss mit http:// oder https:// beginnen"
-    }
+    },
+    "sortByPing": "Nach Ping",
+    "timeout": "Zeitüberschreitung"
   },
   "proxyChain": {
     "enableToggle": "Proxy-Kette aktivieren (Relay)",
     "enableHint": "Verbindung über einen Relay-Proxy leiten, bevor der Exit-Proxy erreicht wird",
     "relayHop1": "Relay-Proxy (Hop 1)",
     "selectRelay": "Relay-Proxy auswählen..."
+  },
+  "proxyChains": {
+    "tab": "Ketten",
+    "title": "Proxy-Ketten",
+    "subtitle": "Profil-Traffic über einen Relay-Proxy zu einem Exit-Proxy leiten.",
+    "createButton": "Kette erstellen",
+    "emptyTitle": "Noch keine Proxy-Ketten",
+    "emptyDescription": "Erstellen Sie eine Kette, die zwei Proxys verbindet (Hop 1 Relay → Hop 2 Exit).",
+    "dialog": {
+      "titleAdd": "Proxy-Kette erstellen",
+      "titleEdit": "Proxy-Kette bearbeiten",
+      "description": "Der Traffic wird von Hop 1 (Relay) über Hop 2 (Exit) weitergeleitet.",
+      "nameLabel": "Kettenname",
+      "hop1Label": "Hop 1 (Relay)",
+      "selectHop1Placeholder": "Zwischen-Proxy / Knoten wählen...",
+      "hop2Label": "Hop 2 (Exit)",
+      "selectHop2Placeholder": "Exit-Proxy / Knoten wählen...",
+      "errors": {
+        "nameRequired": "Bitte Kettennamen eingeben",
+        "hop1Required": "Bitte Hop 1 (Relay) auswählen",
+        "hop2Required": "Bitte Hop 2 (Exit) auswählen",
+        "sameHop": "Hop 1 und Hop 2 dürfen nicht identisch sein"
+      }
+    }
   }
 }

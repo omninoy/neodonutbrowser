@@ -5438,12 +5438,38 @@
       "nameRequired": "구독 이름은 필수입니다",
       "urlRequired": "구독 URL은 필수입니다",
       "invalidUrl": "URL은 http:// 또는 https://로 시작해야 합니다"
-    }
+    },
+    "sortByPing": "핑순 정렬",
+    "timeout": "시간 초과"
   },
   "proxyChain": {
     "enableToggle": "프록시 체인(릴레이) 활성화",
     "enableHint": "출구 프록시에 도달하기 전에 릴레이 프록시를 통해 라우팅",
     "relayHop1": "릴레이 프록시 (홉 1)",
     "selectRelay": "릴레이 프록시 선택..."
+  },
+  "proxyChains": {
+    "tab": "체인",
+    "title": "프록시 체인",
+    "subtitle": "릴레이 프록시를 거쳐 출구 프록시로 트래픽을 라우팅합니다.",
+    "createButton": "체인 생성",
+    "emptyTitle": "프록시 체인이 없습니다",
+    "emptyDescription": "두 개의 프록시를 연결하는 체인을 생성하세요 (Hop 1 릴레이 → Hop 2 출구).",
+    "dialog": {
+      "titleAdd": "프록시 체인 생성",
+      "titleEdit": "프록시 체인 편집",
+      "description": "트래픽이 Hop 1(릴레이)을 거쳐 Hop 2(출구)로 전달됩니다.",
+      "nameLabel": "체인 이름",
+      "hop1Label": "Hop 1 (릴레이)",
+      "selectHop1Placeholder": "중간 프록시 / 노드 선택...",
+      "hop2Label": "Hop 2 (출구)",
+      "selectHop2Placeholder": "출구 프록시 / 노드 선택...",
+      "errors": {
+        "nameRequired": "체인 이름을 입력하세요",
+        "hop1Required": "첫 번째 홉(릴레이)을 선택하세요",
+        "hop2Required": "두 번째 홉(출구)을 선택하세요",
+        "sameHop": "Hop 1과 Hop 2는 같은 프록시일 수 없습니다"
+      }
+    }
   }
 }

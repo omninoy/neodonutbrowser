@@ -49,6 +49,8 @@ import {
   useEntityTableTools,
 } from "@/components/managed-data-table";
 import { ProfileUsageButton } from "@/components/profile-usage-button";
+import { ProxyChainDialog } from "@/components/proxy-chain-dialog";
+import { ProxyChainsList } from "@/components/proxy-chains-list";
 import { ProxyExportDialog } from "@/components/proxy-export-dialog";
 import { ProxyFormDialog } from "@/components/proxy-form-dialog";
 import { ProxyImportDialog } from "@/components/proxy-import-dialog";
@@ -76,6 +78,7 @@ import {
 import { VpnSubscriptionAccordion } from "@/components/vpn-subscription-accordion";
 import { VpnSubscriptionDialog } from "@/components/vpn-subscription-dialog";
 import { useProfileReferences } from "@/hooks/use-profile-references";
+import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useEntityTrash } from "@/hooks/use-trash-events";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
@@ -141,10 +144,13 @@ export function ProxyManagementDialog({
   const [showVpnForm, setShowVpnForm] = useState(false);
   const [showVpnImportDialog, setShowVpnImportDialog] = useState(false);
   const [showVpnSubDialog, setShowVpnSubDialog] = useState(false);
-  const [vpnSubTab, setVpnSubTab] = useState<"subscriptions" | "wireguard">(
-    "subscriptions",
-  );
-  const { subscriptions } = useVpnSubscriptions();
+  const [showCreateChainDialog, setShowCreateChainDialog] = useState(false);
+  const [vpnSubTab, setVpnSubTab] = useState<
+    "subscriptions" | "chains" | "wireguard"
+  >("subscriptions");
+  const vpnSubManager = useVpnSubscriptions();
+  const { subscriptions } = vpnSubManager;
+  const { chains } = useProxyChains();
   const [editingVpn, setEditingVpn] = useState<VpnConfig | null>(null);
   const [vpnToDelete, setVpnToDelete] = useState<VpnConfig | null>(null);
   const [isDeletingVpn, setIsDeletingVpn] = useState(false);
@@ -1297,6 +1303,13 @@ export function ProxyManagementDialog({
                       label={t("vpnSubscriptions.addBtn", "Добавить подписку")}
                       onClick={() => setShowVpnSubDialog(true)}
                     />
+                  ) : vpnSubTab === "chains" ? (
+                    <PageAction
+                      primary
+                      icon={<LuPlus className="size-4" />}
+                      label={t("proxyChains.createButton", "Создать цепочку")}
+                      onClick={() => setShowCreateChainDialog(true)}
+                    />
                   ) : (
                     <>
                       <PageAction
@@ -1368,7 +1381,7 @@ export function ProxyManagementDialog({
                 forceMount
                 className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
               >
-                {/* Sub-tab navigation between Subscriptions and WireGuard */}
+                {/* Sub-tab navigation between Subscriptions, Chains and WireGuard */}
                 <div className="flex items-center gap-2 mb-3 shrink-0">
                   <button
                     type="button"
@@ -1381,6 +1394,17 @@ export function ProxyManagementDialog({
                   >
                     {t("vpnSubscriptions.tabs.subscriptions", "Подписки")} (
                     {subscriptions.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      vpnSubTab === "chains"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                    onClick={() => setVpnSubTab("chains")}
+                  >
+                    {t("proxyChains.tab", "Цепочки")} ({chains.length})
                   </button>
                   <button
                     type="button"
@@ -1398,7 +1422,13 @@ export function ProxyManagementDialog({
 
                 {vpnSubTab === "subscriptions" ? (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                    <VpnSubscriptionAccordion />
+                    <VpnSubscriptionAccordion
+                      subscriptionManager={vpnSubManager}
+                    />
+                  </div>
+                ) : vpnSubTab === "chains" ? (
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                    <ProxyChainsList />
                   </div>
                 ) : (
                   (hasOpenedVpns || activeTab === "vpns") && (
@@ -1510,6 +1540,13 @@ export function ProxyManagementDialog({
         onClose={() => {
           setShowVpnSubDialog(false);
         }}
+        onSuccess={() => {
+          void vpnSubManager.fetchSubscriptions();
+        }}
+      />
+      <ProxyChainDialog
+        isOpen={showCreateChainDialog}
+        onClose={() => setShowCreateChainDialog(false)}
       />
       {isOpen && activeTab === "proxies" && (
         <DataTableActionBar table={proxiesTable}>

@@ -5438,12 +5438,38 @@
       "nameRequired": "订阅名称为必填项",
       "urlRequired": "订阅 URL 为必填项",
       "invalidUrl": "URL 必须以 http:// 或 https:// 开头"
-    }
+    },
+    "sortByPing": "按延迟排序",
+    "timeout": "超时"
   },
   "proxyChain": {
     "enableToggle": "启用代理链 (Relay)",
     "enableHint": "在到达出口代理之前先经过中继代理转发",
     "relayHop1": "中继代理 (第一跳)",
     "selectRelay": "选择中继代理..."
+  },
+  "proxyChains": {
+    "tab": "链式代理",
+    "title": "代理链 (Proxy Chains)",
+    "subtitle": "通过中继代理将配置文件流量路由到出口代理。",
+    "createButton": "创建代理链",
+    "emptyTitle": "暂无代理链",
+    "emptyDescription": "连接两个代理以创建代理链（Hop 1 中继 → Hop 2 出口）。",
+    "dialog": {
+      "titleAdd": "创建代理链",
+      "titleEdit": "编辑代理链",
+      "description": "流量将依次通过 Hop 1（中继）和 Hop 2（出口）到达目的地。",
+      "nameLabel": "代理链名称",
+      "hop1Label": "Hop 1（中继）",
+      "selectHop1Placeholder": "选择中继代理 / 节点...",
+      "hop2Label": "Hop 2（出口）",
+      "selectHop2Placeholder": "选择出口代理 / 节点...",
+      "errors": {
+        "nameRequired": "请输入代理链名称",
+        "hop1Required": "请选择第一跳（中继）",
+        "hop2Required": "请选择第二跳（出口）",
+        "sameHop": "Hop 1 和 Hop 2 不能为同一个代理"
+      }
+    }
   }
 }

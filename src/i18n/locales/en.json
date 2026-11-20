@@ -5438,12 +5438,38 @@
       "nameRequired": "Subscription name is required",
       "urlRequired": "Subscription URL is required",
       "invalidUrl": "URL must start with http:// or https://"
-    }
+    },
+    "sortByPing": "By Ping",
+    "timeout": "Timeout"
   },
   "proxyChain": {
     "enableToggle": "Enable Proxy Chain (Relay)",
     "enableHint": "Route connection through a relay proxy before reaching the exit proxy",
     "relayHop1": "Relay Proxy (Hop 1)",
     "selectRelay": "Select relay proxy..."
+  },
+  "proxyChains": {
+    "tab": "Chains",
+    "title": "Proxy Chains",
+    "subtitle": "Route profile traffic through a relay proxy before an exit proxy.",
+    "createButton": "Create Chain",
+    "emptyTitle": "No proxy chains yet",
+    "emptyDescription": "Create a chain connecting two proxies (Hop 1 Relay → Hop 2 Exit).",
+    "dialog": {
+      "titleAdd": "Create Proxy Chain",
+      "titleEdit": "Edit Proxy Chain",
+      "description": "Traffic will route from Hop 1 (Relay) through Hop 2 (Exit) before reaching the destination.",
+      "nameLabel": "Chain Name",
+      "hop1Label": "Hop 1 (Relay)",
+      "selectHop1Placeholder": "Select intermediate proxy / node...",
+      "hop2Label": "Hop 2 (Exit)",
+      "selectHop2Placeholder": "Select exit proxy / node...",
+      "errors": {
+        "nameRequired": "Please enter a chain name",
+        "hop1Required": "Please select the first hop (Relay)",
+        "hop2Required": "Please select the second hop (Exit)",
+        "sameHop": "Hop 1 and Hop 2 cannot be the same proxy"
+      }
+    }
   }
 }
