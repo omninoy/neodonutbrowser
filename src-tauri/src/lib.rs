@@ -302,8 +302,8 @@ use profile::manager::{
   delete_profile, list_browser_profiles, rename_profile, update_profile_clear_on_close,
   update_profile_dns_blocklist, update_profile_dns_server, update_profile_launch_hook,
   update_profile_note, update_profile_proxy, update_profile_proxy_bypass_rules,
-  update_profile_start_urls, update_profile_tags, update_profile_vpn, update_profile_window_color,
-  update_wayfern_config,
+  update_profile_relay_proxy, update_profile_start_urls, update_profile_tags, update_profile_vpn,
+  update_profile_window_color, update_wayfern_config,
 };
 
 use profile::trash::{
@@ -2062,6 +2062,79 @@ pub async fn check_vpn_validity_core(
   Ok(result)
 }
 
+// VPN Subscription Commands
+#[tauri::command]
+async fn get_vpn_subscriptions() -> Result<Vec<vpn::subscription::VpnSubscription>, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  Ok(mgr.list_subscriptions())
+}
+
+#[tauri::command]
+async fn get_vpn_subscription_nodes(
+  subscription_id: Option<String>,
+) -> Result<Vec<vpn::subscription::VpnSubscriptionNode>, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  if let Some(sub_id) = subscription_id {
+    Ok(mgr.list_nodes_by_subscription(&sub_id))
+  } else {
+    Ok(mgr.list_nodes())
+  }
+}
+
+#[tauri::command]
+async fn add_vpn_subscription(
+  name: String,
+  url: String,
+  auto_update: Option<bool>,
+) -> Result<vpn::subscription::VpnSubscription, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  mgr
+    .add_subscription(name, url, auto_update.unwrap_or(true))
+    .await
+}
+
+#[tauri::command]
+async fn update_vpn_subscription(
+  subscription_id: String,
+  name: Option<String>,
+  url: Option<String>,
+  auto_update: Option<bool>,
+  fetch_now: Option<bool>,
+) -> Result<vpn::subscription::VpnSubscription, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  mgr
+    .update_subscription(
+      &subscription_id,
+      name,
+      url,
+      auto_update,
+      fetch_now.unwrap_or(false),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn delete_vpn_subscription(subscription_id: String) -> Result<(), String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  mgr.delete_subscription(&subscription_id)
+}
+
+#[tauri::command]
+async fn ping_vpn_subscription(
+  subscription_id: String,
+) -> Result<Vec<vpn::subscription::VpnSubscriptionNode>, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  mgr.ping_subscription_nodes(&subscription_id).await
+}
+
+#[tauri::command]
+async fn ping_vpn_subscription_node(
+  node_id: String,
+) -> Result<vpn::subscription::VpnSubscriptionNode, String> {
+  let mgr = vpn::subscription::VPN_SUBSCRIPTION_MANAGER.lock().await;
+  mgr.ping_single_node(&node_id).await
+}
+
 /// Validate that a profile's selected proxy or VPN actually works before the
 /// profile is created. Shared by the Tauri command, REST API, and MCP create
 /// paths so a dead/unreachable proxy or VPN (or a 402 from an expired proxy
@@ -2206,6 +2279,7 @@ async fn generate_sample_fingerprint(
     version: version.clone(),
     process_id: None,
     proxy_id: None,
+    relay_proxy_id: None,
     vpn_id: None,
     launch_hook: None,
     last_launch: None,
@@ -3697,6 +3771,7 @@ pub fn run_with_builder(
       get_all_tags,
       get_browser_release_types,
       update_profile_proxy,
+      update_profile_relay_proxy,
       update_profile_vpn,
       update_profile_tags,
       update_profile_note,
@@ -3973,6 +4048,13 @@ pub fn run_with_builder(
       disconnect_vpn,
       get_vpn_status,
       list_active_vpn_connections,
+      get_vpn_subscriptions,
+      get_vpn_subscription_nodes,
+      add_vpn_subscription,
+      update_vpn_subscription,
+      delete_vpn_subscription,
+      ping_vpn_subscription,
+      ping_vpn_subscription_node,
       // Cloud auth commands
       cloud_auth::cloud_exchange_device_code,
       cloud_auth::cloud_get_user,

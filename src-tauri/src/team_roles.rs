@@ -29,6 +29,7 @@ const TEAM_DATA_COMMANDS: &[&str] = &[
   "restore_trashed_entity",
   "purge_trashed_entity",
   "update_profile_proxy",
+  "update_profile_relay_proxy",
   "update_profile_vpn",
   "update_profile_tags",
   "update_profile_note",

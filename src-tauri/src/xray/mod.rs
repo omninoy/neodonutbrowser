@@ -3,7 +3,10 @@ mod error;
 mod model;
 mod uri;
 
-pub use client::{build_client_config, build_client_config_json, XrayClientRuntime};
+pub use client::{
+  build_client_config, build_client_config_json, build_client_config_json_with_relay,
+  build_client_config_with_relay, XrayClientRuntime,
+};
 pub use error::{XrayError, XrayResult};
 pub use model::{
   is_xray_proxy_type, Fingerprint, GrpcMode, HttpHeader, ParsedShareLink, RealitySettings,

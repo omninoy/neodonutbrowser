@@ -5399,5 +5399,51 @@
     "created": "{{count}} profil oluşturuldu",
     "createFailed": "Toplu oluşturma başarısız oldu: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nMağaza,pool-1,windows,iş|vip,Alıcı hesabı\nPosta,192.168.1.1:8000,macos,,Spam kontrolü\n\nJSON da olur: [{\"name\":\"Mağaza\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Abonelik Ekle",
+    "copied": "Bağlantı linki panoya kopyalandı",
+    "emptyTitle": "Eklenen abonelik yok",
+    "emptyDesc": "Sunucuları otomatik yüklemek için sağlayıcınızdan bir abonelik bağlantısı ekleyin (VLESS, Trojan, VMess, Hysteria2, SS veya Clash YAML).",
+    "nodesUnit": "düğüm",
+    "updated": "Güncellendi",
+    "neverUpdated": "Hiç güncellenmedi",
+    "available": "kullanılabilir",
+    "pingAllHint": "Yalnızca bu abonelikteki düğümlere ping at",
+    "pingBtn": "Ping",
+    "updateHint": "Aboneliği güncelle (yeni düğümleri al, eskileri kaldır)",
+    "updateBtn": "Güncelle",
+    "searchPlaceholder": "İsim, ülke, protokole göre ara...",
+    "noSearchMatches": "Eşleşen sunucu bulunamadı",
+    "noNodesInSub": "Bu abonelikte kullanılabilir sunucu yok",
+    "pingNode": "Bu düğüme ping at",
+    "copyUri": "URI Kopyala",
+    "useNode": "Seç",
+    "tabs": {
+      "subscriptions": "Abonelikler",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "VPN Aboneliği Ekle",
+      "editTitle": "Aboneliği Düzenle",
+      "desc": "Base64 bağlantıları, URI listesi (vless, vmess, trojan, hysteria2, ss, wg) ve Clash YAML desteklenir",
+      "nameLabel": "Abonelik Adı",
+      "urlLabel": "Abonelik URL'si",
+      "urlHint": "Kaydederken düğümler otomatik olarak indirilecek ve doğrulanacaktır.",
+      "autoUpdate": "Aboneliği otomatik güncelle",
+      "autoUpdateHint": "Periyodik olarak yeni düğümleri kontrol et ve eskileri kaldır",
+      "addButton": "Ekle"
+    },
+    "errors": {
+      "nameRequired": "Abonelik adı gereklidir",
+      "urlRequired": "Abonelik URL'si gereklidir",
+      "invalidUrl": "URL http:// veya https:// ile başlamalıdır"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Proxy Zincirini Etkinleştir (Relay)",
+    "enableHint": "Çıkış proxy'sine ulaşmadan önce bağlantıyı bir geçiş proxy'si üzerinden yönlendir",
+    "relayHop1": "Geçiş Proxy'si (Hop 1)",
+    "selectRelay": "Geçiş proxy'si seçin..."
   }
 }

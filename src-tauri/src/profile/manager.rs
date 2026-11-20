@@ -457,6 +457,7 @@ impl ProfileManager {
           browser: browser.to_string(),
           version: version.to_string(),
           proxy_id: proxy_id.clone(),
+          relay_proxy_id: None,
           // Carried, not None. Fingerprint generation reads this to decide
           // whether the profile routes its traffic at all; hardcoding None made
           // a VPN profile look direct, so its geolocation probe went out from
@@ -584,6 +585,7 @@ impl ProfileManager {
       browser: browser.to_string(),
       version: version.to_string(),
       proxy_id: proxy_id.clone(),
+      relay_proxy_id: None,
       vpn_id: vpn_id.clone(),
       launch_hook,
       process_id: None,
@@ -1809,6 +1811,7 @@ impl ProfileManager {
       browser: source.browser,
       version: source.version,
       proxy_id: source.proxy_id,
+      relay_proxy_id: source.relay_proxy_id,
       vpn_id: source.vpn_id,
       launch_hook: source.launch_hook,
       process_id: None,
@@ -2023,6 +2026,44 @@ impl ProfileManager {
     }
 
     // Emit general profiles changed event for profile list updates
+    if let Err(e) = events::emit_empty("profiles-changed") {
+      log::warn!("Event emit failed event=profiles-changed err=\"{e}\"");
+    }
+
+    Ok(profile)
+  }
+
+  pub async fn update_profile_relay_proxy(
+    &self,
+    _app_handle: tauri::AppHandle,
+    profile_id: &str,
+    relay_proxy_id: Option<String>,
+  ) -> Result<BrowserProfile, Box<dyn std::error::Error + Send + Sync>> {
+    let relay_proxy_id = normalize_network_id(relay_proxy_id);
+    let profile_uuid = uuid::Uuid::parse_str(profile_id).map_err(
+      |_| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Invalid profile ID: {profile_id}").into()
+      },
+    )?;
+    let mut profile = self
+      .lookup_profile(&profile_uuid)
+      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Failed to list profiles: {e}").into()
+      })?
+      .ok_or_else(|| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Profile with ID '{profile_id}' not found").into()
+      })?;
+
+    profile.relay_proxy_id = relay_proxy_id;
+    self
+      .save_profile(&profile)
+      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Failed to save profile: {e}").into()
+      })?;
+
+    if let Err(e) = events::emit("profile-updated", &profile) {
+      log::warn!("Event emit failed event=profile-updated err=\"{e}\"");
+    }
     if let Err(e) = events::emit_empty("profiles-changed") {
       log::warn!("Event emit failed event=profiles-changed err=\"{e}\"");
     }
@@ -2971,6 +3012,19 @@ pub async fn update_profile_proxy(
     .update_profile_proxy(app_handle, &profile_id, proxy_id)
     .await
     .map_err(|e| format!("Failed to update profile: {e}"))
+}
+
+#[tauri::command]
+pub async fn update_profile_relay_proxy(
+  app_handle: tauri::AppHandle,
+  profile_id: String,
+  relay_proxy_id: Option<String>,
+) -> Result<BrowserProfile, String> {
+  let profile_manager = ProfileManager::instance();
+  profile_manager
+    .update_profile_relay_proxy(app_handle, &profile_id, relay_proxy_id)
+    .await
+    .map_err(|e| format!("Failed to update profile relay proxy: {e}"))
 }
 
 #[tauri::command]

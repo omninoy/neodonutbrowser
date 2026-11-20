@@ -29,6 +29,8 @@ pub struct BrowserProfile {
   #[serde(default)]
   pub proxy_id: Option<String>, // Reference to stored proxy
   #[serde(default)]
+  pub relay_proxy_id: Option<String>, // Reference to relay proxy (Hop 1) for proxy chaining
+  #[serde(default)]
   pub vpn_id: Option<String>, // Reference to stored VPN config
   #[serde(default)]
   pub launch_hook: Option<String>,

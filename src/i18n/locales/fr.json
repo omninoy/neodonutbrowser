@@ -5455,5 +5455,51 @@
     "created": "{{count}} profils créés",
     "createFailed": "Échec de la création en masse : {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nBoutique,pool-1,windows,travail|vip,Compte acheteur\nMail,192.168.1.1:8000,macos,,Test anti-spam\n\nJSON accepté aussi : [{\"name\":\"Boutique\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Ajouter un abonnement",
+    "copied": "Lien de connexion copié dans le presse-papiers",
+    "emptyTitle": "Aucun abonnement ajouté",
+    "emptyDesc": "Ajoutez un lien d'abonnement de votre fournisseur (VLESS, Trojan, VMess, Hysteria2, SS ou Clash YAML) pour charger les serveurs automatiquement.",
+    "nodesUnit": "nœuds",
+    "updated": "Mis à jour",
+    "neverUpdated": "Jamais mis à jour",
+    "available": "disponible",
+    "pingAllHint": "Tester uniquement les nœuds de cet abonnement",
+    "pingBtn": "Ping",
+    "updateHint": "Mettre à jour l'abonnement (récupérer les nouveaux nœuds, supprimer les obsolètes)",
+    "updateBtn": "Mettre à jour",
+    "searchPlaceholder": "Rechercher par nom, pays, protocole...",
+    "noSearchMatches": "Aucun serveur correspondant trouvé",
+    "noNodesInSub": "Aucun serveur disponible dans cet abonnement",
+    "pingNode": "Tester ce nœud",
+    "copyUri": "Copier l'URI",
+    "useNode": "Sélectionner",
+    "tabs": {
+      "subscriptions": "Abonnements",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Ajouter un abonnement VPN",
+      "editTitle": "Modifier l'abonnement",
+      "desc": "Prend en charge les liens Base64, la liste d'URI (vless, vmess, trojan, hysteria2, ss, wg) et Clash YAML",
+      "nameLabel": "Nom de l'abonnement",
+      "urlLabel": "URL de l'abonnement",
+      "urlHint": "Les nœuds seront automatiquement téléchargés et vérifiés lors de l'enregistrement.",
+      "autoUpdate": "Mise à jour automatique de l'abonnement",
+      "autoUpdateHint": "Vérifier régulièrement les nouveaux nœuds et supprimer les obsolètes",
+      "addButton": "Ajouter"
+    },
+    "errors": {
+      "nameRequired": "Le nom de l'abonnement est requis",
+      "urlRequired": "L'URL de l'abonnement est requise",
+      "invalidUrl": "L'URL doit commencer par http:// ou https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Activer la chaîne de proxy (Relay)",
+    "enableHint": "Acheminer la connexion via un proxy relais avant d'atteindre le proxy de sortie",
+    "relayHop1": "Proxy relais (Saut 1)",
+    "selectRelay": "Sélectionner le proxy relais..."
   }
 }

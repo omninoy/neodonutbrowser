@@ -25,6 +25,7 @@ import {
   LuFolder,
   LuGlobe,
   LuLayoutTemplate,
+  LuLink,
   LuLoaderCircle,
   LuLock,
   LuLockOpen,
@@ -42,12 +43,14 @@ import {
 } from "@/components/create-profile-wait";
 import { DnsServerField } from "@/components/dns-server-field";
 import { EphemeralStorageNotice } from "@/components/ephemeral-storage-notice";
+import { FlagIcon } from "@/components/flag-icon";
 import { LoadingButton } from "@/components/loading-button";
 import { ProxyFormDialog } from "@/components/proxy-form-dialog";
 import {
   AnimatedDisclosureChevron,
   AnimatedDisclosureContent,
 } from "@/components/ui/animated-disclosure";
+import { AnimatedSwitch } from "@/components/ui/animated-switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,13 +93,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { WayfernConfigForm } from "@/components/wayfern-config-form";
-import { FlagIcon } from "@/components/flag-icon";
 import {
   getCachedVpnResult,
   loadAllCachedVpnChecks,
   useVpnCheckVersion,
 } from "@/components/vpn-check-button";
+import { WayfernConfigForm } from "@/components/wayfern-config-form";
 import { useBrowserDownload } from "@/hooks/use-browser-download";
 import { useGroupEvents } from "@/hooks/use-group-events";
 import { useMotionAllowed } from "@/hooks/use-motion-allowed";
@@ -163,6 +165,7 @@ interface CreateProfileDialogProps {
     version: string;
     releaseType: string;
     proxyId?: string;
+    relayProxyId?: string;
     vpnId?: string;
     wayfernConfig?: WayfernConfig;
     /** `null`: the person picked "No group". */
@@ -207,6 +210,9 @@ export function CreateProfileDialog({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedProxyId, setSelectedProxyId] = useState<string>();
   const [proxyPopoverOpen, setProxyPopoverOpen] = useState(false);
+  const [isProxyChain, setIsProxyChain] = useState(false);
+  const [selectedRelayProxyId, setSelectedRelayProxyId] = useState<string>();
+  const [relayPopoverOpen, setRelayPopoverOpen] = useState(false);
   const [morePopoverOpen, setMorePopoverOpen] = useState(false);
   // Where the new profiles go: the group the list shows, until changed.
   const [destinationGroupId, setDestinationGroupId] = useState<string | null>(
@@ -353,6 +359,7 @@ export function CreateProfileDialog({
   }, [isOpen]);
 
   const sortedProxies = useMemo(() => {
+    void proxyCheckVersion;
     return [...storedProxies].sort((a, b) => {
       const resA = getCachedProxyResult(a.id);
       const resB = getCachedProxyResult(b.id);
@@ -370,6 +377,7 @@ export function CreateProfileDialog({
   }, [storedProxies, proxyCheckVersion]);
 
   const sortedVpns = useMemo(() => {
+    void vpnCheckVersion;
     return [...vpnConfigs].sort((a, b) => {
       const resA = getCachedVpnResult(a.id);
       const resB = getCachedVpnResult(b.id);
@@ -485,10 +493,10 @@ export function CreateProfileDialog({
     : null;
   const selectedCountryCode = selectedProxy
     ? (selectedProxyResult?.country_code ??
-       extractCountryCode(selectedProxy.geo_country, selectedProxy.name))
+      extractCountryCode(selectedProxy.geo_country, selectedProxy.name))
     : selectedVpn
       ? (getCachedVpnResult(selectedVpn.id)?.country_code ??
-         extractCountryCode(undefined, selectedVpn.name))
+        extractCountryCode(undefined, selectedVpn.name))
       : undefined;
   const proxyLabel = selectedVpn
     ? `WG — ${selectedVpn.name}`
@@ -730,6 +738,7 @@ export function CreateProfileDialog({
         version: creatableVersion,
         releaseType: "stable",
         proxyId: isVpnSelection ? undefined : selectedProxyId,
+        relayProxyId: isProxyChain ? selectedRelayProxyId : undefined,
         vpnId: isVpnSelection ? selectedProxyId?.slice(4) : undefined,
         wayfernConfig,
         groupId: groupIdForCreate,
@@ -1220,6 +1229,119 @@ export function CreateProfileDialog({
                 </Command>
               </PopoverContent>
             </Popover>
+
+            {selectedProxyId && (
+              <div className="flex flex-col gap-2 p-3 mt-1 rounded-lg border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="enable-proxy-chain"
+                      className="text-xs font-medium cursor-pointer"
+                    >
+                      {t(
+                        "proxyChain.enableToggle",
+                        "Цепочка прокси (Proxy Chain)",
+                      )}
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t(
+                        "proxyChain.enableHint",
+                        "Маршрутизировать трафик через промежуточный узел (Hop 1 -> Hop 2)",
+                      )}
+                    </p>
+                  </div>
+                  <AnimatedSwitch
+                    id="enable-proxy-chain"
+                    checked={isProxyChain}
+                    onCheckedChange={setIsProxyChain}
+                    disabled={isCreating}
+                  />
+                </div>
+
+                {isProxyChain && (
+                  <div className="pt-2 border-t space-y-1.5">
+                    <Label className="text-[11px] font-medium text-muted-foreground">
+                      {t(
+                        "proxyChain.relayHop1",
+                        "Входной узел (Hop 1 / Relay)",
+                      )}
+                    </Label>
+                    <Popover
+                      open={relayPopoverOpen}
+                      onOpenChange={setRelayPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            optionPill(!!selectedRelayProxyId),
+                            "w-full justify-between text-xs h-9",
+                          )}
+                          disabled={isCreating}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <LuLink className="size-3.5 text-muted-foreground" />
+                            <span className="truncate">
+                              {sortedProxies.find(
+                                (p) => p.id === selectedRelayProxyId,
+                              )?.name ??
+                                t(
+                                  "proxyChain.selectRelay",
+                                  "Выберите промежуточный прокси",
+                                )}
+                            </span>
+                          </div>
+                          <LuChevronDown className="size-3.5 opacity-60" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-80 p-0"
+                        align="start"
+                        sideOffset={6}
+                      >
+                        <Command>
+                          <CommandInput
+                            placeholder={t("createProfile.proxy.search")}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {t("createProfile.proxy.notFound")}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {sortedProxies
+                                .filter((p) => p.id !== selectedProxyId)
+                                .map((proxy) => (
+                                  <CommandItem
+                                    key={proxy.id}
+                                    value={proxy.id}
+                                    onSelect={() => {
+                                      setSelectedRelayProxyId(proxy.id);
+                                      setRelayPopoverOpen(false);
+                                    }}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <LuCheck
+                                      className={cn(
+                                        "size-3.5 shrink-0",
+                                        selectedRelayProxyId === proxy.id
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span className="truncate">
+                                      {proxy.name}
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+            )}
 
             <OptionToggle
               id="enable-password"

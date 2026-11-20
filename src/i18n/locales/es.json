@@ -5455,5 +5455,51 @@
     "created": "{{count}} perfiles creados",
     "createFailed": "La creación masiva falló: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nTienda,pool-1,windows,trabajo|vip,Cuenta de comprador\nCorreo,192.168.1.1:8000,macos,,Prueba de spam\n\nJSON también sirve: [{\"name\":\"Tienda\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Agregar suscripción",
+    "copied": "Enlace de conexión copiado al portapapeles",
+    "emptyTitle": "No hay suscripciones añadidas",
+    "emptyDesc": "Agregue un enlace de suscripción de su proveedor (VLESS, Trojan, VMess, Hysteria2, SS o Clash YAML) para cargar servidores automáticamente.",
+    "nodesUnit": "nodos",
+    "updated": "Actualizado",
+    "neverUpdated": "Nunca actualizado",
+    "available": "disponible",
+    "pingAllHint": "Hacer ping solo a los nodos de esta suscripción",
+    "pingBtn": "Ping",
+    "updateHint": "Actualizar suscripción (obtener nuevos nodos, eliminar obsoletos)",
+    "updateBtn": "Actualizar",
+    "searchPlaceholder": "Buscar por nombre, país, protocolo...",
+    "noSearchMatches": "No se encontraron servidores coincidentes",
+    "noNodesInSub": "No hay servidores disponibles en esta suscripción",
+    "pingNode": "Hacer ping a este nodo",
+    "copyUri": "Copiar URI",
+    "useNode": "Seleccionar",
+    "tabs": {
+      "subscriptions": "Suscripciones",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Agregar suscripción VPN",
+      "editTitle": "Editar suscripción",
+      "desc": "Soporta enlaces Base64, lista URI (vless, vmess, trojan, hysteria2, ss, wg) y Clash YAML",
+      "nameLabel": "Nombre de la suscripción",
+      "urlLabel": "URL de la suscripción",
+      "urlHint": "Los nodos se descargarán y verificarán automáticamente al guardar.",
+      "autoUpdate": "Actualizar suscripción automáticamente",
+      "autoUpdateHint": "Comprobar periódicamente nuevos nodos y eliminar los obsoletos",
+      "addButton": "Agregar"
+    },
+    "errors": {
+      "nameRequired": "El nombre de la suscripción es obligatorio",
+      "urlRequired": "La URL de la suscripción es obligatoria",
+      "invalidUrl": "La URL debe comenzar con http:// o https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Habilitar cadena de proxies (Relay)",
+    "enableHint": "Enrutar conexión a través de un proxy intermedio antes del proxy de salida",
+    "relayHop1": "Proxy de retransmisión (Salto 1)",
+    "selectRelay": "Seleccionar proxy de retransmisión..."
   }
 }

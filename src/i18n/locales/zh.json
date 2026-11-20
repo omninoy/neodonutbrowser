@@ -5399,5 +5399,51 @@
     "created": "已创建 {{count}} 个配置文件",
     "createFailed": "批量创建失败：{{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\n商店,pool-1,windows,工作|vip,买家账号\n邮箱,192.168.1.1:8000,macos,,垃圾邮件检查\n\n也支持 JSON：[{\"name\":\"商店\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "添加订阅",
+    "copied": "连接链接已复制到剪贴板",
+    "emptyTitle": "尚未添加订阅",
+    "emptyDesc": "添加来自提供商的订阅链接（VLESS、Trojan、VMess、Hysteria2、SS 或 Clash YAML）以自动加载服务器。",
+    "nodesUnit": "节点",
+    "updated": "已更新",
+    "neverUpdated": "从未更新",
+    "available": "可用",
+    "pingAllHint": "仅对该订阅中的节点进行 Ping 测试",
+    "pingBtn": "Ping",
+    "updateHint": "更新订阅（获取新节点，移除失效节点）",
+    "updateBtn": "更新",
+    "searchPlaceholder": "按名称、国家、协议搜索...",
+    "noSearchMatches": "未找到匹配的服务器",
+    "noNodesInSub": "此订阅中暂无可用服务器",
+    "pingNode": "测试此节点",
+    "copyUri": "复制 URI",
+    "useNode": "选择",
+    "tabs": {
+      "subscriptions": "订阅",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "添加 VPN 订阅",
+      "editTitle": "编辑订阅",
+      "desc": "支持 Base64 链接、URI 列表（vless、vmess、trojan、hysteria2、ss、wg）及 Clash YAML",
+      "nameLabel": "订阅名称",
+      "urlLabel": "订阅 URL",
+      "urlHint": "保存时将自动下载并验证节点。",
+      "autoUpdate": "自动更新订阅",
+      "autoUpdateHint": "定期检查新节点并清理失效节点",
+      "addButton": "添加"
+    },
+    "errors": {
+      "nameRequired": "订阅名称为必填项",
+      "urlRequired": "订阅 URL 为必填项",
+      "invalidUrl": "URL 必须以 http:// 或 https:// 开头"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "启用代理链 (Relay)",
+    "enableHint": "在到达出口代理之前先经过中继代理转发",
+    "relayHop1": "中继代理 (第一跳)",
+    "selectRelay": "选择中继代理..."
   }
 }

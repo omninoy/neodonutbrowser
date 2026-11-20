@@ -2,7 +2,7 @@ use crate::proxy_runner::find_sidecar_executable;
 #[cfg(unix)]
 use crate::proxy_storage::is_process_running;
 use crate::proxy_storage::{process_identity_matches, resolve_process_start_time};
-use crate::xray::{build_client_config_json, parse_share_link, XrayClientRuntime};
+use crate::xray::{build_client_config_json_with_relay, parse_share_link, XrayClientRuntime};
 use crate::xray_worker_storage::{
   create_xray_worker_log, delete_xray_worker_config, generate_xray_worker_id,
   get_xray_worker_config, get_xray_worker_config_from_path, list_xray_worker_configs,
@@ -178,7 +178,15 @@ pub async fn start_xray_worker(
   profile_id: Option<&str>,
   vless_uri: &str,
 ) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
-  start_xray_worker_for_owner(profile_id, vless_uri, std::process::id()).await
+  start_xray_worker_with_relay(profile_id, vless_uri, None).await
+}
+
+pub async fn start_xray_worker_with_relay(
+  profile_id: Option<&str>,
+  vless_uri: &str,
+  relay_uri: Option<&str>,
+) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
+  start_xray_worker_for_owner_with_relay(profile_id, vless_uri, relay_uri, std::process::id()).await
 }
 
 /// Starts a worker that lives until `owner_pid` exits, or until it is stopped
@@ -190,9 +198,23 @@ pub async fn start_xray_worker_for_owner(
   vless_uri: &str,
   owner_pid: u32,
 ) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
+  start_xray_worker_for_owner_with_relay(profile_id, vless_uri, None, owner_pid).await
+}
+
+pub async fn start_xray_worker_for_owner_with_relay(
+  profile_id: Option<&str>,
+  vless_uri: &str,
+  relay_uri: Option<&str>,
+  owner_pid: u32,
+) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
   let _start_guard = XRAY_START_LOCK.lock().await;
   parse_share_link(vless_uri)
     .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
+  if let Some(relay) = relay_uri {
+    parse_share_link(relay).map_err(|error| -> Box<dyn std::error::Error> {
+      crate::vless_config_error(&error).into()
+    })?;
+  }
   crate::proxy_runner::ensure_sidecar_version().await?;
   ensure_xray_binary()?;
   let owner_start_time =
@@ -217,6 +239,7 @@ pub async fn start_xray_worker_for_owner(
     for mut existing in workers {
       let candidate = reusable.is_none()
         && existing.vless_uri == vless_uri
+        && existing.relay_uri.as_deref() == relay_uri
         && existing
           .pid
           .is_some_and(|pid| process_identity_matches(pid, existing.pid_start_time))
@@ -238,7 +261,15 @@ pub async fn start_xray_worker_for_owner(
 
   let mut last_error = None;
   for attempt in 1..=3 {
-    match spawn_xray_worker(profile_id, vless_uri, owner_pid, owner_start_time).await {
+    match spawn_xray_worker(
+      profile_id,
+      vless_uri,
+      relay_uri,
+      owner_pid,
+      owner_start_time,
+    )
+    .await
+    {
       Ok(worker) => return Ok(worker),
       Err(error) => {
         log::debug!("Xray worker start attempt failed attempt={attempt}/3 err=\"{error}\"");
@@ -256,6 +287,7 @@ pub async fn start_xray_worker_for_owner(
 async fn spawn_xray_worker(
   profile_id: Option<&str>,
   vless_uri: &str,
+  relay_uri: Option<&str>,
   owner_pid: u32,
   owner_start_time: u64,
 ) -> Result<XrayWorkerConfig, Box<dyn std::error::Error>> {
@@ -285,6 +317,7 @@ async fn spawn_xray_worker(
     username,
     password,
   );
+  config.relay_uri = relay_uri.map(str::to_string);
   config.browser_pid = Some(owner_pid);
   config.browser_pid_start_time = Some(owner_start_time);
   save_xray_worker_config(&config)
@@ -575,13 +608,26 @@ pub async fn run_xray_worker(config_path: &Path) -> Result<(), Box<dyn std::erro
     .map_err(|error| structured_error_with_detail("XRAY_START_FAILED", error))?;
   let parsed = parse_share_link(&config.vless_uri)
     .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
+  let parsed_relay = if let Some(relay_uri) = &config.relay_uri {
+    Some(
+      parse_share_link(relay_uri).map_err(|error| -> Box<dyn std::error::Error> {
+        crate::vless_config_error(&error).into()
+      })?,
+    )
+  } else {
+    None
+  };
   let runtime = XrayClientRuntime {
     listen_port: config.local_port,
     username: config.username.clone(),
     password: config.password.clone(),
   };
-  let runtime_json = build_client_config_json(&parsed.config, &runtime)
-    .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
+  let runtime_json = build_client_config_json_with_relay(
+    &parsed.config,
+    &runtime,
+    parsed_relay.as_ref().map(|p| &p.config),
+  )
+  .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?;
   write_xray_runtime_config(&config.id, runtime_json.as_bytes())
     .map_err(|error| structured_error_with_detail("XRAY_START_FAILED", error))?;
   let runtime_path = crate::xray_worker_storage::xray_runtime_config_path(&config.id);

@@ -5399,5 +5399,51 @@
     "created": "프로필 {{count}}개 생성됨",
     "createFailed": "일괄 생성 실패: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\n쇼핑,pool-1,windows,업무|vip,구매자 계정\n메일,192.168.1.1:8000,macos,,스팸 확인\n\nJSON도 됩니다: [{\"name\":\"쇼핑\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "구독 추가",
+    "copied": "연결 링크가 클립보드에 복사되었습니다",
+    "emptyTitle": "추가된 구독이 없습니다",
+    "emptyDesc": "제공업체의 구독 링크(VLESS, Trojan, VMess, Hysteria2, SS 또는 Clash YAML)를 추가하여 서버를 자동으로 불러오세요.",
+    "nodesUnit": "노드",
+    "updated": "업데이트됨",
+    "neverUpdated": "업데이트 안 됨",
+    "available": "사용 가능",
+    "pingAllHint": "이 구독의 노드만 핑 테스트",
+    "pingBtn": "핑",
+    "updateHint": "구독 업데이트 (새 노드 가져오기 및 오래된 노드 제거)",
+    "updateBtn": "업데이트",
+    "searchPlaceholder": "이름, 국가, 프로토콜로 검색...",
+    "noSearchMatches": "일치하는 서버가 없습니다",
+    "noNodesInSub": "사용 가능한 서버가 없습니다",
+    "pingNode": "노드 핑 테스트",
+    "copyUri": "URI 복사",
+    "useNode": "선택",
+    "tabs": {
+      "subscriptions": "구독",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "VPN 구독 추가",
+      "editTitle": "구독 수정",
+      "desc": "Base64 링크, URI 목록(vless, vmess, trojan, hysteria2, ss, wg) 및 Clash YAML 지원",
+      "nameLabel": "구독 이름",
+      "urlLabel": "구독 URL",
+      "urlHint": "저장 시 노드가 자동으로 다운로드되고 확인됩니다.",
+      "autoUpdate": "구독 자동 업데이트",
+      "autoUpdateHint": "주기적으로 새 노드를 확인하고 만료된 노드를 제거합니다",
+      "addButton": "추가"
+    },
+    "errors": {
+      "nameRequired": "구독 이름은 필수입니다",
+      "urlRequired": "구독 URL은 필수입니다",
+      "invalidUrl": "URL은 http:// 또는 https://로 시작해야 합니다"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "프록시 체인(릴레이) 활성화",
+    "enableHint": "출구 프록시에 도달하기 전에 릴레이 프록시를 통해 라우팅",
+    "relayHop1": "릴레이 프록시 (홉 1)",
+    "selectRelay": "릴레이 프록시 선택..."
   }
 }

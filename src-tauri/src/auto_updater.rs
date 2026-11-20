@@ -719,6 +719,7 @@ mod tests {
       version: version.to_string(),
       process_id: None,
       proxy_id: None,
+      relay_proxy_id: None,
       vpn_id: None,
       launch_hook: None,
       last_launch: None,

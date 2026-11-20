@@ -5399,5 +5399,51 @@
     "created": "Đã tạo {{count}} hồ sơ",
     "createFailed": "Tạo hàng loạt thất bại: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nCửa hàng,pool-1,windows,công việc|vip,Tài khoản người mua\nThư,192.168.1.1:8000,macos,,Kiểm tra spam\n\nJSON cũng được: [{\"name\":\"Cửa hàng\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Thêm gói đăng ký",
+    "copied": "Đã sao chép liên kết kết nối vào khay nhớ tạm",
+    "emptyTitle": "Chưa có gói đăng ký nào",
+    "emptyDesc": "Thêm liên kết đăng ký từ nhà cung cấp của bạn (VLESS, Trojan, VMess, Hysteria2, SS hoặc Clash YAML) để tự động tải máy chủ.",
+    "nodesUnit": "máy chủ",
+    "updated": "Đã cập nhật",
+    "neverUpdated": "Chưa cập nhật",
+    "available": "khả dụng",
+    "pingAllHint": "Chỉ kiểm tra ping các máy chủ trong gói đăng ký này",
+    "pingBtn": "Ping",
+    "updateHint": "Cập nhật gói đăng ký (tải máy chủ mới, xóa máy chủ cũ)",
+    "updateBtn": "Cập nhật",
+    "searchPlaceholder": "Tìm kiếm theo tên, quốc gia, giao thức...",
+    "noSearchMatches": "Không tìm thấy máy chủ phù hợp",
+    "noNodesInSub": "Không có máy chủ khả dụng trong gói đăng ký này",
+    "pingNode": "Kiểm tra ping máy chủ này",
+    "copyUri": "Sao chép URI",
+    "useNode": "Chọn",
+    "tabs": {
+      "subscriptions": "Gói đăng ký",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Thêm gói đăng ký VPN",
+      "editTitle": "Chỉnh sửa gói đăng ký",
+      "desc": "Hỗ trợ liên kết Base64, danh sách URI (vless, vmess, trojan, hysteria2, ss, wg) và Clash YAML",
+      "nameLabel": "Tên gói đăng ký",
+      "urlLabel": "URL gói đăng ký",
+      "urlHint": "Máy chủ sẽ được tự động tải xuống và xác minh khi lưu.",
+      "autoUpdate": "Tự động cập nhật gói đăng ký",
+      "autoUpdateHint": "Định kỳ kiểm tra các máy chủ mới và loại bỏ các máy chủ không còn hoạt động",
+      "addButton": "Thêm"
+    },
+    "errors": {
+      "nameRequired": "Tên gói đăng ký là bắt buộc",
+      "urlRequired": "URL gói đăng ký là bắt buộc",
+      "invalidUrl": "URL phải bắt đầu bằng http:// hoặc https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Bật chuỗi proxy (Relay)",
+    "enableHint": "Định tuyến kết nối qua proxy trung gian trước khi đến proxy đích",
+    "relayHop1": "Proxy trung gian (Hop 1)",
+    "selectRelay": "Chọn proxy trung gian..."
   }
 }

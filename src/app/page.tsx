@@ -1372,6 +1372,7 @@ export default function Home() {
       version: string;
       releaseType: string;
       proxyId?: string;
+      relayProxyId?: string;
       vpnId?: string;
       wayfernConfig?: WayfernConfig;
       /** `null`: the person picked "No group" in the create dialog. */
@@ -1409,6 +1410,17 @@ export default function Home() {
             startUrls: profileData.startUrls,
           },
         );
+
+        if (profileData.relayProxyId) {
+          try {
+            await invoke("update_profile_relay_proxy", {
+              profileId: profile.id,
+              relayProxyId: profileData.relayProxyId,
+            });
+          } catch (err) {
+            console.error("Failed to set relay proxy:", err);
+          }
+        }
 
         if (profileData.extensionGroupId) {
           try {

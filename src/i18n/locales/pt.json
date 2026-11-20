@@ -5455,5 +5455,51 @@
     "created": "{{count}} perfis criados",
     "createFailed": "A criação em massa falhou: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nLoja,pool-1,windows,trabalho|vip,Conta de comprador\nCorreio,192.168.1.1:8000,macos,,Teste de spam\n\nJSON também serve: [{\"name\":\"Loja\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Adicionar assinatura",
+    "copied": "Link de conexão copiado para a área de transferência",
+    "emptyTitle": "Nenhuma assinatura adicionada",
+    "emptyDesc": "Adicione um link de assinatura do seu provedor (VLESS, Trojan, VMess, Hysteria2, SS ou Clash YAML) para carregar servidores automaticamente.",
+    "nodesUnit": "nós",
+    "updated": "Atualizado",
+    "neverUpdated": "Nunca atualizado",
+    "available": "disponível",
+    "pingAllHint": "Testar apenas os nós desta assinatura",
+    "pingBtn": "Ping",
+    "updateHint": "Atualizar assinatura (buscar novos nós, remover obsoletos)",
+    "updateBtn": "Atualizar",
+    "searchPlaceholder": "Pesquisar por nome, país, protocolo...",
+    "noSearchMatches": "Nenhum servidor encontrado",
+    "noNodesInSub": "Nenhum servidor disponível nesta assinatura",
+    "pingNode": "Testar este nó",
+    "copyUri": "Copiar URI",
+    "useNode": "Selecionar",
+    "tabs": {
+      "subscriptions": "Assinaturas",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Adicionar assinatura VPN",
+      "editTitle": "Editar assinatura",
+      "desc": "Suporta links Base64, lista de URIs (vless, vmess, trojan, hysteria2, ss, wg) e Clash YAML",
+      "nameLabel": "Nome da assinatura",
+      "urlLabel": "URL da assinatura",
+      "urlHint": "Os nós serão baixados e verificados automaticamente ao salvar.",
+      "autoUpdate": "Atualização automática da assinatura",
+      "autoUpdateHint": "Verificar periodicamente novos nós e remover os obsoletos",
+      "addButton": "Adicionar"
+    },
+    "errors": {
+      "nameRequired": "O nome da assinatura é obrigatório",
+      "urlRequired": "A URL da assinatura é obrigatória",
+      "invalidUrl": "A URL deve começar com http:// ou https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Ativar cadeia de proxies (Relay)",
+    "enableHint": "Roteie a conexão por meio de um proxy relay antes de alcançar o proxy de saída",
+    "relayHop1": "Proxy de retransmissão (Salto 1)",
+    "selectRelay": "Selecionar proxy de retransmissão..."
   }
 }

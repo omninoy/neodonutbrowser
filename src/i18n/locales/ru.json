@@ -5515,5 +5515,51 @@
     "created": "Создано профилей: {{count}}",
     "createFailed": "Массовое создание не удалось: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nМагазин,pool-1,windows,работа|vip,Аккаунт покупателя\nПочта,192.168.1.1:8000,macos,,Проверка почты\n\nПодойдёт и JSON: [{\"name\":\"Магазин\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Добавить подписку",
+    "copied": "Ссылка на подключение скопирована",
+    "emptyTitle": "Нет добавленных подписок",
+    "emptyDesc": "Добавьте ссылку на подписку от вашего провайдера (VLESS, Trojan, VMess, Hysteria2, SS или Clash YAML), чтобы автоматически загрузить серверы.",
+    "nodesUnit": "серверов",
+    "updated": "Обновлено",
+    "neverUpdated": "Не обновлялось",
+    "available": "доступно",
+    "pingAllHint": "Пинговать только узлы этой подписки",
+    "pingBtn": "Пинг",
+    "updateHint": "Обновить подписку (загрузить новые, удалить старые)",
+    "updateBtn": "Обновить",
+    "searchPlaceholder": "Поиск по названию, стране, протоколу...",
+    "noSearchMatches": "Ничего не найдено по запросу",
+    "noNodesInSub": "Нет доступных серверов в подписке",
+    "pingNode": "Проверить пинг узла",
+    "copyUri": "Копировать URI",
+    "useNode": "Выбрать",
+    "tabs": {
+      "subscriptions": "Подписки",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Добавить подписку VPN",
+      "editTitle": "Редактировать подписку",
+      "desc": "Поддерживаются ссылки Base64, список URI (vless, vmess, trojan, hysteria2, ss, wg) и Clash YAML",
+      "nameLabel": "Название подписки",
+      "urlLabel": "URL подписки",
+      "urlHint": "При сохранении узлы будут автоматически загружены и проверены.",
+      "autoUpdate": "Автообновление подписки",
+      "autoUpdateHint": "Периодически проверять наличие новых узлов и удалять устаревшие",
+      "addButton": "Добавить"
+    },
+    "errors": {
+      "nameRequired": "Укажите название подписки",
+      "urlRequired": "Укажите URL подписки",
+      "invalidUrl": "URL должен начинаться с http:// или https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Использовать цепочку прокси (Relay)",
+    "enableHint": "Маршрутизировать трафик через промежуточный прокси перед выходом",
+    "relayHop1": "Промежуточный прокси (Хоп 1)",
+    "selectRelay": "Выберите промежуточный прокси..."
   }
 }

@@ -5399,5 +5399,51 @@
     "created": "{{count}} Profile erstellt",
     "createFailed": "Massenerstellung fehlgeschlagen: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nShop,pool-1,windows,arbeit|vip,Käuferkonto\nPost,192.168.1.1:8000,macos,,Spamprüfung\n\nJSON geht auch: [{\"name\":\"Shop\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Abonnement hinzufügen",
+    "copied": "Verbindungslink in die Zwischenablage kopiert",
+    "emptyTitle": "Keine Abonnements hinzugefügt",
+    "emptyDesc": "Fügen Sie einen Abonnement-Link von Ihrem Anbieter hinzu (VLESS, Trojan, VMess, Hysteria2, SS oder Clash YAML), um Server automatisch zu laden.",
+    "nodesUnit": "Knoten",
+    "updated": "Aktualisiert",
+    "neverUpdated": "Nie aktualisiert",
+    "available": "verfügbar",
+    "pingAllHint": "Nur die Knoten dieses Abonnements anpingen",
+    "pingBtn": "Ping",
+    "updateHint": "Abonnement aktualisieren (neue Knoten abrufen, veraltete entfernen)",
+    "updateBtn": "Aktualisieren",
+    "searchPlaceholder": "Nach Name, Land, Protokoll suchen...",
+    "noSearchMatches": "Keine Server gefunden",
+    "noNodesInSub": "Keine verfügbaren Server in diesem Abonnement",
+    "pingNode": "Knoten anpingen",
+    "copyUri": "URI kopieren",
+    "useNode": "Auswählen",
+    "tabs": {
+      "subscriptions": "Abonnements",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "VPN-Abonnement hinzufügen",
+      "editTitle": "Abonnement bearbeiten",
+      "desc": "Unterstützt Base64-Links, URI-Listen (vless, vmess, trojan, hysteria2, ss, wg) und Clash YAML",
+      "nameLabel": "Name des Abonnements",
+      "urlLabel": "Abonnement-URL",
+      "urlHint": "Knoten werden beim Speichern automatisch heruntergeladen und überprüft.",
+      "autoUpdate": "Abonnement automatisch aktualisieren",
+      "autoUpdateHint": "Regelmäßig nach neuen Knoten suchen und veraltete entfernen",
+      "addButton": "Hinzufügen"
+    },
+    "errors": {
+      "nameRequired": "Abonnementname ist erforderlich",
+      "urlRequired": "Abonnement-URL ist erforderlich",
+      "invalidUrl": "URL muss mit http:// oder https:// beginnen"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Proxy-Kette aktivieren (Relay)",
+    "enableHint": "Verbindung über einen Relay-Proxy leiten, bevor der Exit-Proxy erreicht wird",
+    "relayHop1": "Relay-Proxy (Hop 1)",
+    "selectRelay": "Relay-Proxy auswählen..."
   }
 }

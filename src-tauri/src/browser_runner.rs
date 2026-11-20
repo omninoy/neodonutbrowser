@@ -497,12 +497,25 @@ impl BrowserRunner {
           .as_ref()
           .and_then(|proxy| proxy.vless_uri.as_deref())
           .ok_or_else(|| crate::backend_error("VLESS_CONFIG_INVALID"))?;
-        let worker =
-          crate::xray_worker_runner::start_xray_worker(Some(&profile.id.to_string()), vless_uri)
+        let relay_proxy = if let Some(relay_id) = &profile.relay_proxy_id {
+          self
+            .resolve_proxy_with_refresh(Some(relay_id), Some(&profile.id.to_string()))
             .await
-            .map_err(|error| -> Box<dyn std::error::Error + Send + Sync> {
-              error.to_string().into()
-            })?;
+            .ok()
+            .flatten()
+        } else {
+          None
+        };
+        let relay_uri = relay_proxy.as_ref().and_then(|p| p.vless_uri.as_deref());
+        let worker = crate::xray_worker_runner::start_xray_worker_with_relay(
+          Some(&profile.id.to_string()),
+          vless_uri,
+          relay_uri,
+        )
+        .await
+        .map_err(|error| -> Box<dyn std::error::Error + Send + Sync> {
+          error.to_string().into()
+        })?;
         xray_launch_guard.worker_id = Some(worker.id.clone());
         upstream_proxy = Some(worker.local_proxy_settings());
       }

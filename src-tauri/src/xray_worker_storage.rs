@@ -13,6 +13,8 @@ pub struct XrayWorkerConfig {
   pub id: String,
   pub profile_id: Option<String>,
   pub vless_uri: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub relay_uri: Option<String>,
   pub local_port: u16,
   pub username: String,
   pub password: String,
@@ -45,6 +47,7 @@ impl XrayWorkerConfig {
       id,
       profile_id,
       vless_uri,
+      relay_uri: None,
       local_port,
       username,
       password,

@@ -5399,5 +5399,51 @@
     "created": "{{count}} 個のプロファイルを作成しました",
     "createFailed": "一括作成に失敗しました：{{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nショップ,pool-1,windows,仕事|vip,購入者アカウント\nメール,192.168.1.1:8000,macos,,スパム確認\n\nJSON も使えます: [{\"name\":\"ショップ\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "サブスクリプションを追加",
+    "copied": "接続リンクをクリップボードにコピーしました",
+    "emptyTitle": "サブスクリプションがありません",
+    "emptyDesc": "プロバイダーのサブスクリプションリンク（VLESS、Trojan、VMess、Hysteria2、SSまたはClash YAML）を追加して、サーバーを自動的に読み込みます。",
+    "nodesUnit": "ノード",
+    "updated": "更新済み",
+    "neverUpdated": "未更新",
+    "available": "利用可能",
+    "pingAllHint": "このサブスクリプションのノードのみPing確認",
+    "pingBtn": "Ping",
+    "updateHint": "サブスクリプションを更新（新しいノードを取得、古いノードを削除）",
+    "updateBtn": "更新",
+    "searchPlaceholder": "名前、国、プロトコルで検索...",
+    "noSearchMatches": "一致するサーバーが見つかりません",
+    "noNodesInSub": "利用可能なサーバーがありません",
+    "pingNode": "このノードをPing確認",
+    "copyUri": "URIをコピー",
+    "useNode": "選択",
+    "tabs": {
+      "subscriptions": "サブスクリプション",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "VPNサブスクリプションを追加",
+      "editTitle": "サブスクリプションを編集",
+      "desc": "Base64リンク、URIリスト（vless、vmess、trojan、hysteria2、ss、wg）およびClash YAMLに対応",
+      "nameLabel": "サブスクリプション名",
+      "urlLabel": "サブスクリプションURL",
+      "urlHint": "保存時にノードが自動的にダウンロードされ検証されます。",
+      "autoUpdate": "サブスクリプションの自動更新",
+      "autoUpdateHint": "定期的に新しいノードを確認し、無効なノードを削除します",
+      "addButton": "追加"
+    },
+    "errors": {
+      "nameRequired": "サブスクリプション名は必須です",
+      "urlRequired": "サブスクリプションURLは必須です",
+      "invalidUrl": "URLは http:// または https:// で始まる必要があります"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "プロキシチェーン（リレー）を有効化",
+    "enableHint": "出口プロキシに到達する前に中継プロキシ経由でルーティングします",
+    "relayHop1": "中継プロキシ（ホップ1）",
+    "selectRelay": "中継プロキシを選択..."
   }
 }

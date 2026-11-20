@@ -19,6 +19,7 @@ import {
   LuPlus,
   LuRefreshCcwDot,
   LuRefreshCw,
+  LuRss,
   LuShieldCheck,
   LuTrash2,
   LuUpload,
@@ -72,10 +73,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { VpnSubscriptionAccordion } from "@/components/vpn-subscription-accordion";
+import { VpnSubscriptionDialog } from "@/components/vpn-subscription-dialog";
 import { useProfileReferences } from "@/hooks/use-profile-references";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useEntityTrash } from "@/hooks/use-trash-events";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
+import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { parseBackendError, translateBackendError } from "@/lib/backend-errors";
 import {
   getCachedProxyResult,
@@ -136,6 +140,11 @@ export function ProxyManagementDialog({
   // VPN state
   const [showVpnForm, setShowVpnForm] = useState(false);
   const [showVpnImportDialog, setShowVpnImportDialog] = useState(false);
+  const [showVpnSubDialog, setShowVpnSubDialog] = useState(false);
+  const [vpnSubTab, setVpnSubTab] = useState<"subscriptions" | "wireguard">(
+    "subscriptions",
+  );
+  const { subscriptions } = useVpnSubscriptions();
   const [editingVpn, setEditingVpn] = useState<VpnConfig | null>(null);
   const [vpnToDelete, setVpnToDelete] = useState<VpnConfig | null>(null);
   const [isDeletingVpn, setIsDeletingVpn] = useState(false);
@@ -1281,6 +1290,13 @@ export function ProxyManagementDialog({
                         onClick={handleCreateProxy}
                       />
                     </>
+                  ) : vpnSubTab === "subscriptions" ? (
+                    <PageAction
+                      primary
+                      icon={<LuRss className="size-4" />}
+                      label={t("vpnSubscriptions.addBtn", "Добавить подписку")}
+                      onClick={() => setShowVpnSubDialog(true)}
+                    />
                   ) : (
                     <>
                       <PageAction
@@ -1352,40 +1368,74 @@ export function ProxyManagementDialog({
                 forceMount
                 className="mt-4 min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
               >
-                {(hasOpenedVpns || activeTab === "vpns") && (
-                  <ManagedDataTable
-                    table={vpnsTable}
-                    tools={vpnsTableTools}
-                    loading={isLoadingVpns}
-                    empty={
-                      <EntityEmptyState
-                        entity="vpns"
-                        icon={LuShieldCheck}
-                        title={t("entities.empty.vpns.title")}
-                        description={t("entities.empty.vpns.body")}
-                      >
-                        <RippleButton
-                          size="sm"
-                          className="gap-2"
-                          onClick={handleCreateVpn}
+                {/* Sub-tab navigation between Subscriptions and WireGuard */}
+                <div className="flex items-center gap-2 mb-3 shrink-0">
+                  <button
+                    type="button"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      vpnSubTab === "subscriptions"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                    onClick={() => setVpnSubTab("subscriptions")}
+                  >
+                    {t("vpnSubscriptions.tabs.subscriptions", "Подписки")} (
+                    {subscriptions.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      vpnSubTab === "wireguard"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    }`}
+                    onClick={() => setVpnSubTab("wireguard")}
+                  >
+                    {t("vpnSubscriptions.tabs.wireguard", "WireGuard")} (
+                    {vpnConfigs.length})
+                  </button>
+                </div>
+
+                {vpnSubTab === "subscriptions" ? (
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                    <VpnSubscriptionAccordion />
+                  </div>
+                ) : (
+                  (hasOpenedVpns || activeTab === "vpns") && (
+                    <ManagedDataTable
+                      table={vpnsTable}
+                      tools={vpnsTableTools}
+                      loading={isLoadingVpns}
+                      empty={
+                        <EntityEmptyState
+                          entity="vpns"
+                          icon={LuShieldCheck}
+                          title={t("entities.empty.vpns.title")}
+                          description={t("entities.empty.vpns.body")}
                         >
-                          <LuPlus className="size-4" />
-                          {t("proxies.management.newVpn")}
-                        </RippleButton>
-                        <RippleButton
-                          size="sm"
-                          variant="soft"
-                          className="gap-2"
-                          onClick={() => {
-                            setShowVpnImportDialog(true);
-                          }}
-                        >
-                          <LuUpload className="size-4" />
-                          {t("common.buttons.import")}
-                        </RippleButton>
-                      </EntityEmptyState>
-                    }
-                  />
+                          <RippleButton
+                            size="sm"
+                            className="gap-2"
+                            onClick={handleCreateVpn}
+                          >
+                            <LuPlus className="size-4" />
+                            {t("proxies.management.newVpn")}
+                          </RippleButton>
+                          <RippleButton
+                            size="sm"
+                            variant="soft"
+                            className="gap-2"
+                            onClick={() => {
+                              setShowVpnImportDialog(true);
+                            }}
+                          >
+                            <LuUpload className="size-4" />
+                            {t("common.buttons.import")}
+                          </RippleButton>
+                        </EntityEmptyState>
+                      }
+                    />
+                  )
                 )}
               </AnimatedTabsContent>
             </AnimatedTabs>
@@ -1453,6 +1503,12 @@ export function ProxyManagementDialog({
         isOpen={showVpnImportDialog}
         onClose={() => {
           setShowVpnImportDialog(false);
+        }}
+      />
+      <VpnSubscriptionDialog
+        isOpen={showVpnSubDialog}
+        onClose={() => {
+          setShowVpnSubDialog(false);
         }}
       />
       {isOpen && activeTab === "proxies" && (

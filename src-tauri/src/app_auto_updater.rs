@@ -295,7 +295,10 @@ impl AppAutoUpdater {
     } else {
       "stable"
     };
-    let releases = match self.fetch_app_releases(channel == "nightly" || include_beta).await {
+    let releases = match self
+      .fetch_app_releases(channel == "nightly" || include_beta)
+      .await
+    {
       Ok(releases) => {
         APP_UPDATE_CHECK_STREAK.succeeded();
         releases

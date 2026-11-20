@@ -5399,5 +5399,51 @@
     "created": "Created {{count}} profiles",
     "createFailed": "Bulk creation failed: {{error}}",
     "pastePlaceholder": "name,proxy,os,tags,notes\nShop,pool-1,windows,work|vip,Buyer account\nMail,192.168.1.1:8000,macos,,Spam check\n\nJSON works too: [{\"name\":\"Shop\"}]"
+  },
+  "vpnSubscriptions": {
+    "addBtn": "Add Subscription",
+    "copied": "Connection link copied to clipboard",
+    "emptyTitle": "No subscriptions added",
+    "emptyDesc": "Add a subscription link from your provider (VLESS, Trojan, VMess, Hysteria2, SS or Clash YAML) to load servers automatically.",
+    "nodesUnit": "nodes",
+    "updated": "Updated",
+    "neverUpdated": "Never updated",
+    "available": "available",
+    "pingAllHint": "Ping only the nodes in this subscription",
+    "pingBtn": "Ping",
+    "updateHint": "Update subscription (fetch new nodes, remove obsolete)",
+    "updateBtn": "Update",
+    "searchPlaceholder": "Search by name, country, protocol...",
+    "noSearchMatches": "No servers found matching query",
+    "noNodesInSub": "No available servers in this subscription",
+    "pingNode": "Ping this node",
+    "copyUri": "Copy URI",
+    "useNode": "Select",
+    "tabs": {
+      "subscriptions": "Subscriptions",
+      "wireguard": "WireGuard"
+    },
+    "dialog": {
+      "addTitle": "Add VPN Subscription",
+      "editTitle": "Edit Subscription",
+      "desc": "Supports Base64 links, URI list (vless, vmess, trojan, hysteria2, ss, wg) and Clash YAML",
+      "nameLabel": "Subscription Name",
+      "urlLabel": "Subscription URL",
+      "urlHint": "Nodes will be automatically downloaded and verified upon saving.",
+      "autoUpdate": "Auto-update subscription",
+      "autoUpdateHint": "Periodically check for new nodes and remove obsolete ones",
+      "addButton": "Add"
+    },
+    "errors": {
+      "nameRequired": "Subscription name is required",
+      "urlRequired": "Subscription URL is required",
+      "invalidUrl": "URL must start with http:// or https://"
+    }
+  },
+  "proxyChain": {
+    "enableToggle": "Enable Proxy Chain (Relay)",
+    "enableHint": "Route connection through a relay proxy before reaching the exit proxy",
+    "relayHop1": "Relay Proxy (Hop 1)",
+    "selectRelay": "Select relay proxy..."
   }
 }

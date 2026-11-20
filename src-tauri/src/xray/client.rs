@@ -28,8 +28,28 @@ impl XrayClientRuntime {
 }
 
 pub fn build_client_config(config: &XrayConfig, runtime: &XrayClientRuntime) -> XrayResult<Value> {
+  build_client_config_with_relay(config, runtime, None)
+}
+
+pub fn build_client_config_with_relay(
+  config: &XrayConfig,
+  runtime: &XrayClientRuntime,
+  relay: Option<&XrayConfig>,
+) -> XrayResult<Value> {
   config.validate()?;
   runtime.validate()?;
+  if let Some(r) = relay {
+    r.validate()?;
+  }
+
+  let mut outbounds = Vec::new();
+  if let Some(r) = relay {
+    // Exit node routes through relay node
+    outbounds.push(outbound_with_tag(config, "proxy", Some("relay")));
+    outbounds.push(outbound_with_tag(r, "relay", None));
+  } else {
+    outbounds.push(outbound_with_tag(config, "proxy", None));
+  }
 
   Ok(json!({
     "log": {
@@ -50,19 +70,24 @@ pub fn build_client_config(config: &XrayConfig, runtime: &XrayClientRuntime) -> 
         "ip": "127.0.0.1"
       }
     }],
-    "outbounds": [outbound(config)]
+    "outbounds": outbounds
   }))
 }
 
+#[allow(dead_code)]
 fn outbound(config: &XrayConfig) -> Value {
-  match &config.outbound {
+  outbound_with_tag(config, "proxy", None)
+}
+
+fn outbound_with_tag(config: &XrayConfig, tag: &str, proxy_tag: Option<&str>) -> Value {
+  let mut val = match &config.outbound {
     XrayOutbound::Vless { id, flow, stream } => {
       let mut user = json!({ "id": id, "encryption": "none" });
       if let Some(flow) = flow {
         user["flow"] = json!(flow.as_str());
       }
       json!({
-        "tag": "proxy",
+        "tag": tag,
         "protocol": "vless",
         "settings": {
           "vnext": [{ "address": config.address, "port": config.port, "users": [user] }]
@@ -75,7 +100,7 @@ fn outbound(config: &XrayConfig) -> Value {
       security,
       stream,
     } => json!({
-      "tag": "proxy",
+      "tag": tag,
       "protocol": "vmess",
       "settings": {
         "vnext": [{
@@ -87,7 +112,7 @@ fn outbound(config: &XrayConfig) -> Value {
       "streamSettings": stream_settings(stream)
     }),
     XrayOutbound::Trojan { password, stream } => json!({
-      "tag": "proxy",
+      "tag": tag,
       "protocol": "trojan",
       "settings": {
         "servers": [{ "address": config.address, "port": config.port, "password": password }]
@@ -115,13 +140,19 @@ fn outbound(config: &XrayConfig) -> Value {
         });
       }
       json!({
-        "tag": "proxy",
+        "tag": tag,
         "protocol": "hysteria",
         "settings": { "version": 2, "address": config.address, "port": config.port },
         "streamSettings": stream
       })
     }
+  };
+
+  if let Some(p_tag) = proxy_tag {
+    val["proxySettings"] = json!({ "tag": p_tag });
   }
+
+  val
 }
 
 fn stream_settings(stream: &StreamSettings) -> Value {
@@ -219,7 +250,15 @@ pub fn build_client_config_json(
   config: &XrayConfig,
   runtime: &XrayClientRuntime,
 ) -> XrayResult<String> {
-  serde_json::to_string_pretty(&build_client_config(config, runtime)?)
+  build_client_config_json_with_relay(config, runtime, None)
+}
+
+pub fn build_client_config_json_with_relay(
+  config: &XrayConfig,
+  runtime: &XrayClientRuntime,
+  relay: Option<&XrayConfig>,
+) -> XrayResult<String> {
+  serde_json::to_string_pretty(&build_client_config_with_relay(config, runtime, relay)?)
     .map_err(|_| XrayError::Serialization)
 }
 
@@ -510,5 +549,17 @@ mod tests {
       XrayError::InvalidField { field: "pbk", .. }
     ));
     assert!(!error.to_string().contains(secret));
+  }
+
+  #[test]
+  fn proxy_chain_config_generates_chained_outbounds() {
+    let exit = valid_config();
+    let relay = valid_config();
+    let value = build_client_config_with_relay(&exit, &runtime(), Some(&relay)).unwrap();
+    let outbounds = value["outbounds"].as_array().unwrap();
+    assert_eq!(outbounds.len(), 2);
+    assert_eq!(outbounds[0]["tag"], "proxy");
+    assert_eq!(outbounds[0]["proxySettings"]["tag"], "relay");
+    assert_eq!(outbounds[1]["tag"], "relay");
   }
 }

@@ -713,6 +713,7 @@ mod tests {
       browser: "wayfern".to_string(),
       version: "1.0.0".to_string(),
       proxy_id: None,
+      relay_proxy_id: None,
       vpn_id: None,
       launch_hook: None,
       process_id: None,
