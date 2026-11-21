@@ -1571,17 +1571,16 @@ impl ProxyManager {
             password: None,
             vless_uri: Some(node.raw_uri),
           });
-        } else if let Some(parsed) = Self::try_parse_url_format(&node.raw_uri) {
-          if let ProxyParseResult::Parsed(p) = parsed {
-            return Some(ProxySettings {
-              proxy_type: p.proxy_type,
-              host: p.host,
-              port: p.port,
-              username: p.username,
-              password: p.password,
-              vless_uri: p.vless_uri,
-            });
-          }
+        } else if let Some(ProxyParseResult::Parsed(p)) = Self::try_parse_url_format(&node.raw_uri)
+        {
+          return Some(ProxySettings {
+            proxy_type: p.proxy_type,
+            host: p.host,
+            port: p.port,
+            username: p.username,
+            password: p.password,
+            vless_uri: p.vless_uri,
+          });
         }
         return Some(ProxySettings {
           proxy_type: node.protocol,

@@ -211,6 +211,26 @@ fn local_os_refusal(profile: &BrowserProfile) -> Option<String> {
   })
 }
 
+/// Every WireGuard config this profile routes through: its own `vpn_id`, a
+/// chain's WG exit (`proxy_id = "vpn-…"`), and a chain's WG relay.
+fn profile_wg_vpn_ids(profile: &BrowserProfile) -> Vec<String> {
+  let mut ids = Vec::new();
+  if let Some(vpn_id) = profile.vpn_id.as_deref() {
+    ids.push(vpn_id.to_string());
+  }
+  for raw in [
+    profile.proxy_id.as_deref(),
+    profile.relay_proxy_id.as_deref(),
+  ] {
+    if let Some(id) = raw.and_then(|r| r.strip_prefix("vpn-")) {
+      ids.push(id.to_string());
+    }
+  }
+  ids.sort();
+  ids.dedup();
+  ids
+}
+
 pub struct BrowserRunner {
   pub profile_manager: &'static ProfileManager,
   pub downloaded_browsers_registry: &'static DownloadedBrowsersRegistry,
@@ -483,7 +503,10 @@ impl BrowserRunner {
         let detour = match profile.relay_proxy_id.as_deref() {
           None => None,
           Some(relay_id) if relay_id.starts_with("vpn-") => {
-            let relay_start = crate::vpn_worker_runner::start_vpn_worker_tracked(relay_id)
+            let Some(relay_vpn_id) = relay_id.strip_prefix("vpn-") else {
+              return Err(crate::backend_error("VPN_WORKER_START_FAILED").into());
+            };
+            let relay_start = crate::vpn_worker_runner::start_vpn_worker_tracked(relay_vpn_id)
               .await
               .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
                 crate::backend_error_with_detail("VPN_WORKER_START_FAILED", e).into()
@@ -1738,6 +1761,20 @@ impl BrowserRunner {
       crate::profile::activity::stopped(&updated_profile.id.to_string());
       if let Some(pid) = profile.process_id {
         PROXY_MANAGER.stop_worker_of_exited_browser(pid).await;
+      }
+
+      // WireGuard tunnels this profile rode (its own vpn_id, a chain's WG
+      // exit in proxy_id, a chain's WG relay in relay_proxy_id) die with the
+      // browser unless another running browser still uses the same config.
+      // The stored process_id is already cleared, so the in-use check no
+      // longer counts this profile.
+      for vpn_id in profile_wg_vpn_ids(profile) {
+        if crate::vpn_worker_runner::vpn_id_in_use_by_running_browser(&vpn_id) {
+          continue;
+        }
+        if let Err(error) = crate::vpn_worker_runner::stop_vpn_worker_by_vpn_id(&vpn_id).await {
+          log::warn!("VPN worker stop on profile stop failed vpn={vpn_id} err=\"{error}\"");
+        }
       }
 
       // Check for pending updates and apply them

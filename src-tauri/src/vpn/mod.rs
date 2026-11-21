@@ -5,6 +5,7 @@
 //! - Encrypted storage for VPN configurations
 //! - Tunnel management with userspace WireGuard (boringtun) routed through smoltcp
 
+pub mod awg;
 pub mod chain;
 mod config;
 pub mod socks5_server;

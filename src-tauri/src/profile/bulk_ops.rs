@@ -142,7 +142,7 @@ pub fn parse_table_records(text: &str) -> Vec<BulkProfileRecord> {
         }
         let tags = match row.get("tags") {
           Some(serde_json::Value::Array(tags)) => tags
-            .into_iter()
+            .iter()
             .filter_map(|tag| tag.as_str().map(str::trim).map(str::to_string))
             .filter(|tag| !tag.is_empty())
             .collect(),

@@ -15,8 +15,10 @@ import {
 import { FlagIcon } from "@/components/flag-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getCachedVpnResult } from "@/components/vpn-check-button";
 import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
+import { useVpnEvents } from "@/hooks/use-vpn-events";
 import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { extractCountryCode } from "@/lib/flag-utils";
 import { getCachedProxyResult } from "@/lib/proxy-check-store";
@@ -28,6 +30,7 @@ export function ProxyChainsList() {
   const { t } = useTranslation();
   const { chains, deleteChain, pingChain, pingingChainId } = useProxyChains();
   const { storedProxies } = useProxyEvents();
+  const { vpnConfigs } = useVpnEvents();
   const { nodes: subscriptionNodes } = useVpnSubscriptions();
 
   const [editingChain, setEditingChain] = useState<ProxyChain | null>(null);
@@ -39,6 +42,18 @@ export function ProxyChainsList() {
       string,
       { name: string; countryCode?: string; subtitle: string }
     >();
+
+    // Chains store WireGuard configs as `vpn-<config id>`.
+    for (const vpn of vpnConfigs) {
+      map.set(`vpn-${vpn.id}`, {
+        name: `WG — ${vpn.name}`,
+        countryCode:
+          getCachedVpnResult(vpn.id)?.country_code ??
+          extractCountryCode(undefined, vpn.name) ??
+          undefined,
+        subtitle: "WireGuard",
+      });
+    }
 
     for (const p of storedProxies) {
       const res = getCachedProxyResult(p.id);

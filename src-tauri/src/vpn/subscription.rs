@@ -10,6 +10,10 @@ use tokio::sync::Mutex as TokioMutex;
 use uuid::Uuid;
 use yaml_rust2::YamlLoader;
 
+/// Prior ping/latency/validity/name of one subscription node, keyed by
+/// server:port — what a subscription refresh must carry over.
+type NodeSnapshotMap = HashMap<(String, u16), (Option<u64>, Option<bool>, Option<String>)>;
+
 /// Represents a subscribed VPN/proxy provider.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VpnSubscription {
@@ -467,6 +471,12 @@ pub struct VpnSubscriptionManager {
   storage_dir: PathBuf,
 }
 
+impl Default for VpnSubscriptionManager {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl VpnSubscriptionManager {
   pub fn new() -> Self {
     let dir = crate::app_dirs::vpn_dir();
@@ -659,17 +669,16 @@ impl VpnSubscriptionManager {
 
     // Load existing nodes to preserve previous ping / latency results
     let mut existing_nodes = self.list_nodes();
-    let old_node_map: HashMap<(String, u16), (Option<u64>, Option<bool>, Option<String>)> =
-      existing_nodes
-        .iter()
-        .filter(|n| n.subscription_id == id)
-        .map(|n| {
-          (
-            (n.server.clone(), n.port),
-            (n.latency_ms, n.is_valid, n.country_code.clone()),
-          )
-        })
-        .collect();
+    let old_node_map: NodeSnapshotMap = existing_nodes
+      .iter()
+      .filter(|n| n.subscription_id == id)
+      .map(|n| {
+        (
+          (n.server.clone(), n.port),
+          (n.latency_ms, n.is_valid, n.country_code.clone()),
+        )
+      })
+      .collect();
 
     // Remove old nodes of this subscription
     existing_nodes.retain(|n| n.subscription_id != id);

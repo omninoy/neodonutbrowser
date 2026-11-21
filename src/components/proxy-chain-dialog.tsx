@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getCachedVpnResult } from "@/components/vpn-check-button";
 import { useProxyChains } from "@/hooks/use-proxy-chains";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
+import { useVpnEvents } from "@/hooks/use-vpn-events";
 import { useVpnSubscriptions } from "@/hooks/use-vpn-subscriptions";
 import { extractCountryCode } from "@/lib/flag-utils";
 import { getCachedProxyResult } from "@/lib/proxy-check-store";
@@ -39,6 +41,7 @@ export function ProxyChainDialog({
   const { t } = useTranslation();
   const { addChain, updateChain } = useProxyChains();
   const { storedProxies } = useProxyEvents();
+  const { vpnConfigs } = useVpnEvents();
   const { nodes: subscriptionNodes } = useVpnSubscriptions();
 
   const [name, setName] = useState("");
@@ -122,6 +125,20 @@ export function ProxyChainDialog({
 
   const getHopDetails = (id: string) => {
     if (!id) return null;
+    if (id.startsWith("vpn-")) {
+      const vpnId = id.slice(4);
+      const vpn = vpnConfigs.find((v) => v.id === vpnId);
+      if (vpn) {
+        return {
+          name: `WG — ${vpn.name}`,
+          countryCode:
+            getCachedVpnResult(vpn.id)?.country_code ??
+            extractCountryCode(undefined, vpn.name) ??
+            undefined,
+          protocol: "wireguard",
+        };
+      }
+    }
     if (id.startsWith("subnode-")) {
       const nodeId = id.slice(8);
       for (const nodes of Object.values(subscriptionNodes)) {

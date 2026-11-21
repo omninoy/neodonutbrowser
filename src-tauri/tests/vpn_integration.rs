@@ -301,6 +301,7 @@ async fn test_wireguard_tunnel_init() {
     allowed_ips: vec!["0.0.0.0/0".to_string()],
     persistent_keepalive: Some(25),
     preshared_key: None,
+    awg: donutbrowser_lib::vpn::awg::AwgParams::default(),
     dial_via_socks: None,
   };
 

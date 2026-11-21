@@ -2184,10 +2184,11 @@ async fn ping_proxy_chain(
   {
     // The relay is resolved the same way the launch path does it. A WG relay
     // in front of a WG exit builds no RelayRoute — the exit tunnel itself
-    // dials through the relay worker (the WG→WG detour).
+    // dials through the relay worker (the WG→WG detour), so the relay worker
+    // must still be raised; only the Xray route is skipped.
     let mut relay_vpn_start: Option<crate::vpn_worker_runner::VpnWorkerStart> = None;
     let mut relay_route: Option<crate::xray_worker_runner::RelayRoute> = None;
-    if let Some(relay) = relay_id.filter(|_| !exit_id.starts_with("vpn-")) {
+    if let Some(relay) = relay_id {
       if let Some(vpn_id) = relay.strip_prefix("vpn-") {
         let started = crate::vpn_worker_runner::start_vpn_worker_tracked(vpn_id)
           .await
@@ -2202,6 +2203,10 @@ async fn ping_proxy_chain(
                   .map(|_| ());
               }
               error = Some("Relay VPN worker has no local SOCKS port".to_string());
+            } else if exit_id.starts_with("vpn-") {
+              // WG→WG: no Xray route — the exit tunnel dials its endpoint
+              // through this relay worker's local SOCKS (the detour below).
+              relay_vpn_start = Some(started);
             } else {
               relay_route = Some(crate::xray_worker_runner::RelayRoute::Socks(
                 crate::xray_worker_storage::RelaySocksSpec {
@@ -2219,6 +2224,11 @@ async fn ping_proxy_chain(
             error = Some(format!("Relay VPN worker failed to start: {e}"));
           }
         }
+      } else if exit_id.starts_with("vpn-") {
+        // A non-WG relay in front of a WireGuard exit is not routable (the
+        // tunnel dials UDP; Xray cannot front it). Mirror the launch path:
+        // warn and go on with the exit alone.
+        log::warn!("Chain ping: relay ignored for a WireGuard exit relay={relay}");
       } else {
         match crate::proxy_manager::PROXY_MANAGER.get_proxy_settings_by_id(&relay) {
           Some(rp) if rp.vless_uri.is_some() => {
@@ -3593,7 +3603,20 @@ pub fn run_with_builder(
         let running_vpn_ids: std::collections::HashSet<String> = profiles
           .iter()
           .filter(|p| p.process_id.is_some_and(is_process_running))
-          .filter_map(|p| p.vpn_id.clone())
+          .flat_map(|p| {
+            let mut ids = Vec::new();
+            if let Some(vpn_id) = p.vpn_id.as_deref() {
+              ids.push(vpn_id.to_string());
+            }
+            // A chain carries the config as `vpn-<id>` in proxy_id (WG exit)
+            // or relay_proxy_id (WG relay).
+            for raw in [p.proxy_id.as_deref(), p.relay_proxy_id.as_deref()] {
+              if let Some(id) = raw.and_then(|r| r.strip_prefix("vpn-")) {
+                ids.push(id.to_string());
+              }
+            }
+            ids
+          })
           .collect();
 
         for config in list_proxy_configs() {

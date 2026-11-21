@@ -156,30 +156,73 @@ struct WgDevice {
   tunn: Arc<Mutex<Box<Tunn>>>,
   udp_socket: Arc<WgSocket>,
   peer_addr: SocketAddr,
+  awg: super::awg::AwgParams,
   rx_queue: VecDeque<Vec<u8>>,
   tx_queue: VecDeque<Vec<u8>>,
 }
 
 impl WgDevice {
-  /// Decrypt every datagram the peer sent. Returns how many arrived.
+  /// Send one boringtun-produced packet: handshake messages get their AWG
+  /// junk prefix, every packet gets the AWG type/padding wrap.
+  fn send_outbound(&mut self, raw: &[u8]) {
+    let kind = match raw_message_type(raw) {
+      Some(
+        kind @ (super::awg::AwgMessage::Initiation
+        | super::awg::AwgMessage::Response
+        | super::awg::AwgMessage::CookieReply),
+      ) => {
+        for junk in super::awg::junk_packets(&self.awg) {
+          if let Err(e) = self.udp_socket.send_to(&junk, self.peer_addr) {
+            crate::proxy_server::warn_throttled(&format!("WireGuard junk send failed err=\"{e}\""));
+          }
+        }
+        Some(kind)
+      }
+      other => other,
+    };
+    let Some(kind) = kind else {
+      return;
+    };
+    let mut wrapped = raw.to_vec();
+    super::awg::wrap_outgoing(&self.awg, kind, &mut wrapped);
+    if let Err(e) = self.udp_socket.send_to(&wrapped, self.peer_addr) {
+      crate::proxy_server::warn_throttled(&format!("WireGuard UDP send failed err=\"{e}\""));
+    }
+  }
+
+  /// Decrypt every datagram the peer sent. Returns how many arrived. Junk
+  /// datagrams (an AmneziaWG peer prefixes its handshake messages with them)
+  /// are dropped here and never reach smoltcp.
   fn pump_wg_to_rx(&mut self) -> usize {
     let mut recv_buf = vec![0u8; 2048];
     let mut received = 0;
     loop {
       match self.udp_socket.recv_from(&mut recv_buf) {
         Ok((len, _)) => {
-          received += 1;
-          let mut dst = vec![0u8; 2048];
-          let mut tunn = self.tunn.lock().unwrap();
-          let result = tunn.decapsulate(None, &recv_buf[..len], &mut dst);
-          match result {
-            TunnResult::WriteToTunnelV4(data, _) | TunnResult::WriteToTunnelV6(data, _) => {
-              self.rx_queue.push_back(data.to_vec());
+          match super::awg::unwrap_incoming(&self.awg, &mut recv_buf[..len]) {
+            super::awg::AwgIncoming::Ignore => continue,
+            super::awg::AwgIncoming::Message { len: msg_len, .. } => {
+              received += 1;
+              let mut dst = vec![0u8; 2048];
+              // The guard drops before send_outbound takes its own borrows.
+              let outcome = {
+                let mut tunn = self.tunn.lock().unwrap();
+                match tunn.decapsulate(None, &recv_buf[..msg_len], &mut dst) {
+                  TunnResult::WriteToTunnelV4(data, _) | TunnResult::WriteToTunnelV6(data, _) => {
+                    Some((data.to_vec(), None))
+                  }
+                  TunnResult::WriteToNetwork(response) => {
+                    Some((Vec::new(), Some(response.to_vec())))
+                  }
+                  _ => None,
+                }
+              };
+              match outcome {
+                Some((data, None)) => self.rx_queue.push_back(data),
+                Some((_, Some(response))) => self.send_outbound(&response),
+                _ => {}
+              }
             }
-            TunnResult::WriteToNetwork(response) => {
-              let _ = self.udp_socket.send_to(response, self.peer_addr);
-            }
-            _ => {}
           }
         }
         Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
@@ -195,27 +238,24 @@ impl WgDevice {
     while let Some(ip_packet) = self.tx_queue.pop_front() {
       sent += 1;
       let mut dst = vec![0u8; ip_packet.len() + 256];
-      let mut tunn = self.tunn.lock().unwrap();
-      let result = tunn.encapsulate(&ip_packet, &mut dst);
-      match result {
-        TunnResult::WriteToNetwork(packet) => {
-          if let Err(e) = self.udp_socket.send_to(packet, self.peer_addr) {
-            crate::proxy_server::warn_throttled(&format!("WireGuard UDP send failed err=\"{e}\""));
-          }
-        }
-        TunnResult::Done => {
+      // The guard drops before send_outbound takes its own borrows.
+      let outcome = {
+        let mut tunn = self.tunn.lock().unwrap();
+        match tunn.encapsulate(&ip_packet, &mut dst) {
+          TunnResult::WriteToNetwork(packet) => Ok(Some(packet.to_vec())),
+          TunnResult::Err(e) => Err(e),
           // boringtun has nothing to send right now (e.g. handshake not yet
           // complete); silently drop. smoltcp will retransmit.
+          _ => Ok(None),
         }
-        TunnResult::Err(e) => {
+      };
+      match outcome {
+        Ok(Some(packet)) => self.send_outbound(&packet),
+        Ok(None) => {}
+        Err(e) => {
           crate::proxy_server::warn_throttled(&format!(
             "WireGuard encapsulate failed err=\"{e:?}\""
           ));
-        }
-        TunnResult::WriteToTunnelV4(_, _) | TunnResult::WriteToTunnelV6(_, _) => {
-          crate::proxy_server::warn_throttled(
-            "WireGuard encapsulate returned WriteToTunnel; unexpected, packet dropped",
-          );
         }
       }
     }
@@ -224,11 +264,30 @@ impl WgDevice {
 
   fn tick_timers(&mut self) {
     let mut dst = vec![0u8; 2048];
-    let mut tunn = self.tunn.lock().unwrap();
-    let result = tunn.update_timers(&mut dst);
-    if let TunnResult::WriteToNetwork(packet) = result {
-      let _ = self.udp_socket.send_to(packet, self.peer_addr);
+    let packet = {
+      let mut tunn = self.tunn.lock().unwrap();
+      match tunn.update_timers(&mut dst) {
+        TunnResult::WriteToNetwork(packet) => Some(packet.to_vec()),
+        _ => None,
+      }
+    };
+    if let Some(packet) = packet {
+      self.send_outbound(&packet);
     }
+  }
+}
+
+/// The standard message type a raw boringtun packet carries, if any.
+fn raw_message_type(raw: &[u8]) -> Option<super::awg::AwgMessage> {
+  if raw.len() < 4 {
+    return None;
+  }
+  match u32::from_le_bytes([raw[0], raw[1], raw[2], raw[3]]) {
+    1 => Some(super::awg::AwgMessage::Initiation),
+    2 => Some(super::awg::AwgMessage::Response),
+    3 => Some(super::awg::AwgMessage::CookieReply),
+    4 => Some(super::awg::AwgMessage::Transport),
+    _ => None,
   }
 }
 
@@ -435,6 +494,7 @@ impl WireGuardSocks5Server {
     tunn: &mut Tunn,
     socket: &WgSocket,
     peer_addr: SocketAddr,
+    awg: &super::awg::AwgParams,
   ) -> Result<u32, VpnError> {
     socket
       .set_read_timeout(Some(std::time::Duration::from_secs(5)))
@@ -448,13 +508,21 @@ impl WireGuardSocks5Server {
     let mut last_error = String::from("no handshake attempt completed");
 
     for attempt in 1..=max_attempts {
+      // An AmneziaWG peer expects its junk datagrams before the initiation.
+      for junk in super::awg::junk_packets(awg) {
+        socket
+          .send_to(&junk, peer_addr)
+          .map_err(|e| VpnError::Connection(format!("Failed to send junk: {e}")))?;
+      }
       let mut dst = vec![0u8; 2048];
       let result = tunn.format_handshake_initiation(&mut dst, false);
 
       match result {
         TunnResult::WriteToNetwork(packet) => {
+          let mut wrapped = packet.to_vec();
+          super::awg::wrap_outgoing(awg, super::awg::AwgMessage::Initiation, &mut wrapped);
           socket
-            .send_to(packet, peer_addr)
+            .send_to(&wrapped, peer_addr)
             .map_err(|e| VpnError::Connection(format!("Failed to send handshake: {e}")))?;
         }
         TunnResult::Err(e) => {
@@ -465,42 +533,69 @@ impl WireGuardSocks5Server {
         _ => {}
       }
 
+      // Wait for the response, dropping the peer's junk datagrams on the way
+      // (an AmneziaWG peer prefixes its response with `Jc` of them).
+      let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
       let mut recv_buf = vec![0u8; 2048];
-      match socket.recv_from(&mut recv_buf) {
-        Ok((len, _)) => {
-          let result = tunn.decapsulate(None, &recv_buf[..len], &mut dst);
-          match result {
-            TunnResult::WriteToNetwork(response) => {
-              socket
-                .send_to(response, peer_addr)
-                .map_err(|e| VpnError::Connection(format!("Failed to send response: {e}")))?;
-            }
-            TunnResult::Done => {}
-            TunnResult::Err(e) => {
-              last_error = format!("handshake response error: {e:?}");
-              log::debug!(
-                "WireGuard handshake attempt failed attempt={attempt}/{max_attempts} err=\"{last_error}\""
-              );
+      loop {
+        let now = std::time::Instant::now();
+        if now >= deadline {
+          last_error = "timeout: handshake response deadline passed".to_string();
+          break;
+        }
+        socket
+          .set_read_timeout(Some(deadline - now))
+          .map_err(|e| VpnError::Connection(format!("Failed to set timeout: {e}")))?;
+        match socket.recv_from(&mut recv_buf) {
+          Ok((len, _)) => {
+            let kind = match super::awg::unwrap_incoming(awg, &mut recv_buf[..len]) {
+              super::awg::AwgIncoming::Ignore => continue,
+              super::awg::AwgIncoming::Message { kind, len: msg_len } => (kind, msg_len),
+            };
+            // Anything but a handshake response (e.g. transport from a stale
+            // session) is not what this attempt waits for; keep reading.
+            if kind.0 != super::awg::AwgMessage::Response {
               continue;
             }
-            _ => {}
-          }
+            let result = tunn.decapsulate(None, &recv_buf[..kind.1], &mut dst);
+            match result {
+              TunnResult::WriteToNetwork(response) => {
+                let mut wrapped = response.to_vec();
+                super::awg::wrap_outgoing(awg, super::awg::AwgMessage::Response, &mut wrapped);
+                for junk in super::awg::junk_packets(awg) {
+                  let _ = socket.send_to(&junk, peer_addr);
+                }
+                socket
+                  .send_to(&wrapped, peer_addr)
+                  .map_err(|e| VpnError::Connection(format!("Failed to send response: {e}")))?;
+              }
+              TunnResult::Done => {}
+              TunnResult::Err(e) => {
+                last_error = format!("handshake response error: {e:?}");
+                log::debug!(
+                  "WireGuard handshake attempt failed attempt={attempt}/{max_attempts} err=\"{last_error}\""
+                );
+                break;
+              }
+              _ => {}
+            }
 
-          socket
-            .set_read_timeout(None)
-            .map_err(|e| VpnError::Connection(format!("Failed to clear timeout: {e}")))?;
-          return Ok(attempt);
+            socket
+              .set_read_timeout(None)
+              .map_err(|e| VpnError::Connection(format!("Failed to clear timeout: {e}")))?;
+            return Ok(attempt);
+          }
+          Err(e) => {
+            last_error = format!("timeout: {e}");
+            break;
+          }
         }
-        Err(e) if attempt < max_attempts => {
-          log::debug!(
-            "WireGuard handshake attempt timed out attempt={attempt}/{max_attempts} err=\"{e}\""
-          );
-          last_error = format!("timeout: {e}");
-          continue;
-        }
-        Err(e) => {
-          last_error = format!("timeout: {e}");
-        }
+      }
+
+      if attempt < max_attempts {
+        log::debug!(
+          "WireGuard handshake attempt failed attempt={attempt}/{max_attempts} err=\"{last_error}\""
+        );
       }
     }
 
@@ -536,7 +631,7 @@ impl WireGuardSocks5Server {
       WgSocket::Direct(Arc::new(socket))
     };
 
-    let handshake_attempts = Self::do_handshake(&mut tunn, &uplink, peer_addr)?;
+    let handshake_attempts = Self::do_handshake(&mut tunn, &uplink, peer_addr, &self.config.awg)?;
 
     uplink.set_nonblocking(true)?;
 
@@ -549,6 +644,7 @@ impl WireGuardSocks5Server {
       tunn: tunn_arc.clone(),
       udp_socket: udp_arc.clone(),
       peer_addr,
+      awg: self.config.awg,
       rx_queue: VecDeque::new(),
       tx_queue: VecDeque::new(),
     };

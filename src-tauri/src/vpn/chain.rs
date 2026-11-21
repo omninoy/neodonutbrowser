@@ -34,6 +34,12 @@ pub struct ProxyChainManager {
   storage_dir: PathBuf,
 }
 
+impl Default for ProxyChainManager {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl ProxyChainManager {
   pub fn new() -> Self {
     let dir = crate::app_dirs::vpn_dir();

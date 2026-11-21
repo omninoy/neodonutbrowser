@@ -291,6 +291,12 @@ impl WireGuardTunnel {
       .ok_or_else(|| VpnError::Tunnel("Peer address not resolved".to_string()))?;
 
     let mut tunnel_guard = tunnel.lock().await;
+    let awg = &self.config.awg;
+
+    // An AmneziaWG peer expects its junk datagrams before the initiation.
+    for junk in super::awg::junk_packets(awg) {
+      uplink.send_to(&junk, peer_addr)?;
+    }
 
     // Generate handshake initiation
     let mut dst = vec![0u8; 2048];
@@ -298,11 +304,12 @@ impl WireGuardTunnel {
 
     match result {
       TunnResult::WriteToNetwork(packet) => {
-        uplink.send_to(packet, peer_addr)?;
+        let mut wrapped = packet.to_vec();
+        super::awg::wrap_outgoing(awg, super::awg::AwgMessage::Initiation, &mut wrapped);
+        let sent = wrapped.len() as u64;
+        uplink.send_to(&wrapped, peer_addr)?;
 
-        self
-          .bytes_sent
-          .fetch_add(packet.len() as u64, Ordering::Relaxed);
+        self.bytes_sent.fetch_add(sent, Ordering::Relaxed);
       }
       TunnResult::Err(e) => {
         return Err(VpnError::Tunnel(format!(
@@ -312,45 +319,70 @@ impl WireGuardTunnel {
       _ => {}
     }
 
-    // Wait for handshake response (with timeout)
+    // Wait for handshake response, dropping the peer's junk datagrams
+    // (an AmneziaWG peer prefixes its response with `Jc` of them).
     uplink.set_read_timeout(Some(std::time::Duration::from_secs(10)))?;
 
     let mut recv_buf = vec![0u8; 2048];
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
 
-    match uplink.recv_from(&mut recv_buf) {
-      Ok((len, _from)) => {
-        self.bytes_received.fetch_add(len as u64, Ordering::Relaxed);
+    loop {
+      let now = std::time::Instant::now();
+      if now >= deadline {
+        return Err(VpnError::Connection(
+          "Handshake timeout: response deadline passed".to_string(),
+        ));
+      }
+      uplink.set_read_timeout(Some(deadline - now))?;
 
-        let result = tunnel_guard.decapsulate(None, &recv_buf[..len], &mut dst);
-
-        match result {
-          TunnResult::WriteToNetwork(response) => {
-            uplink.send_to(response, peer_addr)?;
-
-            self
-              .bytes_sent
-              .fetch_add(response.len() as u64, Ordering::Relaxed);
-            self.last_handshake = Some(Utc::now().timestamp());
+      match uplink.recv_from(&mut recv_buf) {
+        Ok((len, _from)) => {
+          let kind = match super::awg::unwrap_incoming(awg, &mut recv_buf[..len]) {
+            super::awg::AwgIncoming::Ignore => continue,
+            super::awg::AwgIncoming::Message { kind, len: msg_len } => (kind, msg_len),
+          };
+          if kind.0 != super::awg::AwgMessage::Response {
+            continue;
           }
-          TunnResult::Done => {
-            self.last_handshake = Some(Utc::now().timestamp());
+          self
+            .bytes_received
+            .fetch_add(kind.1 as u64, Ordering::Relaxed);
+
+          let result = tunnel_guard.decapsulate(None, &recv_buf[..kind.1], &mut dst);
+
+          match result {
+            TunnResult::WriteToNetwork(response) => {
+              let mut wrapped = response.to_vec();
+              super::awg::wrap_outgoing(awg, super::awg::AwgMessage::Response, &mut wrapped);
+              for junk in super::awg::junk_packets(awg) {
+                let _ = uplink.send_to(&junk, peer_addr);
+              }
+              let sent = wrapped.len() as u64;
+              uplink.send_to(&wrapped, peer_addr)?;
+
+              self.bytes_sent.fetch_add(sent, Ordering::Relaxed);
+              self.last_handshake = Some(Utc::now().timestamp());
+            }
+            TunnResult::Done => {
+              self.last_handshake = Some(Utc::now().timestamp());
+            }
+            TunnResult::Err(e) => {
+              return Err(VpnError::Tunnel(format!(
+                "Handshake response failed: {e:?}"
+              )));
+            }
+            _ => {}
           }
-          TunnResult::Err(e) => {
-            return Err(VpnError::Tunnel(format!(
-              "Handshake response failed: {e:?}"
-            )));
-          }
-          _ => {}
+
+          return Ok(());
+        }
+        Err(e) => {
+          return Err(VpnError::Connection(format!(
+            "Handshake timeout or error: {e}"
+          )));
         }
       }
-      Err(e) => {
-        return Err(VpnError::Connection(format!(
-          "Handshake timeout or error: {e}"
-        )));
-      }
     }
-
-    Ok(())
   }
 
   /// Encrypt and send data through the tunnel
@@ -376,11 +408,16 @@ impl WireGuardTunnel {
 
     match result {
       TunnResult::WriteToNetwork(packet) => {
-        uplink.send_to(packet, peer_addr)?;
+        let mut wrapped = packet.to_vec();
+        super::awg::wrap_outgoing(
+          &self.config.awg,
+          super::awg::AwgMessage::Transport,
+          &mut wrapped,
+        );
+        let sent = wrapped.len() as u64;
+        uplink.send_to(&wrapped, peer_addr)?;
 
-        self
-          .bytes_sent
-          .fetch_add(packet.len() as u64, Ordering::Relaxed);
+        self.bytes_sent.fetch_add(sent, Ordering::Relaxed);
       }
       TunnResult::Err(e) => {
         return Err(VpnError::Tunnel(format!("Encryption failed: {e:?}")));
@@ -405,13 +442,23 @@ impl WireGuardTunnel {
 
     let mut recv_buf = vec![0u8; 2048];
 
-    let (len, _from) = uplink.recv_from(&mut recv_buf)?;
+    // Skip the peer's junk datagrams (AmneziaWG prefixes handshake messages
+    // with them); transport data itself never carries a junk prefix.
+    let msg_len = loop {
+      let (len, _from) = uplink.recv_from(&mut recv_buf)?;
+      match super::awg::unwrap_incoming(&self.config.awg, &mut recv_buf[..len]) {
+        super::awg::AwgIncoming::Ignore => continue,
+        super::awg::AwgIncoming::Message { len: msg_len, .. } => break msg_len,
+      }
+    };
 
-    self.bytes_received.fetch_add(len as u64, Ordering::Relaxed);
+    self
+      .bytes_received
+      .fetch_add(msg_len as u64, Ordering::Relaxed);
 
     let mut tunnel_guard = tunnel.lock().await;
     // decapsulate writes decrypted data directly to buf and returns a slice pointing to it
-    let result = tunnel_guard.decapsulate(None, &recv_buf[..len], buf);
+    let result = tunnel_guard.decapsulate(None, &recv_buf[..msg_len], buf);
 
     match result {
       // Data is already written to buf by decapsulate, just return the length
@@ -440,7 +487,7 @@ impl VpnTunnel for WireGuardTunnel {
     // The UDP uplink: straight out of the machine, or through a SOCKS5 UDP
     // detour when this tunnel is the second hop of a WG→WG chain.
     let uplink = if let Some(detour) = self.config.dial_via_socks.clone() {
-      let relay = format!("{detour}")
+      let relay = detour
         .to_socket_addrs()
         .map_err(|e| VpnError::Connection(format!("Bad SOCKS detour '{detour}': {e}")))?
         .next()
@@ -524,6 +571,8 @@ impl VpnTunnel for WireGuardTunnel {
 mod tests {
   use super::*;
 
+  use super::super::awg::AwgParams;
+
   fn create_test_config() -> WireGuardConfig {
     WireGuardConfig {
       private_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".to_string(),
@@ -535,6 +584,7 @@ mod tests {
       allowed_ips: vec!["0.0.0.0/0".to_string()],
       persistent_keepalive: Some(25),
       preshared_key: None,
+      awg: AwgParams::default(),
       dial_via_socks: None,
     }
   }

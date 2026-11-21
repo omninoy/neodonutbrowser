@@ -713,16 +713,13 @@ pub async fn run_xray_worker(config_path: &Path) -> Result<(), Box<dyn std::erro
     parse_share_link(&config.vless_uri)
       .map_err(|error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() })?
   };
-  let parsed_relay = if let Some(relay_uri) = &config.relay_uri {
-    Some(
-      parse_share_link(relay_uri).map_err(|error| -> Box<dyn std::error::Error> {
-        crate::vless_config_error(&error).into()
-      })?,
-    )
-  } else if let Some(spec) = &config.relay_socks {
+  let parsed_relay = match (&config.relay_uri, &config.relay_socks) {
+    (Some(relay_uri), _) => Some(parse_share_link(relay_uri).map_err(
+      |error| -> Box<dyn std::error::Error> { crate::vless_config_error(&error).into() },
+    )?),
     // A programmatic relay hop: the WireGuard worker's local SOCKS or an
     // imported proxy chained ahead of the share-link exit.
-    Some(ParsedShareLink {
+    (None, Some(spec)) => Some(ParsedShareLink {
       name: None,
       config: crate::xray::XrayConfig {
         address: spec.host.clone(),
@@ -738,9 +735,8 @@ pub async fn run_xray_worker(config_path: &Path) -> Result<(), Box<dyn std::erro
           },
         },
       },
-    })
-  } else {
-    None
+    }),
+    (None, None) => None,
   };
   let runtime = XrayClientRuntime {
     listen_port: config.local_port,

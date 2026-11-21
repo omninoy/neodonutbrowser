@@ -75,6 +75,10 @@ pub struct WireGuardConfig {
   pub allowed_ips: Vec<String>,
   pub persistent_keepalive: Option<u16>,
   pub preshared_key: Option<String>,
+  /// AmneziaWG obfuscation parameters. Defaults to the identity transform
+  /// (plain WireGuard) when the .conf carries no AWG lines.
+  #[serde(default)]
+  pub awg: super::awg::AwgParams,
   /// Chain detour: the tunnel's UDP endpoint is dialed through this SOCKS5
   /// worker ("127.0.0.1:port") via UDP ASSOCIATE instead of straight out of
   /// the machine. Set programmatically for WG→WG chains (hop 2 rides hop 1's
@@ -211,6 +215,28 @@ pub fn parse_wireguard_config(content: &str) -> Result<WireGuardConfig, VpnError
     validate_wireguard_key(psk, "PresharedKey")?;
   }
 
+  // AmneziaWG obfuscation parameters. They belong to [Interface] in the AWG
+  // spec; a stray one under [Peer] is honoured too, [Interface] winning.
+  let awg_key = |name: &str| -> Option<u32> {
+    interface
+      .get(name)
+      .or_else(|| peer.get(name))
+      .and_then(|v| v.trim().parse().ok())
+  };
+  let awg = super::awg::AwgParams {
+    jc: awg_key("Jc").unwrap_or(0),
+    jmin: awg_key("Jmin").unwrap_or(0),
+    jmax: awg_key("Jmax").unwrap_or(0),
+    s1: awg_key("S1").unwrap_or(0),
+    s2: awg_key("S2").unwrap_or(0),
+    s3: awg_key("S3").unwrap_or(0),
+    s4: awg_key("S4").unwrap_or(0),
+    h1: awg_key("H1").unwrap_or(1),
+    h2: awg_key("H2").unwrap_or(2),
+    h3: awg_key("H3").unwrap_or(3),
+    h4: awg_key("H4").unwrap_or(4),
+  };
+
   Ok(WireGuardConfig {
     private_key,
     address,
@@ -221,6 +247,7 @@ pub fn parse_wireguard_config(content: &str) -> Result<WireGuardConfig, VpnError
     allowed_ips,
     persistent_keepalive,
     preshared_key,
+    awg,
     dial_via_socks: None,
   })
 }

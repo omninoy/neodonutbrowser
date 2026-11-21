@@ -201,10 +201,17 @@ pub fn vpn_id_in_use_by_running_browser(vpn_id: &str) -> bool {
     // Unable to tell — assume in use rather than tear down a live tunnel.
     return true;
   };
+  // A chain carries the config as `vpn-<id>` in proxy_id (WG exit) or
+  // relay_proxy_id (WG relay), not as the profile's vpn_id.
+  let prefixed = format!("vpn-{vpn_id}");
   profiles
     .iter()
     .filter(|p| p.process_id.is_some_and(is_process_running))
-    .any(|p| p.vpn_id.as_deref() == Some(vpn_id))
+    .any(|p| {
+      p.vpn_id.as_deref() == Some(vpn_id)
+        || p.proxy_id.as_deref() == Some(prefixed.as_str())
+        || p.relay_proxy_id.as_deref() == Some(prefixed.as_str())
+    })
 }
 
 /// Hold the start lock across an adopt-sensitive section (a launch guard
