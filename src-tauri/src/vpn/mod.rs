@@ -8,6 +8,7 @@
 pub mod awg;
 pub mod chain;
 mod config;
+mod dns_tcp;
 pub mod socks5_server;
 mod storage;
 pub mod subscription;

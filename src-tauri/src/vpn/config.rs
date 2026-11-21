@@ -237,6 +237,23 @@ pub fn parse_wireguard_config(content: &str) -> Result<WireGuardConfig, VpnError
     h4: awg_key("H4").unwrap_or(4),
   };
 
+  // Throne-style configs spell the keepalive `KeepaliveTimeout` and may give
+  // it as a randomisation range ("9-16"). Take the range's lower bound: the
+  // server (often behind a short NAT lifetime like a CDN front) needs the
+  // keepalive at least that often, and a missing one silently kills the
+  // session a couple of minutes in.
+  let persistent_keepalive = persistent_keepalive.or_else(|| {
+    interface
+      .get("KeepaliveTimeout")
+      .or_else(|| peer.get("KeepaliveTimeout"))
+      .and_then(|v| {
+        v.trim()
+          .split(['-', ' '])
+          .next()
+          .and_then(|first| first.trim().parse().ok())
+      })
+  });
+
   Ok(WireGuardConfig {
     private_key,
     address,
@@ -414,6 +431,27 @@ Endpoint = b.example.com:51820
     assert_eq!(config.peer_endpoint, "b.example.com:51820");
     assert!(config.preshared_key.is_none());
     assert_eq!(config.allowed_ips, vec!["0.0.0.0/0"]);
+  }
+
+  #[test]
+  fn test_parse_wireguard_config_keepalive_from_throne_style_range() {
+    let content = r#"
+[Interface]
+PrivateKey = YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=
+Address = 10.0.0.2/24
+MTU = 1280
+KeepaliveTimeout = 9-16
+
+[Peer]
+PublicKey = YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=
+Endpoint = vpn.example.com:51820
+"#;
+
+    let config = parse_wireguard_config(content).unwrap();
+    // The range's lower bound: the server behind a short NAT lifetime needs
+    // the keepalive at least that often.
+    assert_eq!(config.persistent_keepalive, Some(9));
+    assert_eq!(config.mtu, Some(1280));
   }
 
   #[test]
